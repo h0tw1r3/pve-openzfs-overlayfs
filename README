@@ -1,0 +1,9 @@
+Proxmox VE packaging for ZFS on Linux
+
+This is based of code from:
+
+https://github.com/zfsonlinux/pkg-spl.git
+https://github.com/zfsonlinux/pkg-zfs.git
+
+We merged updates from the precice branch into the older wheezy 
+branch.

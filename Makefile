@@ -113,6 +113,13 @@ zfs_kmod_3.10.0 ${ZFS_3.10.0_DEBS}: ${ZFSSRC}
 
 .PHONY: download
 download:
+	git clone https://github.com/zfsonlinux/pkg-spl.git
+	#git clone https://github.com/zfsonlinux/pkg-zfs.git
+	#cd pkg-zfs; git checkout upstream
+	#cd pkg-zfs; git checkout master/ubuntu/precise
+	#git checkout master/debian/wheezy
+	#git merge upstream	
+	dsaf
 	rm spl-*.tar.gz
 	rm zfs-*.tar.gz
 	wget https://github.com/zfsonlinux/spl/archive/${SPLSRC}
