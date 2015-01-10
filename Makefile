@@ -32,15 +32,15 @@ spl-dkms_${PKGVER}_all.deb
 #${SPLDIR}_3.10.0/kmod-spl-devel-3.10.0-6-pve_0.6.3-1.2_amd64.deb 
 
 ZFS_DEBS= 			\
-libnvpair1_0.6.3-1~wheezy_amd64.deb 	\
-libuutil1_0.6.3-1~wheezy_amd64.deb	\
-libzfs2_0.6.3-1~wheezy_amd64.deb	\
-libzfs-dev_0.6.3-1~wheezy_amd64.deb	\
-libzpool2_0.6.3-1~wheezy_amd64.deb	\
-zfs-dkms_0.6.3-1~wheezy_amd64.deb	\
-zfs-doc_0.6.3-1~wheezy_amd64.deb	\
-zfs-initramfs_0.6.3-1~wheezy_amd64.deb	\
-zfsutils_0.6.3-1~wheezy_amd64.deb
+libnvpair1_${PKGVER}_amd64.deb 	\
+libuutil1_${PKGVER}_amd64.deb	\
+libzfs2_${PKGVER}_amd64.deb	\
+libzfs-dev_${PKGVER}_amd64.deb	\
+libzpool2_${PKGVER}_amd64.deb	\
+zfs-dkms_${PKGVER}_amd64.deb	\
+zfs-doc_${PKGVER}_amd64.deb	\
+zfs-initramfs_${PKGVER}_amd64.deb	\
+zfsutils_${PKGVER}_amd64.deb
 
 #ZFS_2.6.32_DEBS= \
 #${ZFSDIR}_2.6.32/kmod-zfs-2.6.32-35-pve_0.6.3-1.2_amd64.deb \
