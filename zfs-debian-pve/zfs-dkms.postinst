@@ -1,0 +1,10 @@
+#!/bin/sh -e
+
+case $1 in
+	(configure)
+		[ -x /usr/share/update-notifier/notify-reboot-required ] \
+		  && /usr/share/update-notifier/notify-reboot-required
+		;;
+esac
+
+#DEBHELPER#

@@ -1,0 +1,6 @@
+zfs-linux (0.6.3-1~wheezy) unstable; urgency=low
+
+  * first version for Proxmox VE
+
+ -- Proxmox Support Team <support@proxmox.com>  Sat, 10 Jan 2015 14:06:34 +0100
+
