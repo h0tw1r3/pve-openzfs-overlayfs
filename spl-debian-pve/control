@@ -29,7 +29,6 @@ Package: spl
 Architecture: any
 Conflicts: spl-dev
 Depends: ${shlibs:Depends}, ${misc:Depends}
-Recommends: spl-dkms
 Description: Solaris Porting Layer utilities for Linux
  This package provides the userspace utilities for the SPL and SPLAT Linux
  kernel modules.
