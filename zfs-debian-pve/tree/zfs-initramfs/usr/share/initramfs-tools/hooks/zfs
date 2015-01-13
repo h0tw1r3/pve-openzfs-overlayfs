@@ -45,6 +45,9 @@ fi
 
 mkdir -p "$DESTDIR/etc/"
 
+# zpool requires /etc/mtab
+ln -sf "/proc/mounts" "$DESTDIR/etc/mtab"
+
 # ZDB uses pthreads for some functions, but the library dependency is not
 # automatically detected. The `find` utility and extended `cp` options are
 # used here because libgcc_s.so could be in a subdirectory of /lib for
