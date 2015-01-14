@@ -1,3 +1,11 @@
+zfs-linux (0.6.3-2~wheezy) unstable; urgency=low
+
+  * use /sbin/modprobe to avoid warning inside initrd
+
+  * fix warning about undefined values inside initrd
+
+ -- Proxmox Support Team <support@proxmox.com>  Wed, 14 Jan 2015 19:03:04 +0100
+
 zfs-linux (0.6.3-1~wheezy) unstable; urgency=low
 
   * first version for Proxmox VE

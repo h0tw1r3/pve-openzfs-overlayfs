@@ -15,6 +15,7 @@ pre_mountroot()
 
 	if [ -r '/etc/default/zfs' ]
 	then
+		ZFS_INITRD_PRE_MOUNTROOT_SLEEP=0
 		. '/etc/default/zfs'
 		if [ "$ZFS_INITRD_PRE_MOUNTROOT_SLEEP" -gt '0' ]
 		then
@@ -47,7 +48,7 @@ mountroot()
 	wait_for_udev
 
 	# Load the module now to get consistent automatic pool import behavior.
-	modprobe zfs
+	/sbin/modprobe zfs
 
 	# Check the kernel command line for overrides.
 	ZFS_RPOOL="${rpool#rpool=}"

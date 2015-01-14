@@ -3,7 +3,7 @@ RELEASE=3.3
 # source form https://github.com/zfsonlinux/
 
 ZFSVER=0.6.3-1.2
-PKGREL=1~wheezy
+PKGREL=2~wheezy
 PKGVER=0.6.3-${PKGREL}
 
 SPLDIR=spl-spl-${ZFSVER}
