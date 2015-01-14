@@ -3,8 +3,10 @@ RELEASE=3.3
 # source form https://github.com/zfsonlinux/
 
 ZFSVER=0.6.3-1.2
-PKGREL=2~wheezy
-PKGVER=0.6.3-${PKGREL}
+ZFSPKGREL=2~wheezy
+SPLPKGREL=1~wheezy
+ZFSPKGVER=0.6.3-${ZFSPKGREL}
+SPLPKGVER=0.6.3-${SPLPKGREL}
 
 SPLDIR=spl-spl-${ZFSVER}
 SPLSRC=spl-${ZFSVER}.tar.gz
@@ -12,17 +14,17 @@ ZFSDIR=zfs-zfs-${ZFSVER}
 ZFSSRC=zfs-${ZFSVER}.tar.gz
 
 SPL_DEBS= 			\
-spl_${PKGVER}_amd64.deb
+spl_${SPLPKGVER}_amd64.deb
 
 ZFS_DEBS= 				\
-libnvpair1_${PKGVER}_amd64.deb 		\
-libuutil1_${PKGVER}_amd64.deb		\
-libzfs2_${PKGVER}_amd64.deb		\
-libzfs-dev_${PKGVER}_amd64.deb		\
-libzpool2_${PKGVER}_amd64.deb		\
-zfs-doc_${PKGVER}_amd64.deb		\
-zfs-initramfs_${PKGVER}_amd64.deb	\
-zfsutils_${PKGVER}_amd64.deb
+libnvpair1_${ZFSPKGVER}_amd64.deb 		\
+libuutil1_${ZFSPKGVER}_amd64.deb		\
+libzfs2_${ZFSPKGVER}_amd64.deb		\
+libzfs-dev_${ZFSPKGVER}_amd64.deb		\
+libzpool2_${ZFSPKGVER}_amd64.deb		\
+zfs-doc_${ZFSPKGVER}_amd64.deb		\
+zfs-initramfs_${ZFSPKGVER}_amd64.deb	\
+zfsutils_${ZFSPKGVER}_amd64.deb
 
 DEBS=${SPL_DEBS} ${ZFS_DEBS} 
 
