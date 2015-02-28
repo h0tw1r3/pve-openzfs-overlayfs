@@ -1,10 +1,10 @@
-RELEASE=3.3
+RELEASE=4.0
 
 # source form https://github.com/zfsonlinux/
 
 ZFSVER=0.6.3-1.2
-ZFSPKGREL=2~wheezy
-SPLPKGREL=1~wheezy
+ZFSPKGREL=pve1~jessie
+SPLPKGREL=pve1~jessie
 ZFSPKGVER=0.6.3-${ZFSPKGREL}
 SPLPKGVER=0.6.3-${SPLPKGREL}
 

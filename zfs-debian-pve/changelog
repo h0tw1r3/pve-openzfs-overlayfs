@@ -1,3 +1,9 @@
+zfs-linux (0.6.3-pve1~jessie) unstable; urgency=medium
+
+  * recompile on jessie
+
+ -- Proxmox Support Team <support@proxmox.com>  Sat, 28 Feb 2015 16:02:08 +0100
+
 zfs-linux (0.6.3-2~wheezy) unstable; urgency=low
 
   * use /sbin/modprobe to avoid warning inside initrd
