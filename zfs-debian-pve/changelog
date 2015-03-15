@@ -1,3 +1,11 @@
+zfs-linux (0.6.3-pve2~jessie) unstable; urgency=medium
+
+  * use systemd for service startup
+
+  * install zed configuration file /etc/zfs/zed.d/zed.rc
+
+ -- Proxmox Support Team <support@proxmox.com>  Sun, 15 Mar 2015 15:52:54 +0100
+
 zfs-linux (0.6.3-pve1~jessie) unstable; urgency=medium
 
   * recompile on jessie
