@@ -1,3 +1,9 @@
+zfs-linux (0.6.3-pve3~jessie) unstable; urgency=medium
+
+  * ignore zfs-import-scan errors
+
+ -- Proxmox Support Team <support@proxmox.com>  Tue, 31 Mar 2015 17:52:40 +0200
+
 zfs-linux (0.6.3-pve2~jessie) unstable; urgency=medium
 
   * use systemd for service startup

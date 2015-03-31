@@ -1,0 +1,10 @@
+Index: new/etc/systemd/system/zfs-import-scan.service.in
+===================================================================
+--- new.orig/etc/systemd/system/zfs-import-scan.service.in
++++ new/etc/systemd/system/zfs-import-scan.service.in
+@@ -8,4 +8,4 @@ ConditionPathExists=!@sysconfdir@/zfs/zp
+ [Service]
+ Type=oneshot
+ RemainAfterExit=yes
+-ExecStart=@sbindir@/zpool import -d /dev/disk/by-id -aN
++ExecStart=-@sbindir@/zpool import -d /dev/disk/by-id -aN
