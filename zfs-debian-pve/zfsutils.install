@@ -1,6 +1,0 @@
-../tree/zfsutils/* /
-sbin
-lib/udev
-lib/systemd
-usr/share/man
-etc/zfs/zed.d/zed.rc
