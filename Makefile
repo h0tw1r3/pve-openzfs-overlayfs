@@ -95,6 +95,7 @@ upload: ${DEBS}
 	rm -f /pve/${RELEASE}/extra/zfs_*.deb
 	rm -f /pve/${RELEASE}/extra/zfs-dkms_*.deb
 	rm -f /pve/${RELEASE}/extra/zfs-doc_*.deb
+	rm -f /pve/${RELEASE}/extra/zfs-dbg_*.deb
 	rm -f /pve/${RELEASE}/extra/zfs-initramfs_*.deb
 	rm -f /pve/${RELEASE}/extra/zfsutils_*.deb
 	rm -f /pve/${RELEASE}/extra/zfsutils-dbg_*.deb
