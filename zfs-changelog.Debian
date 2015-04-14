@@ -1,0 +1,40 @@
+zfs-linux (0.6.4-pve1~jessie) unstable; urgency=medium
+
+  * update to 0.6.4 (use upstream zol package definitions)
+
+ -- Proxmox Support Team <support@proxmox.com>  Tue, 14 Apr 2015 10:19:22 +0200
+
+zfs-linux (0.6.3-pve3~jessie) unstable; urgency=medium
+
+  * ignore zfs-import-scan errors
+
+ -- Proxmox Support Team <support@proxmox.com>  Tue, 31 Mar 2015 17:52:40 +0200
+
+zfs-linux (0.6.3-pve2~jessie) unstable; urgency=medium
+
+  * use systemd for service startup
+
+  * install zed configuration file /etc/zfs/zed.d/zed.rc
+
+ -- Proxmox Support Team <support@proxmox.com>  Sun, 15 Mar 2015 15:52:54 +0100
+
+zfs-linux (0.6.3-pve1~jessie) unstable; urgency=medium
+
+  * recompile on jessie
+
+ -- Proxmox Support Team <support@proxmox.com>  Sat, 28 Feb 2015 16:02:08 +0100
+
+zfs-linux (0.6.3-2~wheezy) unstable; urgency=low
+
+  * use /sbin/modprobe to avoid warning inside initrd
+
+  * fix warning about undefined values inside initrd
+
+ -- Proxmox Support Team <support@proxmox.com>  Wed, 14 Jan 2015 19:03:04 +0100
+
+zfs-linux (0.6.3-1~wheezy) unstable; urgency=low
+
+  * first version for Proxmox VE
+
+ -- Proxmox Support Team <support@proxmox.com>  Sat, 10 Jan 2015 14:06:34 +0100
+

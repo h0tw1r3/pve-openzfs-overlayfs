@@ -2,28 +2,28 @@ RELEASE=4.0
 
 # source form https://github.com/zfsonlinux/
 
-ZFSVER=0.6.3-1.2
-ZFSPKGREL=pve3~jessie
+ZFSVER=0.6.4
+ZFSPKGREL=pve1~jessie
 SPLPKGREL=pve1~jessie
-ZFSPKGVER=0.6.3-${ZFSPKGREL}
-SPLPKGVER=0.6.3-${SPLPKGREL}
+ZFSPKGVER=${ZFSVER}-${ZFSPKGREL}
+SPLPKGVER=${ZFSVER}-${SPLPKGREL}
 
-SPLDIR=spl-spl-${ZFSVER}
-SPLSRC=spl-${ZFSVER}.tar.gz
-ZFSDIR=zfs-zfs-${ZFSVER}
-ZFSSRC=zfs-${ZFSVER}.tar.gz
+SPLDIR=pkg-spl
+SPLSRC=pkg-spl.tar.gz
+ZFSDIR=pkg-zfs
+ZFSSRC=pkg-zfs.tar.gz
 
-SPL_DEBS= 			\
+SPL_DEBS= 					\
 spl_${SPLPKGVER}_amd64.deb
 
-ZFS_DEBS= 				\
+ZFS_DEBS= 					\
 libnvpair1_${ZFSPKGVER}_amd64.deb 		\
 libuutil1_${ZFSPKGVER}_amd64.deb		\
-libzfs2_${ZFSPKGVER}_amd64.deb		\
+libzfs2_${ZFSPKGVER}_amd64.deb			\
 libzfs-dev_${ZFSPKGVER}_amd64.deb		\
 libzpool2_${ZFSPKGVER}_amd64.deb		\
-zfs-doc_${ZFSPKGVER}_amd64.deb		\
-zfs-initramfs_${ZFSPKGVER}_amd64.deb	\
+zfs-dbg_${ZFSPKGVER}_amd64.deb			\
+zfs-initramfs_${ZFSPKGVER}_amd64.deb		\
 zfsutils_${ZFSPKGVER}_amd64.deb
 
 DEBS=${SPL_DEBS} ${ZFS_DEBS} 
@@ -38,26 +38,36 @@ dinstall: ${DEBS}
 spl ${SPL_DEBS}: ${SPLSRC}
 	rm -rf ${SPLDIR}
 	tar xf ${SPLSRC}
-	cp -a spl-debian-pve ${SPLDIR}/debian
+	mv ${SPLDIR}/debian/changelog ${SPLDIR}/debian/changelog.org
+	cat spl-changelog.Debian ${SPLDIR}/debian/changelog.org > ${SPLDIR}/debian/changelog
+	cd ${SPLDIR}; ln -s ../spl-patches patches
+	cd ${SPLDIR}; quilt push -a
+	cd ${SPLDIR}; rm -rf .pc ./patches
+	cd ${SPLDIR}; ./debian/rules override_dh_prep-base-deb-files
 	cd ${SPLDIR}; dpkg-buildpackage -b -uc -us 
 
 .PHONY: zfs
 zfs ${ZFS_DEBS}: ${ZFSSRC}
 	rm -rf ${ZFSDIR}
 	tar xf ${ZFSSRC}
-	cp -a zfs-debian-pve ${ZFSDIR}/debian
+	mv ${ZFSDIR}/debian/changelog ${ZFSDIR}/debian/changelog.org
+	cat zfs-changelog.Debian ${ZFSDIR}/debian/changelog.org > ${ZFSDIR}/debian/changelog
+	cd ${ZFSDIR}; ln -s ../zfs-patches patches
+	cd ${ZFSDIR}; quilt push -a
+	cd ${ZFSDIR}; rm -rf .pc ./patches
+	cd ${ZFSDIR}; ./debian/rules override_dh_prep-base-deb-files
 	cd ${ZFSDIR}; dpkg-buildpackage -b -uc -us 
 
 .PHONY: download
 download:
-	#git clone https://github.com/zfsonlinux/pkg-spl.git
-	#git clone https://github.com/zfsonlinux/pkg-zfs.git
-	##git checkout master/ubuntu/precise
-	##git checkout master/debian/wheezy
-	rm spl-*.tar.gz
-	rm zfs-*.tar.gz
-	wget https://github.com/zfsonlinux/spl/archive/${SPLSRC}
-	wget https://github.com/zfsonlinux/zfs/archive/${ZFSSRC}
+	rm -rf pkg-spl pkg-zfs ${SPLSRC} ${ZFSSRC}
+	git clone https://github.com/zfsonlinux/pkg-spl.git
+	git clone https://github.com/zfsonlinux/pkg-zfs.git
+	# list tags with:  git tag --list 'master/*'
+	cd pkg-spl; git checkout master/debian/jessie/0.6.4-1
+	cd pkg-zfs; git checkout master/debian/jessie/0.6.4-1-2
+	tar czf ${SPLSRC} pkg-spl
+	tar czf ${ZFSSRC} pkg-zfs
 
 .PHONY: clean
 clean: 	

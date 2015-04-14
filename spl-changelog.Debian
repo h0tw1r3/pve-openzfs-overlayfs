@@ -1,0 +1,18 @@
+spl-linux (0.6.4-pve1~jessie) unstable; urgency=medium
+
+  * update to 0.6.4 (use upstream zol package definitions)
+
+ -- Proxmox Support Team <support@proxmox.com>  Tue, 14 Apr 2015 10:17:26 +0200
+
+spl-linux (0.6.3-pve1~jessie) unstable; urgency=medium
+
+  * recompile for jessie
+
+ -- Proxmox Support Team <support@proxmox.com>  Sat, 28 Feb 2015 16:03:01 +0100
+
+spl-linux (0.6.3-pve1~wheezy) unstable; urgency=low
+
+  * first version for Proxmox VE
+
+ -- Proxmox Support Team <support@proxmox.com>  Sat, 10 Jan 2015 14:06:34 +0100
+

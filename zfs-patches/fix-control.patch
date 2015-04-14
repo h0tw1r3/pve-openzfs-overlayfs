@@ -1,0 +1,139 @@
+Index: new-zfs/debian/control.in
+===================================================================
+--- new-zfs.orig/debian/control.in	2015-04-12 14:06:48.000000000 +0200
++++ new-zfs/debian/control.in	2015-04-12 17:24:36.000000000 +0200
+@@ -88,36 +88,9 @@
+  .
+  This zpool library provides support for managing zpools.
+ 
+-Package: zfs-dkms
+-Architecture: all
+-Pre-Depends: spl-dkms
+-Depends: dkms (>> 2.1.1.2-5), lsb-release, ${misc:Depends}, file
+-Recommends: zfsutils
+-Replaces: lzfs, lzfs-dkms
+-Provides: lustre-backend-fs, lzfs, lzfs-dkms, zfs-modules
+-Conflicts: lzfs, lzfs-dkms
+-Description: Native ZFS filesystem kernel modules for Linux
+- The Z file system is a pooled filesystem designed for maximum data
+- integrity, supporting data snapshots, multiple copies, and data
+- checksums.
+- .
+- This DKMS package includes the SPA, DMU, ZVOL, and ZPL components of ZFS.
+-
+-Package: zfs-dracut
+-Section: utils
+-Architecture: linux-any
+-Depends: dracut, zfs-modules | zfs-dkms, zfsutils, ${misc:Depends}
+-Description: Native ZFS root filesystem capabilities for Linux
+- The Z file system is a pooled filesystem designed for maximum data
+- integrity, supporting data snapshots, multiple copies, and data
+- checksums.
+- .
+- This package adds ZFS to the system initramfs with a hook
+- for the dracut infrastructure.
+-
+ Package: zfs-initramfs
+ Architecture: linux-any
+-Depends: initramfs-tools, zfs-modules | zfs-dkms, zfsutils, ${misc:Depends}
++Depends: initramfs-tools, zfsutils, ${misc:Depends}
+ Description: Native ZFS root filesystem capabilities for Linux
+  The Z file system is a pooled filesystem designed for maximum data
+  integrity, supporting data snapshots, multiple copies, and data
+@@ -130,7 +103,6 @@
+ Section: admin
+ Architecture: linux-any
+ Depends: initscripts, lsb-base, python, ${misc:Depends}, ${shlibs:Depends}
+-Recommends: zfs-modules | zfs-dkms
+ Suggests: nfs-kernel-server, samba-common-bin (>= 3.0.23), zfs-initramfs
+ Conflicts: zfs, zfs-fuse
+ Replaces: zfs
+Index: new-zfs/debian/rules
+===================================================================
+--- new-zfs.orig/debian/rules	2015-04-12 14:06:48.000000000 +0200
++++ new-zfs/debian/rules	2015-04-12 17:18:04.000000000 +0200
+@@ -24,13 +24,11 @@
+ endif
+ 
+ ifndef SPL
+-SPLSRC=/usr/src/spl-$(VERSION)
++SPLSRC=../pkg-spl
+ endif
+ 
+ CFG_OPTS=--without-selinux \
+-	 --with-linux=$(KSRC) \
+-	 --with-linux-obj=$(KOBJ) \
+-	 --with-spl=$(SPLSRC)
++	 --with-config=user
+ 
+ non_epoch_version=$(shell echo $(KVERS) | perl -pe 's/^\d+://')
+ PACKAGE=zfs
+@@ -44,15 +42,9 @@
+ 	dh $@ --with dkms --parallel
+ 
+ override_dh_prep-base-deb-files:
+-	sed -e 's/##SHLIB_MAJOR##/$(SHLIB_MAJOR)/g ; s/##MODULES_BUILD_DEPENDS##/linux-headers-$(KVERS)-common, linux-headers-$(KVERS)-$(DEB_HOST_ARCH), spl-dkms/g' \
++	sed -e 's/##SHLIB_MAJOR##/$(SHLIB_MAJOR)/g ; s/##MODULES_BUILD_DEPENDS##/pve-headers-$(KVERS)/g' \
+ 	< debian/control.in > debian/control
+ 
+-	sed -e 's/##SHLIB_MAJOR##/$(SHLIB_MAJOR)/g' \
+-	< debian/control.udeb.in >> debian/control
+-
+-	sed -e 's/##KVERS##/$(KVERS)/g ; s/#KVERS#/$(KVERS)/g ; s/_KVERS_/$(KVERS)/g ; s/##KDREV##/$(KDREV)/g ; s/#KDREV#/$(KDREV)/g ; s/_KDREV_/$(KDREV)/g ; s/_ARCH_/$(DEB_HOST_ARCH)/g ; s/_IMGVER_/$(KIMGVER)/g' \
+-	< debian/control.modules.in >> debian/control
+-
+ 	for templ in $(wildcard $(CURDIR)/debian/*_SHLIB_MAJOR_*.in); do \
+ 		cat $$templ > `echo $$templ | sed -e 's/_SHLIB_MAJOR_/$(SHLIB_MAJOR)/g ; s/\.in$$//'`; \
+ 	done
+@@ -89,42 +81,6 @@
+ 	@# Install the utilities.
+ 	$(MAKE) install DESTDIR='$(CURDIR)/debian/tmp'
+ 
+-	@# Get a bare copy of the source code for DKMS.
+-	@# This creates the $(CURDIR)/$(NAME)-$(VERSION)/ tree, which does not
+-	@# contain the userland sources. NB: Remove-userland-dist-rules.patch
+-	$(MAKE) distdir
+-
+-	@# Install the DKMS source.
+-	@# We only want the files needed to build the modules
+-	mkdir -p '$(CURDIR)/debian/tmp/usr/src/$(NAME)-$(VERSION)'
+-	touch '$(CURDIR)/debian/tmp/usr/src/$(NAME)-$(VERSION)/.nogitrelease'
+-	cp '$(CURDIR)/autogen.sh' '$(CURDIR)/debian/tmp/usr/src/$(NAME)-$(VERSION)/'
+-	( for d in include module config; do \
+-	     rm -Rf $(CURDIR)/debian/tmp/usr/src/$(NAME)-$(VERSION)/$$d; \
+-	done)
+-	$(foreach file,$(DKMSFILES),mv '$(CURDIR)/$(NAME)-$(VERSION)/$(file)' '$(CURDIR)/debian/tmp/usr/src/$(NAME)-$(VERSION)' || exit 1;)
+-	@# Hellish awk line:
+-	@#  * Deletes from configure.ac the parts not needed for building the kernel module
+-	@#     * It deletes from inside AC_CONFIG_FILES([]) everything except:
+-	@#        (Makefile$|include/|module/|*.release$)
+-	@#  * Takes care of spaces and tabs
+-	awk '/^AC_CONFIG_FILES\(\[/,/^\]\)/ { if ($$0 !~ /^(AC_CONFIG_FILES\(\[([ \t]+)?$$|\]\)([ \t]+)?$$|([ \t]+)?(include\/|module\/|Makefile([ \t]+)?$$|zfs\.release([ \t]+)?$$))/){next} } {print}' \
+-		'$(CURDIR)/$(NAME)-$(VERSION)/configure.ac' > '$(CURDIR)/debian/tmp/usr/src/$(NAME)-$(VERSION)/configure.ac'
+-	@# Set "SUBDIRS = module include" for CONFIG_KERNEL and remove SUBDIRS for all other configs.
+-	sed '1,/CONFIG_KERNEL/s/SUBDIRS.*=.*//g;s/SUBDIRS.*=.*/SUBDIRS = module include/g;' \
+-		'$(CURDIR)/$(NAME)-$(VERSION)/Makefile.am' > '$(CURDIR)/debian/tmp/usr/src/$(NAME)-$(VERSION)/Makefile.am'
+-	@# Sanity test
+-	grep -q 'SUBDIRS = module include' '$(CURDIR)/debian/tmp/usr/src/$(NAME)-$(VERSION)/Makefile.am'
+-	@# Run autogen on the stripped source tree
+-	cd '$(CURDIR)/debian/tmp/usr/src/$(NAME)-$(VERSION)'; ./autogen.sh
+-	rm -fr '$(CURDIR)/debian/tmp/usr/src/$(NAME)-$(VERSION)/autom4te.cache'
+-
+-	@# This shunt allows DKMS to install the Module.symvers and zfs_config.h
+-	@# files to the ${dkms_tree} area through the POST_INSTALL directive.
+-	echo '#!/bin/sh'  >'$(CURDIR)/debian/tmp/usr/src/$(NAME)-$(VERSION)/cp'
+-	echo 'cp "$$@"'  >>'$(CURDIR)/debian/tmp/usr/src/$(NAME)-$(VERSION)/cp'
+-	chmod 755 '$(CURDIR)/debian/tmp/usr/src/$(NAME)-$(VERSION)/cp'
+-
+ 	mkdir -p $(CURDIR)/debian/tmp/usr/lib
+ 	for i in `ls $(CURDIR)/debian/tmp/lib/*.so`; do \
+ 		ln -s /lib/`readlink $${i}` $(CURDIR)/debian/tmp/usr/lib/`basename $${i}`; \
+@@ -138,7 +94,7 @@
+ 	mv $(CURDIR)/debian/tmp/usr/lib/systemd/system/* $(CURDIR)/debian/tmp/lib/systemd/system/
+ 	rmdir $(CURDIR)/debian/tmp/usr/lib/systemd/system
+ 
+-	find '$(CURDIR)/debian/tmp' -name '*~' | xargs rm
++	#find '$(CURDIR)/debian/tmp' -name '*~' | xargs rm
+ 
+ 	# Fix the includes according to https://github.com/zfsonlinux/zfs/issues/2903
+ 	./debian/fix_includes-libspl.sh
