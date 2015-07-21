@@ -1,10 +1,10 @@
-Index: new/debian/control.in
+Index: pkg-spl/debian/control.in
 ===================================================================
---- new.orig/debian/control.in
-+++ new/debian/control.in
-@@ -18,32 +18,9 @@ Homepage: http://www.zfsonlinux.org/
- Vcs-Git: git://anonscm.debian.org/pkg-zfsonlinux/spl.git
- Vcs-Browser: http://anonscm.debian.org/gitweb/?p=pkg-zfsonlinux/spl.git
+--- pkg-spl.orig/debian/control.in
++++ pkg-spl/debian/control.in
+@@ -33,32 +33,9 @@ Description: Native ZFS filesystem kerne
+  This package provides the source to the SPL kernel module in a form
+  suitable for use by module-assistant or kernel-package.
  
 -Package: spl-dkms
 -Architecture: all
@@ -35,51 +35,47 @@ Index: new/debian/control.in
  Description: Solaris Porting Layer user-space utilities for Linux
   The Solaris Porting Layer (SPL) is a Linux kernel module which provides
   many of the Solaris kernel APIs. This shim layer makes it possible to
-Index: new/debian/rules
+Index: pkg-spl/debian/rules
 ===================================================================
---- new.orig/debian/rules
-+++ new/debian/rules
-@@ -24,15 +24,12 @@ pmodules = $(PACKAGE)-modules-$(non_epoc
+--- pkg-spl.orig/debian/rules
++++ pkg-spl/debian/rules
+@@ -22,9 +22,7 @@ ifndef KVERS
+ KVERS=$(shell uname -r | sed 's/-$(DEB_HOST_ARCH)//')
+ endif
+ 
+-CFG_OPTS=--without-selinux \
+-	--with-linux=$(KSRC) \
+-	--with-linux-obj=$(KOBJ)
++CFG_OPTS=--without-selinux
+ 
+ non_epoch_version=$(shell echo $(KVERS) | perl -pe 's/^\d+://')
+ PACKAGE=spl
+@@ -33,7 +31,7 @@ pmodules = $(PACKAGE)-modules-$(non_epoc
  KIMGVER=$(shell dpkg -s linux-image-$(KVERS)-$(DEB_HOST_ARCH) | grep ^Version | sed 's/.*: //')
  
  %:
--	dh $@ --with dkms
-+	dh $@
+-	dh $@ --with dkms --parallel
++	dh $@ --parallel
  
  override_dh_prep-base-deb-files:
--	sed -e 's/##SHLIB_MAJOR##/$(SHLIB_MAJOR)/g ; s/##MODULES_BUILD_DEPENDS##/linux-headers-$(KVERS)-common, linux-headers-$(KVERS)-$(DEB_HOST_ARCH)/g' \
-+	sed -e 's/##SHLIB_MAJOR##/$(SHLIB_MAJOR)/g ; s/##MODULES_BUILD_DEPENDS##/pve-headers-$(KVERS)/g' \
- 	< debian/control.in > debian/control
- 
--	sed -e 's/##KVERS##/$(KVERS)/g ; s/#KVERS#/$(KVERS)/g ; s/_KVERS_/$(KVERS)/g ; s/##KDREV##/$(KDREV)/g ; s/#KDREV#/$(KDREV)/g ; s/_KDREV_/$(KDREV)/g ; s/_ARCH_/$(DEB_HOST_ARCH)/g ; s/_IMGVER_/$(KIMGVER)/g' \
--	< debian/control.modules.in >> debian/control
--
- 	for templ in $(wildcard $(CURDIR)/debian/*_KVERS_*.in); do \
- 		sed -e 's/##KVERS##/$(KVERS)/g ; s/#KVERS#/$(KVERS)/g ; s/_KVERS_/$(KVERS)/g ; s/##KDREV##/$(KDREV)/g ; s/#KDREV#/$(KDREV)/g ; s/_KDREV_/$(KDREV)/g ;  s/_ARCH_/$(DEB_HOST_ARCH)/g' \
- 		< $$templ > `echo $$templ | sed -e 's/_KVERS_/$(KVERS)/g ; s/_ARCH_/$(DEB_HOST_ARCH)/g ; s/\.in$$//'` ; \
-@@ -52,8 +49,7 @@ override_dh_auto_configure: override_dh_
- 	@# Build the userland and the modules
- 	dh_auto_configure -- \
- 	  --prefix=/usr \
--	  --with-linux=$(KSRC) \
--	  --with-linux-obj=$(KOBJ)
-+	  --with-config=user
- 
- override_dh_auto_test:
- 	# scripts/check.sh tries insmod and rmmod, so it cannot
-@@ -63,40 +59,6 @@ override_dh_auto_install:
+ 	sed -e 's/##SHLIB_MAJOR##/$(SHLIB_MAJOR)/g' < debian/control.in > debian/control
+@@ -70,64 +68,6 @@ override_dh_auto_install:
  	@# Install the utilities.
  	$(MAKE) install DESTDIR='$(CURDIR)/debian/tmp'
  
--	@# Get a bare copy of the source code.
--	@# This creates the $(CURDIR)/$(NAME)-$(VERSION)/ tree.
+-	@# Get a bare copy of the source code for DKMS.
+-	@# This creates the $(CURDIR)/$(NAME)-$(VERSION)/ tree, which does not
+-	@# contain the userland sources. NB: Remove-userland-dist-rules.patch
 -	$(MAKE) distdir
 -
--	# Install the DKMS source.
+-	@# Install the DKMS source.
 -	@# We only want the files needed to build the modules
 -	mkdir -p '$(CURDIR)/debian/tmp/usr/src/$(NAME)-$(VERSION)'
 -	touch '$(CURDIR)/debian/tmp/usr/src/$(NAME)-$(VERSION)/.nogitrelease'
--	rm -Rf '$(CURDIR)/debian/tmp/usr/src/$(NAME)-$(VERSION)/include'
+-	cp '$(CURDIR)/autogen.sh' '$(CURDIR)/debian/tmp/usr/src/$(NAME)-$(VERSION)/'
+-	( for d in include module config; do \
+-	     rm -Rf $(CURDIR)/debian/tmp/usr/src/$(NAME)-$(VERSION)/$$d; \
+-	done)
 -	$(foreach file,$(DKMSFILES),mv '$(CURDIR)/$(NAME)-$(VERSION)/$(file)' '$(CURDIR)/debian/tmp/usr/src/$(NAME)-$(VERSION)' || exit 1;)
 -	@# Hellish awk line:
 -	@#  * Deletes from configure.ac the parts not needed for building the kernel module
@@ -103,7 +99,27 @@ Index: new/debian/rules
 -	echo 'cp "$$@"'  >>'$(CURDIR)/debian/tmp/usr/src/$(NAME)-$(VERSION)/cp'
 -	chmod 755 '$(CURDIR)/debian/tmp/usr/src/$(NAME)-$(VERSION)/cp'
 -
--	find '$(CURDIR)/debian/tmp' -name '*~' | xargs rm
+-	@# Duplicate the dkms directory for module-assistant source package
+-	install -d $(CURDIR)/debian/tmp/usr/src/modules
+-	cp -r $(CURDIR)/debian/tmp/usr/src/$(NAME)-$(VERSION) $(CURDIR)/debian/tmp/usr/src/modules/$(PACKAGE)
+-	mkdir -p $(CURDIR)/debian/tmp/usr/src/modules/$(PACKAGE)/debian
+-	cp debian/copyright debian/module/* \
+-	    $(CURDIR)/debian/tmp/usr/src/modules/$(PACKAGE)/debian/
+-	sed 's/^spl-linux /spl-modules /' debian/changelog \
+-	    > $(CURDIR)/debian/tmp/usr/src/modules/$(PACKAGE)/debian/changelog
+-	chmod 755 $(CURDIR)/debian/tmp/usr/src/modules/$(PACKAGE)/debian/rules
+-	chown -R root.src $(CURDIR)/debian/tmp
+-	find $(CURDIR)/debian/tmp/usr/src -type d | xargs chmod 755
+-	find $(CURDIR)/debian/tmp/usr/src -type f -perm -100 | xargs chmod 755
+-	find $(CURDIR)/debian/tmp/usr/src -type f -not -perm -100 | xargs chmod 644
+-	chmod 775 $(CURDIR)/debian/tmp/usr/src/modules
+-	cd $(CURDIR)/debian/tmp/usr/src && tar cf $(PACKAGE).tar modules
+-	rm -Rf $(CURDIR)/debian/tmp/usr/src/modules
+-	bzip2 $(CURDIR)/debian/tmp/usr/src/$(PACKAGE).tar
+-	chmod 644 $(CURDIR)/debian/tmp/usr/src/$(PACKAGE).tar.bz2
+-	install -d $(CURDIR)/debian/spl-modules-source/usr/src
+-	mv $(CURDIR)/debian/tmp/usr/src/$(PACKAGE).tar.bz2 $(CURDIR)/debian/spl-modules-source/usr/src/
+-	rm -Rf $(CURDIR)/debian/spl-modules-source/usr/src/$(NAME)-$(VERSION)
 -
  override_dh_dkms:
  	dh_dkms -V $(VERSION)

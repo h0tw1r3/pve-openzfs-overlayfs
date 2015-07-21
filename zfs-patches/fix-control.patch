@@ -1,10 +1,10 @@
-Index: new-zfs/debian/control.in
+Index: pkg-zfs/debian/control.in
 ===================================================================
---- new-zfs.orig/debian/control.in	2015-04-12 14:06:48.000000000 +0200
-+++ new-zfs/debian/control.in	2015-04-12 17:24:36.000000000 +0200
-@@ -88,36 +88,9 @@
-  .
-  This zpool library provides support for managing zpools.
+--- pkg-zfs.orig/debian/control.in
++++ pkg-zfs/debian/control.in
+@@ -102,39 +102,9 @@ Description: Native ZFS filesystem kerne
+  This package provides the source to the SPL kernel module in a form
+  suitable for use by module-assistant or kernel-package.
  
 -Package: zfs-dkms
 -Architecture: all
@@ -12,7 +12,7 @@ Index: new-zfs/debian/control.in
 -Depends: dkms (>> 2.1.1.2-5), lsb-release, ${misc:Depends}, file
 -Recommends: zfsutils
 -Replaces: lzfs, lzfs-dkms
--Provides: lustre-backend-fs, lzfs, lzfs-dkms, zfs-modules
+-Provides: lustre-backend-fs, lzfs, lzfs-dkms, zfs-modules, zfs-modules-source
 -Conflicts: lzfs, lzfs-dkms
 -Description: Native ZFS filesystem kernel modules for Linux
 - The Z file system is a pooled filesystem designed for maximum data
@@ -24,7 +24,9 @@ Index: new-zfs/debian/control.in
 -Package: zfs-dracut
 -Section: utils
 -Architecture: linux-any
--Depends: dracut, zfs-modules | zfs-dkms, zfsutils, ${misc:Depends}
+-Depends: dracut,
+- zfs-modules | zfs-dkms | zfs-modules-source (>= ${source:Version}),
+- zfsutils, ${misc:Depends}
 -Description: Native ZFS root filesystem capabilities for Linux
 - The Z file system is a pooled filesystem designed for maximum data
 - integrity, supporting data snapshots, multiple copies, and data
@@ -35,24 +37,24 @@ Index: new-zfs/debian/control.in
 -
  Package: zfs-initramfs
  Architecture: linux-any
--Depends: initramfs-tools, zfs-modules | zfs-dkms, zfsutils, ${misc:Depends}
-+Depends: initramfs-tools, zfsutils, ${misc:Depends}
+ Depends: initramfs-tools, busybox,
+- zfs-modules | zfs-dkms | zfs-modules-source (>= ${source:Version}),
+  zfsutils, ${misc:Depends}
  Description: Native ZFS root filesystem capabilities for Linux
   The Z file system is a pooled filesystem designed for maximum data
-  integrity, supporting data snapshots, multiple copies, and data
-@@ -130,7 +103,6 @@
+@@ -148,7 +118,6 @@ Package: zfsutils
  Section: admin
  Architecture: linux-any
  Depends: initscripts, lsb-base, python, ${misc:Depends}, ${shlibs:Depends}
--Recommends: zfs-modules | zfs-dkms
+-Recommends: zfs-modules | zfs-dkms | zfs-modules-source (>= ${source:Version})
  Suggests: nfs-kernel-server, samba-common-bin (>= 3.0.23), zfs-initramfs
  Conflicts: zfs, zfs-fuse
  Replaces: zfs
-Index: new-zfs/debian/rules
+Index: pkg-zfs/debian/rules
 ===================================================================
---- new-zfs.orig/debian/rules	2015-04-12 14:06:48.000000000 +0200
-+++ new-zfs/debian/rules	2015-04-12 17:18:04.000000000 +0200
-@@ -24,13 +24,11 @@
+--- pkg-zfs.orig/debian/rules
++++ pkg-zfs/debian/rules
+@@ -25,12 +25,10 @@ KARCH=$(shell uname -r | sed "s/.*-\([a-
  endif
  
  ifndef SPL
@@ -60,32 +62,23 @@ Index: new-zfs/debian/rules
 +SPLSRC=../pkg-spl
  endif
  
- CFG_OPTS=--without-selinux \
--	 --with-linux=$(KSRC) \
+-CFG_OPTS=--with-linux=$(KSRC) \
 -	 --with-linux-obj=$(KOBJ) \
 -	 --with-spl=$(SPLSRC)
-+	 --with-config=user
++CFG_OPTS=--with-spl=$(SPLSRC)
  
  non_epoch_version=$(shell echo $(KVERS) | perl -pe 's/^\d+://')
  PACKAGE=zfs
-@@ -44,15 +42,9 @@
- 	dh $@ --with dkms --parallel
+@@ -41,7 +39,7 @@ export DEB_BUILD_MAINT_OPTIONS = hardeni
+ KIMGVER=$(shell dpkg -s linux-image-$(KVERS)-$(KARCH) | grep ^Version | sed 's/.*: //')
+ 
+ %:
+-	dh $@ --with dkms --parallel
++	dh $@ --parallel
  
  override_dh_prep-base-deb-files:
--	sed -e 's/##SHLIB_MAJOR##/$(SHLIB_MAJOR)/g ; s/##MODULES_BUILD_DEPENDS##/linux-headers-$(KVERS)-common, linux-headers-$(KVERS)-$(DEB_HOST_ARCH), spl-dkms/g' \
-+	sed -e 's/##SHLIB_MAJOR##/$(SHLIB_MAJOR)/g ; s/##MODULES_BUILD_DEPENDS##/pve-headers-$(KVERS)/g' \
- 	< debian/control.in > debian/control
- 
--	sed -e 's/##SHLIB_MAJOR##/$(SHLIB_MAJOR)/g' \
--	< debian/control.udeb.in >> debian/control
--
--	sed -e 's/##KVERS##/$(KVERS)/g ; s/#KVERS#/$(KVERS)/g ; s/_KVERS_/$(KVERS)/g ; s/##KDREV##/$(KDREV)/g ; s/#KDREV#/$(KDREV)/g ; s/_KDREV_/$(KDREV)/g ; s/_ARCH_/$(DEB_HOST_ARCH)/g ; s/_IMGVER_/$(KIMGVER)/g' \
--	< debian/control.modules.in >> debian/control
--
- 	for templ in $(wildcard $(CURDIR)/debian/*_SHLIB_MAJOR_*.in); do \
- 		cat $$templ > `echo $$templ | sed -e 's/_SHLIB_MAJOR_/$(SHLIB_MAJOR)/g ; s/\.in$$//'`; \
- 	done
-@@ -89,42 +81,6 @@
+ 	sed -e 's/##SHLIB_MAJOR##/$(SHLIB_MAJOR)/g' < debian/control.in > debian/control
+@@ -83,42 +81,6 @@ override_dh_auto_install:
  	@# Install the utilities.
  	$(MAKE) install DESTDIR='$(CURDIR)/debian/tmp'
  
@@ -128,12 +121,32 @@ Index: new-zfs/debian/rules
  	mkdir -p $(CURDIR)/debian/tmp/usr/lib
  	for i in `ls $(CURDIR)/debian/tmp/lib/*.so`; do \
  		ln -s /lib/`readlink $${i}` $(CURDIR)/debian/tmp/usr/lib/`basename $${i}`; \
-@@ -138,7 +94,7 @@
- 	mv $(CURDIR)/debian/tmp/usr/lib/systemd/system/* $(CURDIR)/debian/tmp/lib/systemd/system/
- 	rmdir $(CURDIR)/debian/tmp/usr/lib/systemd/system
- 
--	find '$(CURDIR)/debian/tmp' -name '*~' | xargs rm
-+	#find '$(CURDIR)/debian/tmp' -name '*~' | xargs rm
- 
+@@ -137,28 +99,6 @@ override_dh_auto_install:
  	# Fix the includes according to https://github.com/zfsonlinux/zfs/issues/2903
  	./debian/fix_includes-libspl.sh
+ 
+-	@# Duplicate the dkms directory for module-assistant source package
+-	install -d $(CURDIR)/debian/tmp/usr/src/modules
+-	cp -r $(CURDIR)/debian/tmp/usr/src/$(NAME)-$(VERSION) $(CURDIR)/debian/tmp/usr/src/modules/$(PACKAGE)
+-	mkdir -p $(CURDIR)/debian/tmp/usr/src/modules/$(PACKAGE)/debian
+-	cp debian/copyright debian/module/* \
+-	    $(CURDIR)/debian/tmp/usr/src/modules/$(PACKAGE)/debian/
+-	sed 's/^zfs-linux /zfs-modules /' debian/changelog \
+-	    > $(CURDIR)/debian/tmp/usr/src/modules/$(PACKAGE)/debian/changelog
+-	chmod 755 $(CURDIR)/debian/tmp/usr/src/modules/$(PACKAGE)/debian/rules
+-	chown -R root.src $(CURDIR)/debian/tmp
+-	find $(CURDIR)/debian/tmp/usr/src -type d | xargs chmod 755
+-	find $(CURDIR)/debian/tmp/usr/src -type f -perm -100 | xargs chmod 755
+-	find $(CURDIR)/debian/tmp/usr/src -type f -not -perm -100 | xargs chmod 644
+-	chmod 775 $(CURDIR)/debian/tmp/usr/src/modules
+-	cd $(CURDIR)/debian/tmp/usr/src && tar cf $(PACKAGE).tar modules
+-	rm -Rf $(CURDIR)/debian/tmp/usr/src/modules
+-	bzip2 $(CURDIR)/debian/tmp/usr/src/$(PACKAGE).tar
+-	chmod 644 $(CURDIR)/debian/tmp/usr/src/$(PACKAGE).tar.bz2
+-	install -d $(CURDIR)/debian/zfs-modules-source/usr/src
+-	mv $(CURDIR)/debian/tmp/usr/src/$(PACKAGE).tar.bz2 $(CURDIR)/debian/zfs-modules-source/usr/src/
+-	rm -Rf $(CURDIR)/debian/zfs-modules-source/usr/src/$(NAME)-$(VERSION)
+-
+ override_dh_installinit:
+ 	@# Install systemd files
+ 	dh_systemd_enable -pzfsutils etc/systemd/system/zfs.target

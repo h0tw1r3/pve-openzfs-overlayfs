@@ -1,3 +1,9 @@
+zfs-linux (0.6.4-pve2~jessie) unstable; urgency=medium
+
+  * update to 0.6.4.2 (snapshot/debian/jessie/0.6.4-21-53b1d9)
+
+ -- Proxmox Support Team <support@proxmox.com>  Tue, 21 Jul 2015 11:03:21 +0200
+
 zfs-linux (0.6.4-pve1~jessie) unstable; urgency=medium
 
   * update to 0.6.4 (use upstream zol package definitions)
