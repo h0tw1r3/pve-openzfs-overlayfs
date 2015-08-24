@@ -1,8 +1,8 @@
-Index: pkg-zfs/debian/control.in
+Index: new/debian/control.in
 ===================================================================
---- pkg-zfs.orig/debian/control.in
-+++ pkg-zfs/debian/control.in
-@@ -102,39 +102,9 @@ Description: Native ZFS filesystem kerne
+--- new.orig/debian/control.in
++++ new/debian/control.in
+@@ -104,39 +104,9 @@ Description: Native ZFS filesystem kerne
   This package provides the source to the SPL kernel module in a form
   suitable for use by module-assistant or kernel-package.
  
@@ -11,9 +11,9 @@ Index: pkg-zfs/debian/control.in
 -Pre-Depends: spl-dkms
 -Depends: dkms (>> 2.1.1.2-5), lsb-release, ${misc:Depends}, file
 -Recommends: zfsutils
--Replaces: lzfs, lzfs-dkms
+-Replaces: lzfs, lzfs-dkms, zfs-modules-source
 -Provides: lustre-backend-fs, lzfs, lzfs-dkms, zfs-modules, zfs-modules-source
--Conflicts: lzfs, lzfs-dkms
+-Conflicts: lzfs, lzfs-dkms, zfs-modules-source
 -Description: Native ZFS filesystem kernel modules for Linux
 - The Z file system is a pooled filesystem designed for maximum data
 - integrity, supporting data snapshots, multiple copies, and data
@@ -42,7 +42,7 @@ Index: pkg-zfs/debian/control.in
   zfsutils, ${misc:Depends}
  Description: Native ZFS root filesystem capabilities for Linux
   The Z file system is a pooled filesystem designed for maximum data
-@@ -148,7 +118,6 @@ Package: zfsutils
+@@ -150,7 +120,6 @@ Package: zfsutils
  Section: admin
  Architecture: linux-any
  Depends: initscripts, lsb-base, python, ${misc:Depends}, ${shlibs:Depends}
@@ -50,10 +50,10 @@ Index: pkg-zfs/debian/control.in
  Suggests: nfs-kernel-server, samba-common-bin (>= 3.0.23), zfs-initramfs
  Conflicts: zfs, zfs-fuse
  Replaces: zfs
-Index: pkg-zfs/debian/rules
+Index: new/debian/rules
 ===================================================================
---- pkg-zfs.orig/debian/rules
-+++ pkg-zfs/debian/rules
+--- new.orig/debian/rules
++++ new/debian/rules
 @@ -25,12 +25,10 @@ KARCH=$(shell uname -r | sed "s/.*-\([a-
  endif
  

@@ -1,8 +1,8 @@
-Index: pkg-spl/debian/control.in
+Index: new/debian/control.in
 ===================================================================
---- pkg-spl.orig/debian/control.in
-+++ pkg-spl/debian/control.in
-@@ -33,32 +33,9 @@ Description: Native ZFS filesystem kerne
+--- new.orig/debian/control.in
++++ new/debian/control.in
+@@ -35,34 +35,9 @@ Description: Native ZFS filesystem kerne
   This package provides the source to the SPL kernel module in a form
   suitable for use by module-assistant or kernel-package.
  
@@ -11,6 +11,8 @@ Index: pkg-spl/debian/control.in
 -Depends: linux-headers-amd64, ${misc:Depends}, dkms (>> 2.1.1.2-5), lsb-release, file
 -Recommends: spl (>= ${source:Upstream-Version})
 -Provides: spl-modules
+-Conflicts: spl-modules-source
+-Replaces: spl-modules-source
 -Description: Solaris Porting Layer kernel modules for Linux
 - The Solaris Porting Layer (SPL) is a Linux kernel module which provides
 - many of the Solaris kernel APIs. This shim layer makes it possible to
@@ -35,10 +37,10 @@ Index: pkg-spl/debian/control.in
  Description: Solaris Porting Layer user-space utilities for Linux
   The Solaris Porting Layer (SPL) is a Linux kernel module which provides
   many of the Solaris kernel APIs. This shim layer makes it possible to
-Index: pkg-spl/debian/rules
+Index: new/debian/rules
 ===================================================================
---- pkg-spl.orig/debian/rules
-+++ pkg-spl/debian/rules
+--- new.orig/debian/rules
++++ new/debian/rules
 @@ -22,9 +22,7 @@ ifndef KVERS
  KVERS=$(shell uname -r | sed 's/-$(DEB_HOST_ARCH)//')
  endif
