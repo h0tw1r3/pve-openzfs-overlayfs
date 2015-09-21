@@ -1,3 +1,9 @@
+spl-linux (0.6.5-pve1~jessie) unstable; urgency=medium
+
+  * update to master/debian/jessie/0.6.5-1
+
+ -- Proxmox Support Team <support@proxmox.com>  Mon, 21 Sep 2015 10:04:23 +0200
+
 spl-linux (0.6.4-pve3~jessie) unstable; urgency=medium
 
   * update to snapshot/debian/jessie/0.6.4-8-8ac6ff
