@@ -3,7 +3,7 @@ RELEASE=4.0
 # source form https://github.com/zfsonlinux/
 
 ZFSVER=0.6.5
-ZFSPKGREL=pve2~jessie
+ZFSPKGREL=pve3~jessie
 SPLPKGREL=pve1~jessie
 ZFSPKGVER=${ZFSVER}-${ZFSPKGREL}
 SPLPKGVER=${ZFSVER}-${SPLPKGREL}

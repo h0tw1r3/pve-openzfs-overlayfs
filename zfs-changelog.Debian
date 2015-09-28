@@ -1,3 +1,10 @@
+zfs-linux (0.6.5-pve3~jessie) unstable; urgency=medium
+
+  * do not install /etc/init.d/zfs-zed script to avoid double startup
+    with systemd
+
+ -- Proxmox Support Team <support@proxmox.com>  Mon, 28 Sep 2015 10:14:40 +0200
+
 zfs-linux (0.6.5-pve2~jessie) unstable; urgency=medium
 
   * update to master/debian/jessie/0.6.5.1-4
