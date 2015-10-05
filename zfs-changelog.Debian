@@ -1,3 +1,9 @@
+zfs-linux (0.6.5-pve4~jessie) unstable; urgency=medium
+
+  * update to master/debian/jessie/0.6.5.2-2
+
+ -- Proxmox Support Team <support@proxmox.com>  Mon, 05 Oct 2015 17:56:45 +0200
+
 zfs-linux (0.6.5-pve3~jessie) unstable; urgency=medium
 
   * do not install /etc/init.d/zfs-zed script to avoid double startup
