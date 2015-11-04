@@ -3,8 +3,8 @@ RELEASE=4.0
 # source form https://github.com/zfsonlinux/
 
 ZFSVER=0.6.5
-ZFSPKGREL=pve4~jessie
-SPLPKGREL=pve1~jessie
+ZFSPKGREL=pve5~jessie
+SPLPKGREL=pve2~jessie
 ZFSPKGVER=${ZFSVER}-${ZFSPKGREL}
 SPLPKGVER=${ZFSVER}-${SPLPKGREL}
 
@@ -65,7 +65,11 @@ download:
 	git clone https://github.com/zfsonlinux/pkg-zfs.git
 	# list tags with:  git tag --list 'master/*'
 	cd pkg-spl; git checkout master/debian/jessie/0.6.5-1
+	# manual merge spl-0.6.5.3
+	cd pkg-spl; git merge --no-edit spl-0.6.5.3
 	cd pkg-zfs; git checkout master/debian/jessie/0.6.5.2-2
+	# manual cherry-pick relevant 0.6.5.3 updates
+	cd pkg-zfs; git cherry-pick cd887ab869bb506c88a66ba8c225ca42680b89d f9f5394f74f7bf421eb484e8d1653257d92f5ace
 	tar czf ${SPLSRC} pkg-spl
 	tar czf ${ZFSSRC} pkg-zfs
 

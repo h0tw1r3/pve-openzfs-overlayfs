@@ -1,3 +1,11 @@
+zfs-linux (0.6.5-pve5~jessie) unstable; urgency=medium
+
+  * Illumos 6267 - dn_bonus evicted too early
+
+  * Fix use-after-free in vdev_disk_physio_completion
+
+ -- Proxmox Support Team <support@proxmox.com>  Wed, 04 Nov 2015 17:42:42 +0100
+
 zfs-linux (0.6.5-pve4~jessie) unstable; urgency=medium
 
   * update to master/debian/jessie/0.6.5.2-2
