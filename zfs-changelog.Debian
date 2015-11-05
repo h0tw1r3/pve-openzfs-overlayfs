@@ -1,3 +1,9 @@
+zfs-linux (0.6.5-pve6~jessie) unstable; urgency=medium
+
+  * Prepare to tag zfs-0.6.5.3
+
+ -- Proxmox Support Team <support@proxmox.com>  Thu, 05 Nov 2015 07:21:44 +0100
+
 zfs-linux (0.6.5-pve5~jessie) unstable; urgency=medium
 
   * Illumos 6267 - dn_bonus evicted too early
