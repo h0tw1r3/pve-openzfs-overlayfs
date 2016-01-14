@@ -1,3 +1,9 @@
+spl-linux (0.6.5-pve3~jessie) unstable; urgency=medium
+
+  * update to 0.6.5.4
+
+ -- Proxmox Support Team <support@proxmox.com>  Thu, 14 Jan 2016 11:00:40 +0100
+
 spl-linux (0.6.5-pve2~jessie) unstable; urgency=medium
 
   * update to 0.6.5.3

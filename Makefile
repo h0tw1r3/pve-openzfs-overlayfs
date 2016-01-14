@@ -1,10 +1,10 @@
-RELEASE=4.0
+RELEASE=4.1
 
 # source form https://github.com/zfsonlinux/
 
 ZFSVER=0.6.5
-ZFSPKGREL=pve6~jessie
-SPLPKGREL=pve2~jessie
+ZFSPKGREL=pve7~jessie
+SPLPKGREL=pve3~jessie
 ZFSPKGVER=${ZFSVER}-${ZFSPKGREL}
 SPLPKGVER=${ZFSVER}-${SPLPKGREL}
 
@@ -62,14 +62,20 @@ zfs ${ZFS_DEBS}: ${ZFSSRC}
 download:
 	rm -rf pkg-spl pkg-zfs ${SPLSRC} ${ZFSSRC}
 	git clone https://github.com/zfsonlinux/pkg-spl.git
-	git clone https://github.com/zfsonlinux/pkg-zfs.git
 	# list tags with:  git tag --list 'master/*'
+	cd pkg-spl; git checkout spl-0.6.5-release
+	cd pkg-spl; git pull --no-edit git://github.com/zfsonlinux/spl.git spl-0.6.5-release
 	cd pkg-spl; git checkout master/debian/jessie/0.6.5-1
-	# manual merge spl-0.6.5.3
-	cd pkg-spl; git merge --no-edit spl-0.6.5.3
+	# manual merge spl-0.6.5.4
+	cd pkg-spl; git merge --no-edit spl-0.6.5-release
+	git clone https://github.com/zfsonlinux/pkg-zfs.git
+	cd pkg-zfs; git checkout -b zfs-0.6.5.4
+	cd pkg-zfs; git pull --no-edit git://github.com/zfsonlinux/zfs.git zfs-0.6.5-release
 	cd pkg-zfs; git checkout master/debian/jessie/0.6.5.2-2
 	# manual cherry-pick relevant 0.6.5.3 updates
 	cd pkg-zfs; git cherry-pick cd887ab869bb506c88a66ba8c225ca42680b89d f9f5394f74f7bf421eb484e8d1653257d92f5ace 9aaf60b66d10cb01c3c1fc67fa094b17a83b002a
+	# manual cherry-pick relevant 0.6.5.4 updates
+	cd pkg-zfs; git cherry-pick e909a45d22be9645f8bca27bfc4db6912648e1be..1ffc4c150e10310b319ab8a7d83f1f98f9a1e651
 	tar czf ${SPLSRC} pkg-spl
 	tar czf ${ZFSSRC} pkg-zfs
 
