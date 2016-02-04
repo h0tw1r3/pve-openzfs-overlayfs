@@ -75,7 +75,7 @@ download:
 	# manual cherry-pick relevant 0.6.5.3 updates
 	cd pkg-zfs; git cherry-pick cd887ab869bb506c88a66ba8c225ca42680b89d f9f5394f74f7bf421eb484e8d1653257d92f5ace 9aaf60b66d10cb01c3c1fc67fa094b17a83b002a
 	# manual cherry-pick relevant 0.6.5.4 updates
-	cd pkg-zfs; git cherry-pick e909a45d22be9645f8bca27bfc4db6912648e1be..1ffc4c150e10310b319ab8a7d83f1f98f9a1e651
+	cd pkg-zfs; git cherry-pick e909a45d22be9645f8bca27bfc4db6912648e1be^..1ffc4c150e10310b319ab8a7d83f1f98f9a1e651
 	tar czf ${SPLSRC} pkg-spl
 	tar czf ${ZFSSRC} pkg-zfs
 
