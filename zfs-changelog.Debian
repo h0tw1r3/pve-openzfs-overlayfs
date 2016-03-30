@@ -1,3 +1,9 @@
+zfs-linux (0.6.5-pve8~jessie) unstable; urgency=medium
+
+  * update to zfs-0.6.5.6
+
+ -- Proxmox Support Team <support@proxmox.com>  Wed, 30 Mar 2016 10:50:22 +0200
+
 zfs-linux (0.6.5-pve7~jessie) unstable; urgency=medium
 
   * update to zfs-0.6.5.4
