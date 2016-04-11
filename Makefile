@@ -67,17 +67,8 @@ download:
 	cd pkg-spl; git checkout master/debian/jessie/0.6.5-1
 	# manual merge spl-0.6.5.6
 	cd pkg-spl; git merge --no-edit spl-0.6.5.6
-	git clone https://github.com/zfsonlinux/pkg-zfs.git
-	cd pkg-zfs; git fetch https://github.com/zfsonlinux/zfs.git zfs-0.6.5-release
-	cd pkg-zfs; git checkout master/debian/jessie/0.6.5.2-2
-	# manual cherry-pick relevant 0.6.5.3 updates
-	cd pkg-zfs; git cherry-pick cd887ab869bb506c88a66ba8c225ca42680b89d f9f5394f74f7bf421eb484e8d1653257d92f5ace 9aaf60b66d10cb01c3c1fc67fa094b17a83b002a
-	# manual cherry-pick relevant 0.6.5.4 updates
-	cd pkg-zfs; git cherry-pick e909a45d22be9645f8bca27bfc4db6912648e1be^..1ffc4c150e10310b319ab8a7d83f1f98f9a1e651
-	# manual cherry-pick relevant 0.6.5.5 updates
-	cd pkg-zfs; git cherry-pick a5dae61721fac617d37ac8585a9ed5fe5aa20d1d^..504ff597092ec6160675685db938dbd21043b690
-	# manual cherry-pick relevant 0.6.5.6 updates
-	cd pkg-zfs; git cherry-pick 63ce7b6fcfc417fc58cbfaca641d54d66eeaccab^..21f21fe85989004e60d316fca9bb4eb4cde10eb7
+	# clone pkg-zfs and checkout 0.6.5.6-3
+	git clone -b master/debian/jessie/0.6.5.6-3 https://github.com/zfsonlinux/pkg-zfs.git
 	tar czf ${SPLSRC} pkg-spl
 	tar czf ${ZFSSRC} pkg-zfs
 
