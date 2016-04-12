@@ -1,3 +1,9 @@
+zfs-linux (0.6.5-pve9~jessie) unstable; urgency=medium
+
+  * Update to pkg-zfs jessie/0.6.5.6-3
+
+ -- Proxmox Support Team <support@proxmox.com>  Tue, 12 Apr 2016 09:51:35 +0200
+
 zfs-linux (0.6.5-pve8~jessie) unstable; urgency=medium
 
   * update to zfs-0.6.5.6
