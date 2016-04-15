@@ -61,12 +61,8 @@ zfs ${ZFS_DEBS}: ${ZFSSRC}
 .PHONY: download
 download:
 	rm -rf pkg-spl pkg-zfs ${SPLSRC} ${ZFSSRC}
-	git clone https://github.com/zfsonlinux/pkg-spl.git
-	# list tags with:  git tag --list 'master/*'
-	cd pkg-spl; git fetch https://github.com/zfsonlinux/spl.git spl-0.6.5-release
-	cd pkg-spl; git checkout master/debian/jessie/0.6.5-1
-	# manual merge spl-0.6.5.6
-	cd pkg-spl; git merge --no-edit spl-0.6.5.6
+	# clone pkg-spl and checkout 0.6.5.6-3
+	git clone -b master/debian/jessie/0.6.5.6-3 https://github.com/zfsonlinux/pkg-spl.git
 	# clone pkg-zfs and checkout 0.6.5.6-3
 	git clone -b master/debian/jessie/0.6.5.6-3 https://github.com/zfsonlinux/pkg-zfs.git
 	tar czf ${SPLSRC} pkg-spl
