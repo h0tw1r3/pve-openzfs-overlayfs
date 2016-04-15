@@ -149,4 +149,4 @@ Index: new/debian/rules
 -
  override_dh_installinit:
  	@# Install systemd files
- 	dh_systemd_enable -pzfsutils etc/systemd/system/zfs.target
+ 	dh_systemd_enable -pzfsutils contrib/systemd/system/zfs.target
