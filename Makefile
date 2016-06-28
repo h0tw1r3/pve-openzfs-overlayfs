@@ -2,9 +2,9 @@ RELEASE=4.1
 
 # source form https://github.com/zfsonlinux/
 
-ZFSVER=0.6.5
-ZFSPKGREL=pve9~jessie
-SPLPKGREL=pve5~jessie
+ZFSVER=0.6.5.7
+ZFSPKGREL=pve10~bpo80
+SPLPKGREL=pve6~bpo80
 ZFSPKGVER=${ZFSVER}-${ZFSPKGREL}
 SPLPKGVER=${ZFSVER}-${SPLPKGREL}
 
@@ -61,10 +61,10 @@ zfs ${ZFS_DEBS}: ${ZFSSRC}
 .PHONY: download
 download:
 	rm -rf pkg-spl pkg-zfs ${SPLSRC} ${ZFSSRC}
-	# clone pkg-spl and checkout 0.6.5.6-3
-	git clone -b master/debian/jessie/0.6.5.6-3 https://github.com/zfsonlinux/pkg-spl.git
-	# clone pkg-zfs and checkout 0.6.5.6-3
-	git clone -b master/debian/jessie/0.6.5.6-3 https://github.com/zfsonlinux/pkg-zfs.git
+	# clone pkg-spl and checkout 0.6.5.7-5
+	git clone -b master/debian/jessie/0.6.5.7-5-jessie https://github.com/zfsonlinux/pkg-spl.git
+	# clone pkg-zfs and checkout 0.6.5.7-8
+	git clone -b master/debian/jessie/0.6.5.7-8-jessie https://github.com/zfsonlinux/pkg-zfs.git
 	tar czf ${SPLSRC} pkg-spl
 	tar czf ${ZFSSRC} pkg-zfs
 
