@@ -1,3 +1,11 @@
+zfs-linux (0.6.5.7-pve10~bpo80) unstable; urgency=medium
+
+  * update to pkg-zfs jessie/0.6.5.7-8
+
+  * change package versioning to allow upgrades from PVE3/wheezy
+
+ -- Proxmox Support Team <support@proxmox.com>  Tue, 28 Jun 2016 09:50:00 +0200
+
 zfs-linux (0.6.5-pve9~jessie) unstable; urgency=medium
 
   * Update to pkg-zfs jessie/0.6.5.6-3

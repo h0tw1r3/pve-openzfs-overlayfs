@@ -1,3 +1,11 @@
+spl-linux (0.6.5.7-pve6~bpo80) unstable; urgency=medium
+
+  * update pkg-spl to jessie/0.6.5.7-5
+
+  * change package versioning to allow upgrades from PVE3/wheezy
+
+ -- Proxmox Support Team <support@proxmox.com>  Tue, 28 Jun 2016 09:50:00 +0200
+
 spl-linux (0.6.5-pve5~jessie) unstable; urgency=medium
 
   * Update pkg-spl to jessie/0.6.5.6-3
