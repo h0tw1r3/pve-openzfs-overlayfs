@@ -78,28 +78,4 @@ distclean: clean
 
 .PHONY: upload
 upload: ${DEBS}
-	umount /pve/${RELEASE}; mount /pve/${RELEASE} -o rw 
-	mkdir -p /pve/${RELEASE}/extra
-	rm -f /pve/${RELEASE}/extra/spl_*.deb
-	rm -f /pve/${RELEASE}/extra/spl-dkms_*.deb
-	rm -f /pve/${RELEASE}/extra/libnvpair1_*.deb
-	rm -f /pve/${RELEASE}/extra/libnvpair1-dbg_*.deb
-	rm -f /pve/${RELEASE}/extra/libuutil1_*.deb
-	rm -f /pve/${RELEASE}/extra/libuutil1-dbg_*.deb
-	rm -f /pve/${RELEASE}/extra/libzfs2_*.deb
-	rm -f /pve/${RELEASE}/extra/libzfs2-dbg_*.deb
-	rm -f /pve/${RELEASE}/extra/libzfs-dev_*.deb
-	rm -f /pve/${RELEASE}/extra/libzpool2_*.deb
-	rm -f /pve/${RELEASE}/extra/libzpool2-dbg_*.deb
-	rm -f /pve/${RELEASE}/extra/zfs_*.deb
-	rm -f /pve/${RELEASE}/extra/zfs-dkms_*.deb
-	rm -f /pve/${RELEASE}/extra/zfs-doc_*.deb
-	rm -f /pve/${RELEASE}/extra/zfs-dbg_*.deb
-	rm -f /pve/${RELEASE}/extra/zfs-initramfs_*.deb
-	rm -f /pve/${RELEASE}/extra/zfsutils_*.deb
-	rm -f /pve/${RELEASE}/extra/zfsutils-dbg_*.deb
-	rm -f /pve/${RELEASE}/extra/Packages*
-	cp ${DEBS} /pve/${RELEASE}/extra
-	cd /pve/${RELEASE}/extra; dpkg-scanpackages . /dev/null > Packages; gzip -9c Packages > Packages.gz
-	umount /pve/${RELEASE}; mount /pve/${RELEASE} -o ro
-
+	tar -cf - ${DEBS} | ssh repoman@repo.proxmox.com upload
