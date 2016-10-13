@@ -1,3 +1,11 @@
+spl-linux (0.6.5.8-pve7~bpo80) unstable; urgency=medium
+
+  * update spl to debian/0.6.5.8-2
+
+  * switch package upstream sources to Debian (Jessie)
+
+ -- Proxmox Support Team <support@proxmox.com>  Wed, 12 Oct 2016 11:16:02 +0200
+
 spl-linux (0.6.5.7-pve6~bpo80) unstable; urgency=medium
 
   * update pkg-spl to jessie/0.6.5.7-5
