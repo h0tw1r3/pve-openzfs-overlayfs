@@ -1,2 +1,3 @@
 fix-control.patch
 add-zfsutils-preinst-postinst.patch
+fix-dependencies-for-upgrades.patch

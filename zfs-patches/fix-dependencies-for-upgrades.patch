@@ -1,0 +1,137 @@
+From 4d9b9f40e1b92fba360aed1158578a75f32cbdce Mon Sep 17 00:00:00 2001
+From: =?UTF-8?q?Fabian=20Gr=C3=BCnbichler?= <f.gruenbichler@proxmox.com>
+Date: Wed, 12 Oct 2016 13:16:03 +0200
+Subject: [PATCH] ensure upgrade path from existing PVE ZFS packages
+
+---
+ debian/control.in | 59 ++++++++++++++++++++++++++++++++++++++++++++++++++++++-
+ 1 file changed, 58 insertions(+), 1 deletion(-)
+
+diff --git a/debian/control.in b/debian/control.in
+index 22dd958..2bee2bf 100644
+--- a/debian/control.in
++++ b/debian/control.in
+@@ -28,6 +28,8 @@ Package: libnvpair1linux
+ Section: contrib/libs
+ Architecture: linux-any
+ Depends: ${misc:Depends}, ${shlibs:Depends}
++Replaces: libnvpair1 (<< 0.6.5.8-pve11~bpo80)
++Breaks: libnvpair1 (<< 0.6.5.8-pve11~bpo80)
+ Description: Solaris name-value library for Linux
+  This library provides routines for packing and unpacking nv pairs for
+  transporting data across process boundaries, transporting between
+@@ -37,6 +39,8 @@ Package: libuutil1linux
+ Section: contrib/libs
+ Architecture: linux-any
+ Depends: ${misc:Depends}, ${shlibs:Depends}
++Replaces: libuutil1 (<< 0.6.5.8-pve11~bpo80)
++Breaks: libuutil1 (<< 0.6.5.8-pve11~bpo80)
+ Description: Solaris userland utility library for Linux
+  This library provides a variety of glue functions for ZFS on Linux:
+   * libspl: The Solaris Porting Layer userland library, which provides APIs
+@@ -54,6 +58,8 @@ Architecture: linux-any
+ Depends: libzfs2linux (= ${binary:Version}), libzpool2linux (= ${binary:Version}),
+  libnvpair1linux (= ${binary:Version}), libuutil1linux (= ${binary:Version}),
+  ${misc:Depends}
++Replaces: libzfs-dev (<< 0.6.5.8-pve11~bpo80)
++Breaks: libzfs-dev (<< 0.6.5.8-pve11~bpo80)
+ Provides: libnvpair-dev, libuutil-dev
+ Description: OpenZFS filesystem development files for Linux
+  Header files and static libraries for compiling software against
+@@ -66,6 +72,8 @@ Package: libzfs2linux
+ Section: contrib/libs
+ Architecture: linux-any
+ Depends: ${misc:Depends}, ${shlibs:Depends}
++Replaces: libzfs2 (<< 0.6.5.8-pve11~bpo80)
++Breaks: libzfs2 (<< 0.6.5.8-pve11~bpo80)
+ Description: OpenZFS filesystem library for Linux
+  The Z file system is a pooled filesystem designed for maximum data
+  integrity, supporting data snapshots, multiple copies, and data
+@@ -77,6 +85,8 @@ Package: libzpool2linux
+ Section: contrib/libs
+ Architecture: linux-any
+ Depends: ${misc:Depends}, ${shlibs:Depends}
++Replaces: libzpool2 (<< 0.6.5.8-pve11~bpo80)
++Breaks: libzpool2 (<< 0.6.5.8-pve11~bpo80)
+ Description: OpenZFS pool library for Linux
+  The Z file system is a pooled filesystem designed for maximum data
+  integrity, supporting data snapshots, multiple copies, and data
+@@ -88,8 +98,10 @@ Package: zfs-initramfs
+ Architecture: all
+ Depends: initramfs-tools,
+  busybox-initramfs | busybox-static | busybox,
+- zfsutils-linux,
++ zfsutils-linux (>= 0.6.5.8-pve11~bpo80),
+  ${misc:Depends}
++Breaks: zfs-initramfs (<< 0.6.5.8-pve11~bpo80)
++Replaces: zfs-initramfs (<< 0.6.5.8-pve11~bpo80)
+ Description: OpenZFS root filesystem capabilities for Linux - initramfs
+  The Z file system is a pooled filesystem designed for maximum data
+  integrity, supporting data snapshots, multiple copies, and data
+@@ -104,7 +116,9 @@ Architecture: linux-any
+ Depends: ${misc:Depends}, ${shlibs:Depends}, ${python:Depends}
+ Recommends: lsb-base, zfs-zed
+ Suggests: nfs-kernel-server, samba-common-bin (>= 3.0.23), zfs-initramfs
++Replaces: zfsutils (<< 0.6.5.8-pve11~bpo80)
+ Conflicts: zfs, zfs-fuse, zutils
++Breaks: zfsutils (<< 0.6.5.8-pve11~bpo80)
+ Provides: zfsutils
+ Description: command-line tools to manage OpenZFS filesystems
+  The Z file system is a pooled filesystem designed for maximum data
+@@ -118,6 +132,7 @@ Package: zfs-zed
+ Section: contrib/admin
+ Architecture: linux-any
+ Depends: ${misc:Depends}, ${shlibs:Depends}, zfsutils-linux
++Replaces: zfsutils (<< 0.6.5.8-pve11~bpo80)
+ Description: OpenZFS Event Daemon
+  The Z file system is a pooled filesystem designed for maximum data
+  integrity, supporting data snapshots, multiple copies, and data
+@@ -142,3 +157,45 @@ Description: Debugging symbols for OpenZFS userland libraries and tools
+  .
+  This package contains the debugging symbols for libzpool2linux, libzfs2linux,
+  libnvpair1linux, libuutil1linux, zfs-zed and zfsutils-linux.
++
++# Transitional packages
++
++Package: libzfs2
++Depends: libzfs2linux, ${misc:Depends}
++Architecture: all
++Priority: extra
++Section: oldlibs
++Description: transitional package
++ This is a transitional package. It can safely be removed.
++
++Package: libzpool2
++Depends: libzpool2linux, ${misc:Depends}
++Architecture: all
++Priority: extra
++Section: oldlibs
++Description: transitional package
++ This is a transitional package. It can safely be removed.
++
++Package: libnvpair1
++Depends: libnvpair1linux, ${misc:Depends}
++Architecture: all
++Priority: extra
++Section: oldlibs
++Description: transitional package
++ This is a transitional package. It can safely be removed.
++
++Package: libuutil1
++Depends: libuutil1linux, ${misc:Depends}
++Architecture: all
++Priority: extra
++Section: oldlibs
++Description: transitional package
++ This is a transitional package. It can safely be removed.
++
++Package: zfsutils
++Depends: zfsutils-linux, ${misc:Depends}
++Architecture: all
++Priority: extra
++Section: oldlibs
++Description: transitional package
++ This is a transitional package. It can safely be removed.
+-- 
+2.1.4
+

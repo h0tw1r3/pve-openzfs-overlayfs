@@ -27,7 +27,14 @@ zfs-zed_${ZFSPKGVER}_amd64.deb			\
 zfs-initramfs_${ZFSPKGVER}_all.deb		\
 zfsutils-linux_${ZFSPKGVER}_amd64.deb
 
-DEBS=${SPL_DEBS} ${ZFS_DEBS} 
+ZFS_TRANS_DEBS=					\
+libnvpair1_${ZFSPKGVER}_all.deb			\
+libuutil1_${ZFSPKGVER}_all.deb			\
+libzfs2_${ZFSPKGVER}_all.deb			\
+libzpool2_${ZFSPKGVER}_all.deb			\
+zfsutils_${ZFSPKGVER}_all.deb
+
+DEBS=${SPL_DEBS} ${ZFS_DEBS} ${ZFS_TRANS_DEBS}
 
 all: ${DEBS}
 
@@ -47,7 +54,7 @@ spl ${SPL_DEBS}: ${SPLSRC}
 	cd ${SPLDIR}; dpkg-buildpackage -b -uc -us 
 
 .PHONY: zfs
-zfs ${ZFS_DEBS}: ${ZFSSRC}
+zfs ${ZFS_DEBS} ${ZFS_TRANS_DEBS}: ${ZFSSRC}
 	rm -rf ${ZFSDIR}
 	tar xf ${ZFSSRC}
 	mv ${ZFSDIR}/debian/changelog ${ZFSDIR}/debian/changelog.org
