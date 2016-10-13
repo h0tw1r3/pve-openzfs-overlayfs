@@ -1,84 +1,121 @@
-Index: new/debian/control.in
-===================================================================
---- new.orig/debian/control.in
-+++ new/debian/control.in
-@@ -104,39 +104,9 @@ Description: Native ZFS filesystem kerne
-  This package provides the source to the SPL kernel module in a form
-  suitable for use by module-assistant or kernel-package.
+From: =?UTF-8?q?Fabian=20Gr=C3=BCnbichler?= <f.gruenbichler@proxmox.com>
+Date: Wed, 12 Oct 2016 11:25:40 +0200
+Subject: [PATCH 1/2] remove DKMS, modules and dracut build
+
+---
+diff --git a/debian/control.in b/debian/control.in
+index db75496..22dd958 100644
+--- a/debian/control.in
++++ b/debian/control.in
+@@ -9,7 +9,6 @@ Build-Depends: dh-autoreconf,
+                dh-systemd,
+                autotools-dev,
+                debhelper (>= 9),
+-               dkms (>> 2.1.1.2-5),
+                libselinux1-dev,
+                libtool,
+                lsb-release,
+@@ -85,25 +84,11 @@ Description: OpenZFS pool library for Linux
+  .
+  This zpool library provides support for managing zpools.
  
 -Package: zfs-dkms
 -Architecture: all
--Pre-Depends: spl-dkms
--Depends: dkms (>> 2.1.1.2-5), lsb-release, ${misc:Depends}, file
--Recommends: zfsutils
--Replaces: lzfs, lzfs-dkms, zfs-modules-source
--Provides: lustre-backend-fs, lzfs, lzfs-dkms, zfs-modules, zfs-modules-source
--Conflicts: lzfs, lzfs-dkms, zfs-modules-source
--Description: Native ZFS filesystem kernel modules for Linux
+-Pre-Depends: spl-dkms (>= ${source:Upstream-Version})
+-Depends: dkms (>> 2.1.1.2-5), lsb-release, ${misc:Depends}
+-Recommends: zfsutils-linux, zfs-zed
+-Provides: zfs-modules
+-Description: OpenZFS filesystem kernel modules for Linux
 - The Z file system is a pooled filesystem designed for maximum data
 - integrity, supporting data snapshots, multiple copies, and data
 - checksums.
 - .
-- This DKMS package includes the SPA, DMU, ZVOL, and ZPL components of ZFS.
--
--Package: zfs-dracut
--Section: utils
--Architecture: linux-any
--Depends: dracut,
-- zfs-modules | zfs-dkms | zfs-modules-source (>= ${source:Version}),
-- zfsutils, ${misc:Depends}
--Description: Native ZFS root filesystem capabilities for Linux
-- The Z file system is a pooled filesystem designed for maximum data
-- integrity, supporting data snapshots, multiple copies, and data
-- checksums.
-- .
-- This package adds ZFS to the system initramfs with a hook
-- for the dracut infrastructure.
+- This DKMS package includes the SPA, DMU, ZVOL, and ZPL components of
+- OpenZFS.
 -
  Package: zfs-initramfs
- Architecture: linux-any
- Depends: initramfs-tools, busybox,
-- zfs-modules | zfs-dkms | zfs-modules-source (>= ${source:Version}),
-  zfsutils, ${misc:Depends}
- Description: Native ZFS root filesystem capabilities for Linux
+ Architecture: all
+ Depends: initramfs-tools,
+  busybox-initramfs | busybox-static | busybox,
+- zfs-modules | zfs-dkms, zfsutils-linux,
++ zfsutils-linux,
+  ${misc:Depends}
+ Description: OpenZFS root filesystem capabilities for Linux - initramfs
   The Z file system is a pooled filesystem designed for maximum data
-@@ -150,7 +120,6 @@ Package: zfsutils
- Section: admin
+@@ -113,23 +98,12 @@ Description: OpenZFS root filesystem capabilities for Linux - initramfs
+  This package adds OpenZFS to the system initramfs with a hook
+  for the initramfs-tools infrastructure.
+ 
+-Package: zfs-dracut
+-Architecture: all
+-Depends: dracut, zfs-modules | zfs-dkms, zfsutils-linux, ${misc:Depends}
+-Description: OpenZFS root filesystem capabilities for Linux - dracut
+- The Z file system is a pooled filesystem designed for maximum data
+- integrity, supporting data snapshots, multiple copies, and data
+- checksums.
+- .
+- This package adds OpenZFS to the system initramfs with a hook
+- for the dracut infrastructure.
+-
+ Package: zfsutils-linux
+ Section: contrib/admin
  Architecture: linux-any
- Depends: initscripts, lsb-base, python, ${misc:Depends}, ${shlibs:Depends}
--Recommends: zfs-modules | zfs-dkms | zfs-modules-source (>= ${source:Version})
- Suggests: nfs-kernel-server, samba-common-bin (>= 3.0.23), zfs-initramfs
- Conflicts: zfs, zfs-fuse
- Replaces: zfs
-Index: new/debian/rules
-===================================================================
---- new.orig/debian/rules
-+++ new/debian/rules
-@@ -25,12 +25,10 @@ KARCH=$(shell uname -r | sed "s/.*-\([a-
+ Depends: ${misc:Depends}, ${shlibs:Depends}, ${python:Depends}
+-Recommends: lsb-base, zfs-modules | zfs-dkms, zfs-zed
+-Suggests: nfs-kernel-server, samba-common-bin (>= 3.0.23), zfs-initramfs | zfs-dracut
++Recommends: lsb-base, zfs-zed
++Suggests: nfs-kernel-server, samba-common-bin (>= 3.0.23), zfs-initramfs
+ Conflicts: zfs, zfs-fuse, zutils
+ Provides: zfsutils
+ Description: command-line tools to manage OpenZFS filesystems
+@@ -143,7 +117,7 @@ Description: command-line tools to manage OpenZFS filesystems
+ Package: zfs-zed
+ Section: contrib/admin
+ Architecture: linux-any
+-Depends: ${misc:Depends}, ${shlibs:Depends}, zfs-modules | zfs-dkms, zfsutils-linux
++Depends: ${misc:Depends}, ${shlibs:Depends}, zfsutils-linux
+ Description: OpenZFS Event Daemon
+  The Z file system is a pooled filesystem designed for maximum data
+  integrity, supporting data snapshots, multiple copies, and data
+diff --git a/debian/rules b/debian/rules
+index 5036f42..6fc3e39 100755
+--- a/debian/rules
++++ b/debian/rules
+@@ -5,9 +5,6 @@ NAME := $(shell awk '$$1 == "Name:" { print $$2; }' META)
+ VERSION := $(shell dpkg-parsechangelog \
+   | awk '$$1 == "Version:" { print $$2; }' | cut -d- -f1)
+ 
+-DKMSFILES := module include config zfs.release.in autogen.sh META AUTHORS \
+-		DISCLAIMER COPYRIGHT OPENSOLARIS.LICENSE README.markdown
+-
+ ifndef BUILD_UDEB
+ BUILD_UDEB=false
+ endif
+@@ -21,21 +18,16 @@ KVERS=$(shell uname -r)
  endif
  
  ifndef SPL
--SPLSRC=/usr/src/spl-$(VERSION)
-+SPLSRC=../pkg-spl
+-SPL=/usr/src/spl-$(VERSION)
+-endif
+-
+-ifndef SPLOBJ
+-SPLOBJ=/var/lib/dkms/spl/$(VERSION)/$(KVERS)/$(shell dpkg-architecture -qDEB_TARGET_GNU_CPU)
++SPL=../pkg-spl
  endif
- 
--CFG_OPTS=--with-linux=$(KSRC) \
--	 --with-linux-obj=$(KOBJ) \
--	 --with-spl=$(SPLSRC)
-+CFG_OPTS=--with-spl=$(SPLSRC)
  
  non_epoch_version=$(shell echo $(KVERS) | perl -pe 's/^\d+://')
  PACKAGE=zfs
-@@ -41,7 +39,7 @@ export DEB_BUILD_MAINT_OPTIONS = hardeni
- KIMGVER=$(shell dpkg -s linux-image-$(KVERS)-$(KARCH) | grep ^Version | sed 's/.*: //')
+-pmodules = $(PACKAGE)-modules-$(non_epoch_version)
+ 
+ export DEB_BUILD_MAINT_OPTIONS = hardening=+all
  
  %:
--	dh $@ --with dkms --parallel
-+	dh $@ --parallel
+-	dh $@ --with autoreconf,dkms,python2,systemd --parallel
++	dh $@ --with autoreconf,python2,systemd --parallel
  
- override_dh_prep-base-deb-files:
- 	sed -e 's/##SHLIB_MAJOR##/$(SHLIB_MAJOR)/g' < debian/control.in > debian/control
-@@ -83,42 +81,6 @@ override_dh_auto_install:
+ override_dh_auto_configure:
+ 	@cp debian/control.in debian/control
+@@ -62,36 +54,6 @@ override_dh_auto_install:
  	@# Install the utilities.
  	$(MAKE) install DESTDIR='$(CURDIR)/debian/tmp'
  
@@ -90,11 +127,6 @@ Index: new/debian/rules
 -	@# Install the DKMS source.
 -	@# We only want the files needed to build the modules
 -	mkdir -p '$(CURDIR)/debian/tmp/usr/src/$(NAME)-$(VERSION)'
--	touch '$(CURDIR)/debian/tmp/usr/src/$(NAME)-$(VERSION)/.nogitrelease'
--	cp '$(CURDIR)/autogen.sh' '$(CURDIR)/debian/tmp/usr/src/$(NAME)-$(VERSION)/'
--	( for d in include module config; do \
--	     rm -Rf $(CURDIR)/debian/tmp/usr/src/$(NAME)-$(VERSION)/$$d; \
--	done)
 -	$(foreach file,$(DKMSFILES),mv '$(CURDIR)/$(NAME)-$(VERSION)/$(file)' '$(CURDIR)/debian/tmp/usr/src/$(NAME)-$(VERSION)' || exit 1;)
 -	@# Hellish awk line:
 -	@#  * Deletes from configure.ac the parts not needed for building the kernel module
@@ -114,39 +146,88 @@ Index: new/debian/rules
 -
 -	@# This shunt allows DKMS to install the Module.symvers and zfs_config.h
 -	@# files to the ${dkms_tree} area through the POST_INSTALL directive.
--	echo '#!/bin/sh'  >'$(CURDIR)/debian/tmp/usr/src/$(NAME)-$(VERSION)/cp'
--	echo 'cp "$$@"'  >>'$(CURDIR)/debian/tmp/usr/src/$(NAME)-$(VERSION)/cp'
+-	printf '#!/bin/sh\ncp "$$@"\n' > '$(CURDIR)/debian/tmp/usr/src/$(NAME)-$(VERSION)/cp'
 -	chmod 755 '$(CURDIR)/debian/tmp/usr/src/$(NAME)-$(VERSION)/cp'
 -
  	mkdir -p $(CURDIR)/debian/tmp/usr/lib
  	for i in `ls $(CURDIR)/debian/tmp/lib/*.so`; do \
  		ln -s /lib/`readlink $${i}` $(CURDIR)/debian/tmp/usr/lib/`basename $${i}`; \
-@@ -137,28 +99,6 @@ override_dh_auto_install:
- 	# Fix the includes according to https://github.com/zfsonlinux/zfs/issues/2903
- 	./debian/fix_includes-libspl.sh
+@@ -101,9 +63,6 @@ override_dh_auto_install:
+ 	chmod -x $(CURDIR)/debian/tmp/etc/zfs/zfs-functions
+ 	chmod -x $(CURDIR)/debian/tmp/etc/default/zfs
  
--	@# Duplicate the dkms directory for module-assistant source package
--	install -d $(CURDIR)/debian/tmp/usr/src/modules
--	cp -r $(CURDIR)/debian/tmp/usr/src/$(NAME)-$(VERSION) $(CURDIR)/debian/tmp/usr/src/modules/$(PACKAGE)
--	mkdir -p $(CURDIR)/debian/tmp/usr/src/modules/$(PACKAGE)/debian
--	cp debian/copyright debian/module/* \
--	    $(CURDIR)/debian/tmp/usr/src/modules/$(PACKAGE)/debian/
--	sed 's/^zfs-linux /zfs-modules /' debian/changelog \
--	    > $(CURDIR)/debian/tmp/usr/src/modules/$(PACKAGE)/debian/changelog
--	chmod 755 $(CURDIR)/debian/tmp/usr/src/modules/$(PACKAGE)/debian/rules
--	chown -R root.src $(CURDIR)/debian/tmp
--	find $(CURDIR)/debian/tmp/usr/src -type d | xargs chmod 755
--	find $(CURDIR)/debian/tmp/usr/src -type f -perm -100 | xargs chmod 755
--	find $(CURDIR)/debian/tmp/usr/src -type f -not -perm -100 | xargs chmod 644
--	chmod 775 $(CURDIR)/debian/tmp/usr/src/modules
--	cd $(CURDIR)/debian/tmp/usr/src && tar cf $(PACKAGE).tar modules
--	rm -Rf $(CURDIR)/debian/tmp/usr/src/modules
--	bzip2 $(CURDIR)/debian/tmp/usr/src/$(PACKAGE).tar
--	chmod 644 $(CURDIR)/debian/tmp/usr/src/$(PACKAGE).tar.bz2
--	install -d $(CURDIR)/debian/zfs-modules-source/usr/src
--	mv $(CURDIR)/debian/tmp/usr/src/$(PACKAGE).tar.bz2 $(CURDIR)/debian/zfs-modules-source/usr/src/
--	rm -Rf $(CURDIR)/debian/zfs-modules-source/usr/src/$(NAME)-$(VERSION)
+-override_dh_dkms:
+-	dh_dkms -V $(VERSION)
 -
- override_dh_installinit:
- 	@# Install systemd files
- 	dh_systemd_enable -pzfsutils contrib/systemd/system/zfs.target
+ override_dh_makeshlibs:
+ 	dh_makeshlibs -a
+ ifeq ($(BUILD_UDEB), true)
+@@ -141,65 +100,5 @@ override_dh_install:
+ 
+ # ------------
+ 
+-override_dh_prep-deb-files:
+-	for templ in $(wildcard $(CURDIR)/debian/*_KVERS_*.in); do \
+-		sed -e 's/##KVERS##/$(KVERS)/g ; s/#KVERS#/$(KVERS)/g ; s/_KVERS_/$(KVERS)/g ; s/##KDREV##/$(KDREV)/g ; s/#KDREV#/$(KDREV)/g ; s/_KDREV_/$(KDREV)/g ; s/_ARCH_/$(DEB_HOST_ARCH)/' \
+-		< $$templ > `echo $$templ | sed -e 's/_KVERS_/$(KVERS)/g ; s/_ARCH_/$(DEB_HOST_ARCH)/g ; s/\.in$$//'` ; \
+-	done
+-	sed -e 's/##KVERS##/$(KVERS)/g ; s/#KVERS#/$(KVERS)/g ; s/_KVERS_/$(KVERS)/g ; s/##KDREV##/$(KDREV)/g ; s/#KDREV#/$(KDREV)/g ; s/_KDREV_/$(KDREV)/g ; s/_ARCH_/$(DEB_HOST_ARCH)/g' \
+-	< debian/control.modules.in > debian/control
+-
+-override_dh_configure_modules_udeb: override_dh_configure_modules_udeb_stamp
+-override_dh_configure_modules_udeb_stamp:
+-	./configure \
+-		--without-selinux \
+-		--with-config=kernel \
+-		--with-linux=$(KSRC) \
+-		--with-linux-obj=$(KOBJ) \
+-		--with-spl=$(SPL) \
+-		--with-spl-obj=$(SPLOBJ)
+-	touch override_dh_configure_modules_udeb_stamp
+-
+-override_dh_configure_modules: override_dh_configure_modules_stamp
+-override_dh_configure_modules_stamp:
+-	./configure \
+-		--with-config=kernel \
+-		--with-linux=$(KSRC) \
+-		--with-linux-obj=$(KOBJ) \
+-		--with-spl=$(SPL) \
+-		--with-spl-obj=$(SPLOBJ)
+-	touch override_dh_configure_modules_stamp
+-
+-override_dh_binary-modules-udeb: override_dh_prep-deb-files override_dh_configure_modules_udeb
+-	dh_testdir
+-	dh_testroot
+-	dh_prep
+-
+-	$(MAKE) -C $(CURDIR)/module modules
+-
+-	dh_installdirs -p${pmodules}-di
+-	dh_install -p${pmodules}-di
+-	dh_gencontrol -p${pmodules}-di
+-
+-	dh_builddeb -p${pmodules}-di
+-
+-override_dh_binary-modules: override_dh_prep-deb-files override_dh_configure_modules
+-	dh_testdir
+-	dh_testroot
+-	dh_prep
+-
+-	$(MAKE) -C $(CURDIR)/module modules
+-
+-	dh_install -p${pmodules}
+-	dh_installdocs -p${pmodules}
+-	dh_installchangelogs -p${pmodules}
+-	dh_compress -p${pmodules}
+-	dh_strip -p${pmodules}
+-	dh_fixperms -p${pmodules}
+-	dh_installdeb -p${pmodules}
+-	dh_gencontrol -p${pmodules}
+-	dh_md5sums -p${pmodules}
+-	dh_builddeb -p${pmodules}
+-
+ debian-copyright:
+ 	cme update dpkg-copyright -file debian/copyright.cme
+-- 
+2.1.4
+

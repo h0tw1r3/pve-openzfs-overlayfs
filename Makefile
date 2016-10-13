@@ -17,14 +17,15 @@ SPL_DEBS= 					\
 spl_${SPLPKGVER}_amd64.deb
 
 ZFS_DEBS= 					\
-libnvpair1_${ZFSPKGVER}_amd64.deb 		\
-libuutil1_${ZFSPKGVER}_amd64.deb		\
-libzfs2_${ZFSPKGVER}_amd64.deb			\
-libzfs-dev_${ZFSPKGVER}_amd64.deb		\
-libzpool2_${ZFSPKGVER}_amd64.deb		\
+libnvpair1linux_${ZFSPKGVER}_amd64.deb		\
+libuutil1linux_${ZFSPKGVER}_amd64.deb		\
+libzfs2linux_${ZFSPKGVER}_amd64.deb		\
+libzfslinux-dev_${ZFSPKGVER}_amd64.deb		\
+libzpool2linux_${ZFSPKGVER}_amd64.deb		\
 zfs-dbg_${ZFSPKGVER}_amd64.deb			\
-zfs-initramfs_${ZFSPKGVER}_amd64.deb		\
-zfsutils_${ZFSPKGVER}_amd64.deb
+zfs-zed_${ZFSPKGVER}_amd64.deb			\
+zfs-initramfs_${ZFSPKGVER}_all.deb		\
+zfsutils-linux_${ZFSPKGVER}_amd64.deb
 
 DEBS=${SPL_DEBS} ${ZFS_DEBS} 
 
@@ -43,7 +44,6 @@ spl ${SPL_DEBS}: ${SPLSRC}
 	cd ${SPLDIR}; ln -s ../spl-patches patches
 	cd ${SPLDIR}; quilt push -a
 	cd ${SPLDIR}; rm -rf .pc ./patches
-	cd ${SPLDIR}; ./debian/rules override_dh_prep-base-deb-files
 	cd ${SPLDIR}; dpkg-buildpackage -b -uc -us 
 
 .PHONY: zfs
@@ -55,16 +55,15 @@ zfs ${ZFS_DEBS}: ${ZFSSRC}
 	cd ${ZFSDIR}; ln -s ../zfs-patches patches
 	cd ${ZFSDIR}; quilt push -a
 	cd ${ZFSDIR}; rm -rf .pc ./patches
-	cd ${ZFSDIR}; ./debian/rules override_dh_prep-base-deb-files
 	cd ${ZFSDIR}; dpkg-buildpackage -b -uc -us 
 
 .PHONY: download
 download:
 	rm -rf pkg-spl pkg-zfs ${SPLSRC} ${ZFSSRC}
-	# clone pkg-spl and checkout 0.6.5.7-5
-	git clone -b master/debian/jessie/0.6.5.7-5-jessie https://github.com/zfsonlinux/pkg-spl.git
-	# clone pkg-zfs and checkout 0.6.5.7-8
-	git clone -b master/debian/jessie/0.6.5.7-8-jessie https://github.com/zfsonlinux/pkg-zfs.git
+	# clone pkg-zfsonlinux/spl and checkout 0.6.5.8-2
+	git clone -b debian/0.6.5.8-2 git://anonscm.debian.org/pkg-zfsonlinux/spl.git pkg-spl
+	# clone pkg-zfsonlinux/zfs and checkout 0.6.5.8-1
+	git clone -b debian/0.6.5.8-1 git://anonscm.debian.org/pkg-zfsonlinux/zfs.git pkg-zfs
 	tar czf ${SPLSRC} pkg-spl
 	tar czf ${ZFSSRC} pkg-zfs
 
