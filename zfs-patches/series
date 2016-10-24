@@ -1,3 +1,4 @@
 fix-control.patch
 add-zfsutils-preinst-postinst.patch
 fix-dependencies-for-upgrades.patch
+import-by-disk-id.patch

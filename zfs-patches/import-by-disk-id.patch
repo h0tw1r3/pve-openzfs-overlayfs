@@ -1,0 +1,25 @@
+From eb964a8215c04df7dd42f00c66618593db49c672 Mon Sep 17 00:00:00 2001
+From: =?UTF-8?q?Fabian=20Gr=C3=BCnbichler?= <f.gruenbichler@proxmox.com>
+Date: Mon, 24 Oct 2016 13:47:06 +0200
+Subject: [PATCH] import with -d /dev/disk/by-id in scan service
+
+---
+ etc/systemd/system/zfs-import-scan.service.in | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+
+diff --git a/etc/systemd/system/zfs-import-scan.service.in b/etc/systemd/system/zfs-import-scan.service.in
+index 0105283..665b9c8 100644
+--- a/etc/systemd/system/zfs-import-scan.service.in
++++ b/etc/systemd/system/zfs-import-scan.service.in
+@@ -10,7 +10,7 @@ ConditionPathExists=!@sysconfdir@/zfs/zpool.cache
+ Type=oneshot
+ RemainAfterExit=yes
+ ExecStartPre=/sbin/modprobe zfs
+-ExecStart=@sbindir@/zpool import -aN -o cachefile=none
++ExecStart=@sbindir@/zpool import -aN -d /dev/disk/by-id -o cachefile=none
+ 
+ [Install]
+ WantedBy=zfs-mount.service
+-- 
+2.1.4
+
