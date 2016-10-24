@@ -1,3 +1,9 @@
+zfs-linux (0.6.5.8-pve12~bpo80) unstable; urgency=medium
+
+  * import with "-d /dev/disk/by-id" in systemd service
+
+ -- Proxmox Support Team <support@proxmox.com>  Mon, 24 Oct 2016 13:48:08 +0200
+
 zfs-linux (0.6.5.8-pve11~bpo80) unstable; urgency=medium
 
   * update zfs to debian/0.6.5.8-1
