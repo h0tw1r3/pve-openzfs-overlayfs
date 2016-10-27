@@ -1,3 +1,9 @@
+zfs-linux (0.6.5.8-pve13~bpo80) unstable; urgency=medium
+
+  * fix #1184: zfs-share.service has wrong path to 'rm' command
+
+ -- Proxmox Support Team <support@proxmox.com>  Thu, 27 Oct 2016 11:25:47 +0200
+
 zfs-linux (0.6.5.8-pve12~bpo80) unstable; urgency=medium
 
   * import with "-d /dev/disk/by-id" in systemd service
