@@ -1,3 +1,9 @@
+zfs-linux (0.6.5.8-pve14~bpo80) unstable; urgency=medium
+
+  * update zfs to debian/0.6.5.8-3
+
+ -- Proxmox Support Team <support@proxmox.com>  Wed, 11 Jan 2017 09:34:58 +0100
+
 zfs-linux (0.6.5.8-pve13~bpo80) unstable; urgency=medium
 
   * fix #1184: zfs-share.service has wrong path to 'rm' command
