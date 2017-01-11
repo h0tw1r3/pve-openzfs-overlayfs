@@ -1,3 +1,4 @@
+undo-python-changes-until-PVE-5.0.patch
 fix-control.patch
 add-zfsutils-preinst-postinst.patch
 fix-dependencies-for-upgrades.patch
