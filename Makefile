@@ -67,10 +67,10 @@ zfs ${ZFS_DEBS} ${ZFS_TRANS_DEBS}: ${ZFSSRC}
 .PHONY: download
 download:
 	rm -rf pkg-spl pkg-zfs ${SPLSRC} ${ZFSSRC}
-	# clone pkg-zfsonlinux/spl and checkout 0.6.5.8-2
-	git clone -b debian/0.6.5.8-2 git://anonscm.debian.org/pkg-zfsonlinux/spl.git pkg-spl
-	# clone pkg-zfsonlinux/zfs and checkout 0.6.5.8-1
-	git clone -b debian/0.6.5.8-3 git://anonscm.debian.org/pkg-zfsonlinux/zfs.git pkg-zfs
+	# clone pkg-zfsonlinux/spl and checkout 0.6.5.9-1
+	git clone -b debian/0.6.5.9-1 git://anonscm.debian.org/pkg-zfsonlinux/spl.git pkg-spl
+	# clone pkg-zfsonlinux/zfs and checkout 0.6.5.9-2
+	git clone -b debian/0.6.5.9-2 git://anonscm.debian.org/pkg-zfsonlinux/zfs.git pkg-zfs
 	tar czf ${SPLSRC} pkg-spl
 	tar czf ${ZFSSRC} pkg-zfs
 
