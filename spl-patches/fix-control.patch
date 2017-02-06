@@ -1,11 +1,19 @@
-From 764866342a7b4090c0530953db2d9dc5ed6a3b0e Mon Sep 17 00:00:00 2001
+From b750abda7a2b24c52a4fba505571a629223ad64e Mon Sep 17 00:00:00 2001
 From: =?UTF-8?q?Fabian=20Gr=C3=BCnbichler?= <f.gruenbichler@proxmox.com>
 Date: Wed, 12 Oct 2016 10:57:39 +0200
 Subject: [PATCH] remove DKMS and module build
+MIME-Version: 1.0
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 8bit
 
+Signed-off-by: Fabian Grünbichler <f.gruenbichler@proxmox.com>
 ---
+ debian/control.in | 24 --------------------
+ debian/rules      | 68 +------------------------------------------------------
+ 2 files changed, 1 insertion(+), 91 deletions(-)
+
 diff --git a/debian/control.in b/debian/control.in
-index 6392ddc..dc6ee96 100644
+index 52c1660..dc6ee96 100644
 --- a/debian/control.in
 +++ b/debian/control.in
 @@ -8,40 +8,16 @@ Build-Depends: autogen,
@@ -21,7 +29,7 @@ index 6392ddc..dc6ee96 100644
  
 -Package: spl-dkms
 -Architecture: all
--Depends: dkms (>> 2.1.1.2-5), file, libc-dev, lsb-release, ${misc:Depends}
+-Depends: dkms (>> 2.2.1.0), file, libc-dev, lsb-release, ${misc:Depends}
 -Recommends: spl (>= ${source:Upstream-Version})
 -Provides: spl-modules
 -Description: Solaris Porting Layer kernel modules for Linux

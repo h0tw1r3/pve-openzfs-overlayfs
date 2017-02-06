@@ -1,7 +1,7 @@
-From 1e12e32aa10269bf46860b11b50795833374af00 Mon Sep 17 00:00:00 2001
+From b8f3b081a866fc3d529fb2e72c425ef54c4d141d Mon Sep 17 00:00:00 2001
 From: =?UTF-8?q?Fabian=20Gr=C3=BCnbichler?= <f.gruenbichler@proxmox.com>
 Date: Wed, 11 Jan 2017 09:16:11 +0100
-Subject: [PATCH] Undo python changes until PVE 5.0 release
+Subject: [PATCH 1/6] Undo python changes until PVE 5.0 release
 MIME-Version: 1.0
 Content-Type: text/plain; charset=UTF-8
 Content-Transfer-Encoding: 8bit
@@ -24,9 +24,9 @@ Signed-off-by: Fabian Grünbichler <f.gruenbichler@proxmox.com>
  debian/patches/1001-cmd-python-exec-path.patch | 30 --------------------------
  debian/control                                 |  4 ++--
  debian/patches/series                          |  1 -
- debian/rules                                   |  9 +-------
+ debian/rules                                   | 11 ++++------
  debian/zfsutils-linux.install                  |  6 +++---
- 6 files changed, 8 insertions(+), 46 deletions(-)
+ 6 files changed, 11 insertions(+), 45 deletions(-)
  delete mode 100644 debian/patches/1001-cmd-python-exec-path.patch
 
 diff --git a/debian/control.in b/debian/control.in
@@ -110,18 +110,19 @@ index 76907e4..db75496 100644
  Suggests: nfs-kernel-server, samba-common-bin (>= 3.0.23), zfs-initramfs | zfs-dracut
  Conflicts: zfs, zfs-fuse, zutils
 diff --git a/debian/patches/series b/debian/patches/series
-index af018e2..4ba6140 100644
+index df85d5b..0fed690 100644
 --- a/debian/patches/series
 +++ b/debian/patches/series
-@@ -4,6 +4,5 @@
+@@ -4,7 +4,6 @@
  1000-ppc64el-endian-support.patch
  1002-fix-mips-build.patch
  enable-zed.patch
 -1001-cmd-python-exec-path.patch
- 1003-linux-4.9-compat.patch
  1004-zed-service-bindir.patch
+ 1002-Fix-dev-zfs-device-is-missing.patch
+ 0001-fix-booting-via-dracut-generated-initramfs.patch
 diff --git a/debian/rules b/debian/rules
-index 15e0592..fc23f5f 100755
+index 9efbace..70e57e5 100755
 --- a/debian/rules
 +++ b/debian/rules
 @@ -35,7 +35,7 @@ pmodules = $(PACKAGE)-modules-$(non_epoch_version)
@@ -133,22 +134,26 @@ index 15e0592..fc23f5f 100755
  
  override_dh_auto_configure:
  	@cp debian/control.in debian/control
-@@ -62,13 +62,6 @@ override_dh_auto_install:
+@@ -64,14 +64,11 @@ override_dh_auto_install:
  	@# Install the utilities.
  	$(MAKE) install DESTDIR='$(CURDIR)/debian/tmp'
  
 - 
+ 	# Move from bin_dir to /usr/sbin
 -	# Remove suffix (.py) as per policy 10.4 - Scripts
 -	# https://www.debian.org/doc/debian-policy/ch-files.html#s-scripts
--	mv '$(CURDIR)/debian/tmp/usr/sbin/arc_summary.py' '$(CURDIR)/debian/tmp/usr/sbin/arc_summary'
--	mv '$(CURDIR)/debian/tmp/usr/sbin/arcstat.py' '$(CURDIR)/debian/tmp/usr/sbin/arcstat'
--	mv '$(CURDIR)/debian/tmp/usr/sbin/dbufstat.py' '$(CURDIR)/debian/tmp/usr/sbin/dbufstat'
--
+ 	mkdir -p '$(CURDIR)/debian/tmp/usr/sbin/'
+-	mv '$(CURDIR)/debian/tmp/usr/bin/arc_summary.py' '$(CURDIR)/debian/tmp/usr/sbin/arc_summary'
+-	mv '$(CURDIR)/debian/tmp/usr/bin/arcstat.py' '$(CURDIR)/debian/tmp/usr/sbin/arcstat'
+-	mv '$(CURDIR)/debian/tmp/usr/bin/dbufstat.py' '$(CURDIR)/debian/tmp/usr/sbin/dbufstat'
++	mv '$(CURDIR)/debian/tmp/usr/bin/arc_summary.py' '$(CURDIR)/debian/tmp/usr/sbin/arc_summary.py'
++	mv '$(CURDIR)/debian/tmp/usr/bin/arcstat.py' '$(CURDIR)/debian/tmp/usr/sbin/arcstat.py'
++	mv '$(CURDIR)/debian/tmp/usr/bin/dbufstat.py' '$(CURDIR)/debian/tmp/usr/sbin/dbufstat.py'
+ 
  	@# Zed has dependencies outside of the system root.
  	$(INSTALL) -d '$(CURDIR)/debian/tmp/usr/sbin/'
- 	mv '$(CURDIR)/debian/tmp/sbin/zed' '$(CURDIR)/debian/tmp/usr/sbin/zed'
 diff --git a/debian/zfsutils-linux.install b/debian/zfsutils-linux.install
-index 4407aa5..0de7474 100644
+index 947ffd9..4badbf1 100644
 --- a/debian/zfsutils-linux.install
 +++ b/debian/zfsutils-linux.install
 @@ -19,9 +19,9 @@ sbin/zdb

@@ -1,8 +1,12 @@
-From 4d9b9f40e1b92fba360aed1158578a75f32cbdce Mon Sep 17 00:00:00 2001
+From 97a0ced45e12cd4cca627392f2d9eea6963ee00e Mon Sep 17 00:00:00 2001
 From: =?UTF-8?q?Fabian=20Gr=C3=BCnbichler?= <f.gruenbichler@proxmox.com>
 Date: Wed, 12 Oct 2016 13:16:03 +0200
-Subject: [PATCH] ensure upgrade path from existing PVE ZFS packages
+Subject: [PATCH 4/6] ensure upgrade path from existing PVE ZFS packages
+MIME-Version: 1.0
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 8bit
 
+Signed-off-by: Fabian Grünbichler <f.gruenbichler@proxmox.com>
 ---
  debian/control.in | 59 ++++++++++++++++++++++++++++++++++++++++++++++++++++++-
  1 file changed, 58 insertions(+), 1 deletion(-)
