@@ -2,9 +2,9 @@ RELEASE=4.1
 
 # source form https://github.com/zfsonlinux/
 
-ZFSVER=0.6.5.8
-ZFSPKGREL=pve14~bpo80
-SPLPKGREL=pve7~bpo80
+ZFSVER=0.6.5.9
+ZFSPKGREL=pve15~bpo80
+SPLPKGREL=pve8~bpo80
 ZFSPKGVER=${ZFSVER}-${ZFSPKGREL}
 SPLPKGVER=${ZFSVER}-${SPLPKGREL}
 
