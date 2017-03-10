@@ -69,7 +69,7 @@ download:
 
 .PHONY: clean
 clean: 	
-	rm -rf *~ *.deb *.changes ${ZFSDIR} ${SPLDIR}
+	rm -rf *~ *.deb *.changes *.buildinfo ${ZFSDIR} ${SPLDIR}
 
 .PHONY: distclean
 distclean: clean
