@@ -1,7 +1,7 @@
-From 4264f648987efc980002ede5add258a427ad9a05 Mon Sep 17 00:00:00 2001
+From b6507e2f68b8b57f2989833c39b3512ee53c51ce Mon Sep 17 00:00:00 2001
 From: =?UTF-8?q?Fabian=20Gr=C3=BCnbichler?= <f.gruenbichler@proxmox.com>
 Date: Thu, 27 Oct 2016 10:18:55 +0200
-Subject: [PATCH 6/6] fix rm path in zfs-share.service
+Subject: [PATCH 3/3] fix rm path in zfs-share.service
 MIME-Version: 1.0
 Content-Type: text/plain; charset=UTF-8
 Content-Transfer-Encoding: 8bit

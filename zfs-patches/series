@@ -1,6 +1,3 @@
-0001-Undo-python-changes-until-PVE-5.0-release.patch
-0002-remove-DKMS-modules-and-dracut-build.patch
-0003-add-zfsutils.preinst-postinst-for-wheezy-upgrade-pat.patch
-0004-ensure-upgrade-path-from-existing-PVE-ZFS-packages.patch
-0005-import-with-d-dev-disk-by-id-in-scan-service.patch
-0006-fix-rm-path-in-zfs-share.service.patch
+0001-remove-DKMS-modules-and-dracut-build.patch
+0002-import-with-d-dev-disk-by-id-in-scan-service.patch
+0003-fix-rm-path-in-zfs-share.service.patch
