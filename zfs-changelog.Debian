@@ -1,3 +1,9 @@
+zfs-linux (0.6.5.11-pve17~bpo90) unstable; urgency=medium
+
+  * update zfs to debian/0.6.5.11-1
+
+ -- Proxmox Support Team <support@proxmox.com>  Thu, 27 Jul 2017 13:11:45 +0200
+
 zfs-linux (0.6.5.9-pve16~bpo90) unstable; urgency=medium
 
   * drop transitional packages
