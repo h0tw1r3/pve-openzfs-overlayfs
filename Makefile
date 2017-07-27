@@ -29,7 +29,8 @@ zfsutils-linux_${ZFSPKGVER}_amd64.deb
 
 DEBS=${SPL_DEBS} ${ZFS_DEBS}
 
-all: ${DEBS}
+all: deb
+deb: ${DEBS}
 
 .PHONY: dinstall
 dinstall: ${DEBS}
