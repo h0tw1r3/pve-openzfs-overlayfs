@@ -8,10 +8,10 @@ SPLPKGREL=pve9~bpo90
 ZFSPKGVER=${ZFSVER}-${ZFSPKGREL}
 SPLPKGVER=${ZFSVER}-${SPLPKGREL}
 
-SPLDIR=pkg-spl
-SPLSRC=pkg-spl.tar.gz
-ZFSDIR=pkg-zfs
-ZFSSRC=pkg-zfs.tar.gz
+SPLDIR=spl-build
+SPLSRC=spl-debian
+ZFSDIR=zfs-build
+ZFSSRC=zfs-debian
 
 SPL_DEBS= 					\
 spl_${SPLPKGVER}_amd64.deb
@@ -36,10 +36,16 @@ deb: ${DEBS}
 dinstall: ${DEBS}
 	dpkg -i ${DEBS}
 
+.PHONY: submodule
+submodule:
+	test -f "${ZFSSRC}/debian/changelog" || git submodule update --init
+	test -f "${SPLSRC}/debian/changelog" || git submodule update --init
+
 .PHONY: spl
 spl ${SPL_DEBS}: ${SPLSRC}
 	rm -rf ${SPLDIR}
-	tar xf ${SPLSRC}
+	mkdir ${SPLDIR}
+	cp -a ${SPLSRC}/* ${SPLDIR}/
 	mv ${SPLDIR}/debian/changelog ${SPLDIR}/debian/changelog.org
 	cat spl-changelog.Debian ${SPLDIR}/debian/changelog.org > ${SPLDIR}/debian/changelog
 	cd ${SPLDIR}; ln -s ../spl-patches patches
@@ -50,7 +56,8 @@ spl ${SPL_DEBS}: ${SPLSRC}
 .PHONY: zfs
 zfs ${ZFS_DEBS} ${ZFS_TRANS_DEBS}: ${ZFSSRC}
 	rm -rf ${ZFSDIR}
-	tar xf ${ZFSSRC}
+	mkdir ${ZFSDIR}
+	cp -a ${ZFSSRC}/* ${ZFSDIR}/
 	mv ${ZFSDIR}/debian/changelog ${ZFSDIR}/debian/changelog.org
 	cat zfs-changelog.Debian ${ZFSDIR}/debian/changelog.org > ${ZFSDIR}/debian/changelog
 	cd ${ZFSDIR}; ln -s ../zfs-patches patches
