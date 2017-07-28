@@ -1,0 +1,6 @@
+[submodule "zfs-debian"]
+	path = zfs-debian
+	url = ../mirror_zfs-debian
+[submodule "spl-debian"]
+	path = spl-debian
+	url = ../mirror_spl-debian
