@@ -65,16 +65,6 @@ zfs ${ZFS_DEBS} ${ZFS_TRANS_DEBS}: ${ZFSSRC}
 	cd ${ZFSDIR}; rm -rf .pc ./patches
 	cd ${ZFSDIR}; dpkg-buildpackage -b -uc -us 
 
-.PHONY: download
-download:
-	rm -rf pkg-spl pkg-zfs ${SPLSRC} ${ZFSSRC}
-	# clone pkg-zfsonlinux/spl and checkout 0.6.5.11-1
-	git clone -b debian/0.6.5.11-1 git://anonscm.debian.org/pkg-zfsonlinux/spl.git pkg-spl
-	# clone pkg-zfsonlinux/zfs and checkout 0.6.5.11-1
-	git clone -b debian/0.6.5.11-1 git://anonscm.debian.org/pkg-zfsonlinux/zfs.git pkg-zfs
-	tar czf ${SPLSRC} pkg-spl
-	tar czf ${ZFSSRC} pkg-zfs
-
 .PHONY: clean
 clean: 	
 	rm -rf *~ *.deb *.changes *.buildinfo ${ZFSDIR} ${SPLDIR}
