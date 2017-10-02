@@ -1,0 +1,54 @@
+From 8a6ee659664aacc3dad6588596495190a6764b18 Mon Sep 17 00:00:00 2001
+From: Johnny Stenback <github@jstenback.com>
+Date: Tue, 3 Jan 2017 10:29:23 -0800
+Subject: [PATCH 3/3] Fix TypeError: unorderable types: str() > int() in
+ arc_summary.py
+MIME-Version: 1.0
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 8bit
+
+Running arc_summary.py with a l2arc cache device around produces
+the following error:
+
+  Traceback (most recent call last):
+    File "/usr/bin/arc_summary.py", line 1148, in <module>
+      main()
+    File "/usr/bin/arc_summary.py", line 1144, in main
+      page(Kstat)
+    File "/usr/bin/arc_summary.py", line 724, in _l2arc_summary
+      arc["l2_arc_evicts"]["reading"] > 0:
+  TypeError: unorderable types: str() > int()
+
+This is due to arc["l2_arc_evicts"]['lock_retries'] and
+arc["l2_arc_evicts"]["reading"] both being strings, returned
+from fHits() earlier. Rather than adding them up and checking
+if the result is > 0, this checks if either string is != '0'.
+
+Reviewed-by: Brian Behlendorf <behlendorf1@llnl.gov>
+Reviewed-by: Giuseppe Di Natale <dinatale2@llnl.gov>
+Closes #5538
+
+(cherry picked from commit 5eac94bffd3b98c585eecfbf3fbf444362573142)
+Signed-off-by: Fabian Grünbichler <f.gruenbichler@proxmox.com>
+---
+ cmd/arc_summary/arc_summary.py | 4 ++--
+ 1 file changed, 2 insertions(+), 2 deletions(-)
+
+diff --git a/cmd/arc_summary/arc_summary.py b/cmd/arc_summary/arc_summary.py
+index 65b5c4dbd..d666c652d 100755
+--- a/cmd/arc_summary/arc_summary.py
++++ b/cmd/arc_summary/arc_summary.py
+@@ -720,8 +720,8 @@ def _l2arc_summary(Kstat):
+         )
+         sys.stdout.write("\n")
+ 
+-        if arc["l2_arc_evicts"]['lock_retries'] + \
+-                arc["l2_arc_evicts"]["reading"] > 0:
++        if arc["l2_arc_evicts"]['lock_retries'] != '0' or \
++           arc["l2_arc_evicts"]["reading"] != '0':
+             sys.stdout.write("L2 ARC Evicts:\n")
+             sys.stdout.write("\tLock Retries:\t\t\t\t%s\n" %
+                     arc["l2_arc_evicts"]['lock_retries'])
+-- 
+2.14.1
+
