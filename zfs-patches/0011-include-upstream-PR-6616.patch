@@ -1,0 +1,265 @@
+From 27d60535a612beaf31c27f5d8969abffac514841 Mon Sep 17 00:00:00 2001
+From: =?UTF-8?q?Fabian=20Gr=C3=BCnbichler?= <f.gruenbichler@proxmox.com>
+Date: Thu, 12 Oct 2017 12:29:01 +0200
+Subject: [PATCH 11/11] include upstream PR #6616
+MIME-Version: 1.0
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 8bit
+
+send/recv compatibility with 0.6.5.x
+
+Signed-off-by: Fabian Grünbichler <f.gruenbichler@proxmox.com>
+---
+ ...FREEOBJECTS-for-objects-which-can-t-exist.patch |  54 +++++++
+ ...jects-when-receiving-full-stream-as-clone.patch | 167 +++++++++++++++++++++
+ debian/patches/series                              |   2 +
+ 3 files changed, 223 insertions(+)
+ create mode 100644 debian/patches/0011-Skip-FREEOBJECTS-for-objects-which-can-t-exist.patch
+ create mode 100644 debian/patches/0012-Free-objects-when-receiving-full-stream-as-clone.patch
+
+diff --git a/debian/patches/0011-Skip-FREEOBJECTS-for-objects-which-can-t-exist.patch b/debian/patches/0011-Skip-FREEOBJECTS-for-objects-which-can-t-exist.patch
+new file mode 100644
+index 000000000..e2f0a7cdd
+--- /dev/null
++++ b/debian/patches/0011-Skip-FREEOBJECTS-for-objects-which-can-t-exist.patch
+@@ -0,0 +1,54 @@
++From: =?utf-8?q?Fabian_Gr=C3=BCnbichler?= <f.gruenbichler@proxmox.com>
++Date: Tue, 26 Sep 2017 14:03:21 +0200
++Subject: Skip FREEOBJECTS for objects which can't exist
++MIME-Version: 1.0
++Content-Type: text/plain; charset="utf-8"
++Content-Transfer-Encoding: 8bit
++
++When sending an incremental stream based on a snapshot, the receiving
++side must have the same base snapshot.  Thus we do not need to send
++FREEOBJECTS records for any objects past the maximum one which exists
++locally.
++
++This allows us to send incremental streams (again) to older ZFS
++implementations (e.g. ZoL < 0.7) which actually try to free all objects
++in a FREEOBJECTS record, instead of bailing out early.
++
++Reviewed by: Paul Dagnelie <pcd@delphix.com>
++Reviewed-by: Brian Behlendorf <behlendorf1@llnl.gov>
++Signed-off-by: Fabian Grünbichler <f.gruenbichler@proxmox.com>
++Closes #5699
++Closes #6507
++Closes #6616
++(cherry picked from commit 829e95c4dc74d7d6d31d01af9c39e03752499b15)
++---
++ module/zfs/dmu_send.c | 16 ++++++++++++++++
++ 1 file changed, 16 insertions(+)
++
++diff --git a/module/zfs/dmu_send.c b/module/zfs/dmu_send.c
++index 0c53ced..a81580d 100644
++--- a/module/zfs/dmu_send.c
+++++ b/module/zfs/dmu_send.c
++@@ -421,6 +421,22 @@ static int
++ dump_freeobjects(dmu_sendarg_t *dsp, uint64_t firstobj, uint64_t numobjs)
++ {
++ 	struct drr_freeobjects *drrfo = &(dsp->dsa_drr->drr_u.drr_freeobjects);
+++	uint64_t maxobj = DNODES_PER_BLOCK *
+++	    (DMU_META_DNODE(dsp->dsa_os)->dn_maxblkid + 1);
+++
+++	/*
+++	 * ZoL < 0.7 does not handle large FREEOBJECTS records correctly,
+++	 * leading to zfs recv never completing. to avoid this issue, don't
+++	 * send FREEOBJECTS records for object IDs which cannot exist on the
+++	 * receiving side.
+++	 */
+++	if (maxobj > 0) {
+++		if (maxobj < firstobj)
+++			return (0);
+++
+++		if (maxobj < firstobj + numobjs)
+++			numobjs = maxobj - firstobj;
+++	}
++ 
++ 	/*
++ 	 * If there is a pending op, but it's not PENDING_FREEOBJECTS,
+diff --git a/debian/patches/0012-Free-objects-when-receiving-full-stream-as-clone.patch b/debian/patches/0012-Free-objects-when-receiving-full-stream-as-clone.patch
+new file mode 100644
+index 000000000..75f4be84c
+--- /dev/null
++++ b/debian/patches/0012-Free-objects-when-receiving-full-stream-as-clone.patch
+@@ -0,0 +1,167 @@
++From: =?utf-8?q?Fabian_Gr=C3=BCnbichler?= <f.gruenbichler@proxmox.com>
++Date: Fri, 29 Sep 2017 12:00:29 +0200
++Subject: Free objects when receiving full stream as clone
++MIME-Version: 1.0
++Content-Type: text/plain; charset="utf-8"
++Content-Transfer-Encoding: 8bit
++
++All objects after the last written or freed object are not supposed to
++exist after receiving the stream.  Free them accordingly, as if a
++freeobjects record for them had been included in the stream.
++
++Reviewed by: Paul Dagnelie <pcd@delphix.com>
++Reviewed-by: Brian Behlendorf <behlendorf1@llnl.gov>
++Signed-off-by: Fabian Grünbichler <f.gruenbichler@proxmox.com>
++Closes #5699
++Closes #6507
++Closes #6616
++(backported from commit 48fbb9ddbf2281911560dfbc2821aa8b74127315)
++
++ Conflicts:
++	include/sys/dmu_send.h
++	module/zfs/dmu_send.c
++
++modified for code paths missing in 0.7
++---
++ include/sys/dmu_send.h |  1 +
++ module/zfs/dmu_send.c  | 52 +++++++++++++++++++++++++++++++++++++++++++++++++-
++ 2 files changed, 52 insertions(+), 1 deletion(-)
++
++diff --git a/include/sys/dmu_send.h b/include/sys/dmu_send.h
++index e9bef8b..5cf67a6 100644
++--- a/include/sys/dmu_send.h
+++++ b/include/sys/dmu_send.h
++@@ -61,6 +61,7 @@ typedef struct dmu_recv_cookie {
++ 	boolean_t drc_byteswap;
++ 	boolean_t drc_force;
++ 	boolean_t drc_resumable;
+++	boolean_t drc_clone;
++ 	struct avl_tree *drc_guid_to_ds_map;
++ 	zio_cksum_t drc_cksum;
++ 	uint64_t drc_newsnapobj;
++diff --git a/module/zfs/dmu_send.c b/module/zfs/dmu_send.c
++index a81580d..344e420 100644
++--- a/module/zfs/dmu_send.c
+++++ b/module/zfs/dmu_send.c
++@@ -1823,6 +1823,7 @@ dmu_recv_begin(char *tofs, char *tosnap, dmu_replay_record_t *drr_begin,
++ 	drc->drc_force = force;
++ 	drc->drc_resumable = resumable;
++ 	drc->drc_cred = CRED();
+++	drc->drc_clone = (origin != NULL);
++ 
++ 	if (drc->drc_drrb->drr_magic == BSWAP_64(DMU_BACKUP_MAGIC)) {
++ 		drc->drc_byteswap = B_TRUE;
++@@ -1883,7 +1884,9 @@ struct receive_writer_arg {
++ 	/* A map from guid to dataset to help handle dedup'd streams. */
++ 	avl_tree_t *guid_to_ds_map;
++ 	boolean_t resumable;
++-	uint64_t last_object, last_offset;
+++	uint64_t last_object;
+++	uint64_t last_offset;
+++	uint64_t max_object; /* highest object ID referenced in stream */
++ 	uint64_t bytes_read; /* bytes read when current record created */
++ };
++ 
++@@ -2157,6 +2160,9 @@ receive_object(struct receive_writer_arg *rwa, struct drr_object *drro,
++ 		return (SET_ERROR(EINVAL));
++ 	object = err == 0 ? drro->drr_object : DMU_NEW_OBJECT;
++ 
+++	if (drro->drr_object > rwa->max_object)
+++		rwa->max_object = drro->drr_object;
+++
++ 	/*
++ 	 * If we are losing blkptrs or changing the block size this must
++ 	 * be a new file instance.  We must clear out the previous file
++@@ -2257,6 +2263,9 @@ receive_freeobjects(struct receive_writer_arg *rwa,
++ 		err = dmu_free_long_object(rwa->os, obj);
++ 		if (err != 0)
++ 			return (err);
+++
+++		if (obj > rwa->max_object)
+++			rwa->max_object = obj;
++ 	}
++ 	if (next_err != ESRCH)
++ 		return (next_err);
++@@ -2287,6 +2296,9 @@ receive_write(struct receive_writer_arg *rwa, struct drr_write *drrw,
++ 	rwa->last_object = drrw->drr_object;
++ 	rwa->last_offset = drrw->drr_offset;
++ 
+++	if (rwa->last_object > rwa->max_object)
+++		rwa->max_object = rwa->last_object;
+++
++ 	if (dmu_object_info(rwa->os, drrw->drr_object, NULL) != 0)
++ 		return (SET_ERROR(EINVAL));
++ 
++@@ -2362,6 +2374,9 @@ receive_write_byref(struct receive_writer_arg *rwa,
++ 		ref_os = rwa->os;
++ 	}
++ 
+++	if (drrwbr->drr_object > rwa->max_object)
+++		rwa->max_object = drrwbr->drr_object;
+++
++ 	err = dmu_buf_hold(ref_os, drrwbr->drr_refobject,
++ 	    drrwbr->drr_refoffset, FTAG, &dbp, DMU_READ_PREFETCH);
++ 	if (err != 0)
++@@ -2404,6 +2419,9 @@ receive_write_embedded(struct receive_writer_arg *rwa,
++ 	if (drrwe->drr_compression >= ZIO_COMPRESS_FUNCTIONS)
++ 		return (EINVAL);
++ 
+++	if (drrwe->drr_object > rwa->max_object)
+++		rwa->max_object = drrwe->drr_object;
+++
++ 	tx = dmu_tx_create(rwa->os);
++ 
++ 	dmu_tx_hold_write(tx, drrwe->drr_object,
++@@ -2440,6 +2458,9 @@ receive_spill(struct receive_writer_arg *rwa, struct drr_spill *drrs,
++ 	if (dmu_object_info(rwa->os, drrs->drr_object, NULL) != 0)
++ 		return (SET_ERROR(EINVAL));
++ 
+++	if (drrs->drr_object > rwa->max_object)
+++		rwa->max_object = drrs->drr_object;
+++
++ 	VERIFY0(dmu_bonus_hold(rwa->os, drrs->drr_object, FTAG, &db));
++ 	if ((err = dmu_spill_hold_by_bonus(db, FTAG, &db_spill)) != 0) {
++ 		dmu_buf_rele(db, FTAG);
++@@ -2484,6 +2505,9 @@ receive_free(struct receive_writer_arg *rwa, struct drr_free *drrf)
++ 	if (dmu_object_info(rwa->os, drrf->drr_object, NULL) != 0)
++ 		return (SET_ERROR(EINVAL));
++ 
+++	if (drrf->drr_object > rwa->max_object)
+++		rwa->max_object = drrf->drr_object;
+++
++ 	err = dmu_free_long_range(rwa->os, drrf->drr_object,
++ 	    drrf->drr_offset, drrf->drr_length);
++ 
++@@ -3207,6 +3231,32 @@ dmu_recv_stream(dmu_recv_cookie_t *drc, vnode_t *vp, offset_t *voffp,
++ 	}
++ 	mutex_exit(&rwa->mutex);
++ 
+++	/*
+++	 * If we are receiving a full stream as a clone, all object IDs which
+++	 * are greater than the maximum ID referenced in the stream are
+++	 * by definition unused and must be freed.
+++	 */
+++	if (drc->drc_clone && drc->drc_drrb->drr_fromguid == 0) {
+++		uint64_t obj = rwa->max_object + 1;
+++		int free_err = 0;
+++		int next_err = 0;
+++
+++		while (next_err == 0) {
+++			free_err = dmu_free_long_object(rwa->os, obj);
+++			if (free_err != 0 && free_err != ENOENT)
+++				break;
+++
+++			next_err = dmu_object_next(rwa->os, &obj, FALSE, 0);
+++		}
+++
+++		if (err == 0) {
+++			if (free_err != 0 && free_err != ENOENT)
+++				err = free_err;
+++			else if (next_err != ESRCH)
+++				err = next_err;
+++		}
+++	}
+++
++ 	cv_destroy(&rwa->cv);
++ 	mutex_destroy(&rwa->mutex);
++ 	bqueue_destroy(&rwa->q);
+diff --git a/debian/patches/series b/debian/patches/series
+index 3c8f56483..8bd73161c 100644
+--- a/debian/patches/series
++++ b/debian/patches/series
+@@ -8,3 +8,5 @@ enable-zed.patch
+ 0009-add-man-page-reference-to-systemd-units.patch
+ 0010-fix-install-path-of-zpool.d-scripts.patch
+ 0010-receive_freeobjects-skips-freeing-some-objects.patch
++0011-Skip-FREEOBJECTS-for-objects-which-can-t-exist.patch
++0012-Free-objects-when-receiving-full-stream-as-clone.patch
+-- 
+2.14.1
+

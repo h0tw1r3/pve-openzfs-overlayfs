@@ -7,3 +7,4 @@
 0008-zfsutils-linux-install-new-files.patch
 0009-dh_install-switch-to-fail-missing.patch
 0010-include-upstream-PR-6695.patch
+0011-include-upstream-PR-6616.patch
