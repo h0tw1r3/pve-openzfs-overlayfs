@@ -1,0 +1,102 @@
+From b2ad235e8b8053b6e033de855e7f3932031a207d Mon Sep 17 00:00:00 2001
+From: =?UTF-8?q?Fabian=20Gr=C3=BCnbichler?= <f.gruenbichler@proxmox.com>
+Date: Wed, 11 Oct 2017 14:22:34 +0200
+Subject: [PATCH 03/11] add zfs-test package
+MIME-Version: 1.0
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 8bit
+
+Signed-off-by: Fabian Grünbichler <f.gruenbichler@proxmox.com>
+---
+ debian/control.in             | 13 +++++++++++++
+ debian/control                | 13 +++++++++++++
+ debian/zfs-test.install       | 16 ++++++++++++++++
+ debian/zfsutils-linux.install |  1 -
+ 4 files changed, 42 insertions(+), 1 deletion(-)
+ create mode 100644 debian/zfs-test.install
+
+diff --git a/debian/control.in b/debian/control.in
+index 199c0df0d..b802712a0 100644
+--- a/debian/control.in
++++ b/debian/control.in
+@@ -125,6 +125,19 @@ Description: OpenZFS Event Daemon
+  .
+  This package provides the OpenZFS Event Daemon (zed).
+ 
++Package: zfs-test
++Section: contrib/admin
++Architecture: linux-any
++Depends: ${misc:Depends}, ${shlibs:Depends}, zfsutils-linux, parted, lsscsi, mdadm, bc, ksh, fio, acl, sudo, sysstat, python
++Description: OpenZFS test infrastructure an support scripts
++ The Z file system is a pooled filesystem designed for maximum data
++ integrity, supporting data snapshots, multiple copies, and data
++ checksums.
++ .
++ This package provides the OpenZFS test infrastructure for destructively
++ testing and validating a system using OpenZFS. It is entirely optional
++ and should only be installed and used in test environments.
++
+ Package: zfs-dbg
+ Section: contrib/debug
+ Priority: extra
+diff --git a/debian/control b/debian/control
+index 6775aa71a..6a2a3b654 100644
+--- a/debian/control
++++ b/debian/control
+@@ -150,6 +150,19 @@ Description: OpenZFS Event Daemon
+  .
+  This package provides the OpenZFS Event Daemon (zed).
+ 
++Package: zfs-test
++Section: contrib/admin
++Architecture: linux-any
++Depends: ${misc:Depends}, ${shlibs:Depends}, zfsutils-linux, parted, lsscsi, mdadm, bc, ksh, fio, acl, sudo, sysstat, python
++Description: OpenZFS test infrastructure an support scripts
++ The Z file system is a pooled filesystem designed for maximum data
++ integrity, supporting data snapshots, multiple copies, and data
++ checksums.
++ .
++ This package provides the OpenZFS test infrastructure for destructively
++ testing and validating a system using OpenZFS. It is entirely optional
++ and should only be installed and used in test environments.
++
+ Package: zfs-dbg
+ Section: contrib/debug
+ Priority: extra
+diff --git a/debian/zfs-test.install b/debian/zfs-test.install
+new file mode 100644
+index 000000000..ad98d183e
+--- /dev/null
++++ b/debian/zfs-test.install
+@@ -0,0 +1,16 @@
++usr/share/zfs/common.sh
++usr/share/zfs/runfiles/
++usr/share/zfs/smb.sh
++usr/share/zfs/test-runner
++usr/share/zfs/zfs-tests/
++usr/share/zfs/zfs-tests.sh
++usr/share/zfs/zfs.sh
++usr/share/zfs/zimport.sh
++usr/share/zfs/zloop.sh
++usr/share/zfs/zpios*
++usr/share/zfs/zpool-config/
++usr/share/zfs/zpool-create.sh
++usr/share/zfs/common.sh
++usr/share/zfs/common.sh
++usr/share/zfs/common.sh
++usr/bin/raidz_test
+diff --git a/debian/zfsutils-linux.install b/debian/zfsutils-linux.install
+index 947ffd91c..5b7dabfa9 100644
+--- a/debian/zfsutils-linux.install
++++ b/debian/zfsutils-linux.install
+@@ -22,7 +22,6 @@ sbin/zfs
+ usr/sbin/arc_summary
+ usr/sbin/arcstat
+ usr/sbin/dbufstat
+-usr/share/zfs/
+ usr/share/man/man1/
+ usr/share/man/man5/
+ usr/share/man/man8/zstreamdump.8
+-- 
+2.14.1
+
