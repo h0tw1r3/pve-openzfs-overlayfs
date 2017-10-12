@@ -1,0 +1,45 @@
+From 8732479a2f06b612fddc7df258f8c3bb97575e09 Mon Sep 17 00:00:00 2001
+From: =?UTF-8?q?Fabian=20Gr=C3=BCnbichler?= <f.gruenbichler@proxmox.com>
+Date: Wed, 11 Oct 2017 14:33:34 +0200
+Subject: [PATCH 09/11] dh_install: switch to --fail-missing
+MIME-Version: 1.0
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 8bit
+
+Signed-off-by: Fabian Grünbichler <f.gruenbichler@proxmox.com>
+---
+ debian/not-installed | 8 ++++++++
+ debian/rules         | 2 +-
+ 2 files changed, 9 insertions(+), 1 deletion(-)
+ create mode 100644 debian/not-installed
+
+diff --git a/debian/not-installed b/debian/not-installed
+new file mode 100644
+index 000000000..16b1cef6c
+--- /dev/null
++++ b/debian/not-installed
+@@ -0,0 +1,8 @@
++usr/share/zfs/zfs-helpers.sh
++etc/init.d
++etc/sudoers.d
++etc/zfs/vdev_id.conf.alias.example
++etc/zfs/vdev_id.conf.multipath.example
++etc/zfs/vdev_id.conf.sas_direct.example
++etc/zfs/vdev_id.conf.sas_switch.example
++usr/lib/dracut
+diff --git a/debian/rules b/debian/rules
+index 49da7067b..8c5beca10 100755
+--- a/debian/rules
++++ b/debian/rules
+@@ -111,7 +111,7 @@ endif
+ 
+ override_dh_install:
+ 	find . -name lib*.la -delete
+-	dh_install --list-missing
++	dh_install --fail-missing
+ 
+ # ------------
+ 
+-- 
+2.14.1
+

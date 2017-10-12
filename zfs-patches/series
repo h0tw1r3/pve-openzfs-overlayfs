@@ -1,3 +1,8 @@
 0001-remove-DKMS-modules-and-dracut-build.patch
 0002-import-with-d-dev-disk-by-id-in-scan-service.patch
 0003-add-zfs-test-package.patch
+0004-dracut-make-module-setup.sh-shebang-explicit.patch
+0005-man-add-references-to-systemd-units.patch
+0007-fix-install-path-of-zpool.d-scripts.patch
+0008-zfsutils-linux-install-new-files.patch
+0009-dh_install-switch-to-fail-missing.patch
