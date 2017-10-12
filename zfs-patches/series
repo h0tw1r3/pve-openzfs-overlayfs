@@ -6,3 +6,4 @@
 0007-fix-install-path-of-zpool.d-scripts.patch
 0008-zfsutils-linux-install-new-files.patch
 0009-dh_install-switch-to-fail-missing.patch
+0010-include-upstream-PR-6695.patch
