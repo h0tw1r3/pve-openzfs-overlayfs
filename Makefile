@@ -51,7 +51,7 @@ spl ${SPL_DEBS}: ${SPLSRC}
 	cd ${SPLDIR}; ln -s ../spl-patches patches
 	cd ${SPLDIR}; quilt push -a
 	cd ${SPLDIR}; rm -rf .pc ./patches
-	cd ${SPLDIR}; dpkg-buildpackage -b -uc -us 
+	cd ${SPLDIR}; dpkg-buildpackage -b -uc -us
 
 .PHONY: zfs
 zfs ${ZFS_DEBS} ${ZFS_TRANS_DEBS}: ${ZFSSRC}
@@ -63,7 +63,7 @@ zfs ${ZFS_DEBS} ${ZFS_TRANS_DEBS}: ${ZFSSRC}
 	cd ${ZFSDIR}; ln -s ../zfs-patches patches
 	cd ${ZFSDIR}; quilt push -a
 	cd ${ZFSDIR}; rm -rf .pc ./patches
-	cd ${ZFSDIR}; dpkg-buildpackage -b -uc -us 
+	cd ${ZFSDIR}; dpkg-buildpackage -b -uc -us
 
 .PHONY: clean
 clean: 	
