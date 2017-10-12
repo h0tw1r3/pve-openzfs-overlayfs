@@ -2,9 +2,9 @@ RELEASE=5.0
 
 # source form https://github.com/zfsonlinux/
 
-ZFSVER=0.6.5.11
-ZFSPKGREL=pve18~bpo90
-SPLPKGREL=pve10~bpo90
+ZFSVER=0.7.2
+ZFSPKGREL=pve1~bpo90
+SPLPKGREL=pve1~bpo90
 ZFSPKGVER=${ZFSVER}-${ZFSPKGREL}
 SPLPKGVER=${ZFSVER}-${SPLPKGREL}
 
@@ -25,6 +25,7 @@ libzpool2linux_${ZFSPKGVER}_amd64.deb		\
 zfs-dbg_${ZFSPKGVER}_amd64.deb			\
 zfs-zed_${ZFSPKGVER}_amd64.deb			\
 zfs-initramfs_${ZFSPKGVER}_all.deb		\
+zfs-test_${ZFSPKGVER}_amd64.deb		\
 zfsutils-linux_${ZFSPKGVER}_amd64.deb
 
 DEBS=${SPL_DEBS} ${ZFS_DEBS}

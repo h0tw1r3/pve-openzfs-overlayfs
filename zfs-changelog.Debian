@@ -1,3 +1,17 @@
+zfs-linux (0.7.2-pve1~bpo90) unstable; urgency=medium
+
+  * update zfs to 0.7.2
+
+  * add PR 6616 - zfs send/recv compatibility with 0.6.5
+
+  * add PR 6695 - zfs recv: don't skip over objects which should be freed
+
+  * various small fixes
+
+  * split test suite into zfs-test package
+
+ -- Proxmox Support Team <support@proxmox.com>  Thu, 12 Oct 2017 13:34:05 +0200
+
 zfs-linux (0.6.5.11-pve18~bpo90) unstable; urgency=medium
 
   * fix #1509: arc_summary error with L2ARC
