@@ -1,1 +1,3 @@
 0001-remove-DKMS-and-module-build.patch
+0002-splat.1-manpage-fix-spelling-of-hexadecimal.patch
+0003-spl-module-parameters.5-manpage-fix-macro.patch
