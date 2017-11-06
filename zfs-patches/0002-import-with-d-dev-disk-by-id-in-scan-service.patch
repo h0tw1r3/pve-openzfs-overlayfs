@@ -1,7 +1,7 @@
 From 72fbbc64fe6f9e527e7ebce42d8e57c1fa82dd34 Mon Sep 17 00:00:00 2001
 From: =?UTF-8?q?Fabian=20Gr=C3=BCnbichler?= <f.gruenbichler@proxmox.com>
 Date: Mon, 24 Oct 2016 13:47:06 +0200
-Subject: [PATCH 2/2] import with -d /dev/disk/by-id in scan service
+Subject: [PATCH 2/3] import with -d /dev/disk/by-id in scan service
 MIME-Version: 1.0
 Content-Type: text/plain; charset=UTF-8
 Content-Transfer-Encoding: 8bit
