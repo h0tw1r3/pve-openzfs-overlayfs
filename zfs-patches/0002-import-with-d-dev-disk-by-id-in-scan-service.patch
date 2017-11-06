@@ -1,7 +1,7 @@
-From e64c1e7341865c7a0b060ac9aa9a988ad589b31f Mon Sep 17 00:00:00 2001
+From 72fbbc64fe6f9e527e7ebce42d8e57c1fa82dd34 Mon Sep 17 00:00:00 2001
 From: =?UTF-8?q?Fabian=20Gr=C3=BCnbichler?= <f.gruenbichler@proxmox.com>
 Date: Mon, 24 Oct 2016 13:47:06 +0200
-Subject: [PATCH 2/3] import with -d /dev/disk/by-id in scan service
+Subject: [PATCH 2/2] import with -d /dev/disk/by-id in scan service
 MIME-Version: 1.0
 Content-Type: text/plain; charset=UTF-8
 Content-Transfer-Encoding: 8bit
@@ -12,10 +12,10 @@ Signed-off-by: Fabian Grünbichler <f.gruenbichler@proxmox.com>
  1 file changed, 1 insertion(+), 1 deletion(-)
 
 diff --git a/etc/systemd/system/zfs-import-scan.service.in b/etc/systemd/system/zfs-import-scan.service.in
-index 0105283..665b9c8 100644
+index 625f3a955..9a33d5f4a 100644
 --- a/etc/systemd/system/zfs-import-scan.service.in
 +++ b/etc/systemd/system/zfs-import-scan.service.in
-@@ -10,7 +10,7 @@ ConditionPathExists=!@sysconfdir@/zfs/zpool.cache
+@@ -11,7 +11,7 @@ ConditionPathExists=!@sysconfdir@/zfs/zpool.cache
  Type=oneshot
  RemainAfterExit=yes
  ExecStartPre=/sbin/modprobe zfs
@@ -25,5 +25,5 @@ index 0105283..665b9c8 100644
  [Install]
  WantedBy=zfs-mount.service
 -- 
-2.1.4
+2.14.2
 

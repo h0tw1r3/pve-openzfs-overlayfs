@@ -1,24 +1,25 @@
-From 6ea6f086a714ed9157f7e880426a71f46f48c2db Mon Sep 17 00:00:00 2001
+From 0337ccd47d411a1db11e09dce1a6d183c2542f29 Mon Sep 17 00:00:00 2001
 From: =?UTF-8?q?Fabian=20Gr=C3=BCnbichler?= <f.gruenbichler@proxmox.com>
 Date: Mon, 6 Feb 2017 11:03:10 +0100
-Subject: [PATCH 1/3] remove DKMS, modules and dracut build
+Subject: [PATCH 1/2] remove DKMS, modules and dracut build
 MIME-Version: 1.0
 Content-Type: text/plain; charset=UTF-8
 Content-Transfer-Encoding: 8bit
 
 Signed-off-by: Fabian Grünbichler <f.gruenbichler@proxmox.com>
 ---
- debian/control.in |  34 +++---------------
- debian/control    |   1 -
- debian/rules      | 105 ++----------------------------------------------------
- 3 files changed, 6 insertions(+), 134 deletions(-)
+ debian/control.in    |  36 +++---------------
+ debian/control       |   1 -
+ debian/not-installed |   1 +
+ debian/rules         | 105 +--------------------------------------------------
+ 4 files changed, 8 insertions(+), 135 deletions(-)
 
 diff --git a/debian/control.in b/debian/control.in
-index 76907e45..235e74c9 100644
+index 18d2417cc..79bd9b302 100644
 --- a/debian/control.in
 +++ b/debian/control.in
 @@ -9,7 +9,6 @@ Build-Depends: dh-autoreconf,
-                dh-systemd,
+                dh-systemd | debhelper (>= 10.1),
                 autotools-dev,
                 debhelper (>= 9),
 -               dkms (>> 2.1.1.2-5),
@@ -87,20 +88,38 @@ index 76907e45..235e74c9 100644
  Description: OpenZFS Event Daemon
   The Z file system is a pooled filesystem designed for maximum data
   integrity, supporting data snapshots, multiple copies, and data
+@@ -154,7 +128,7 @@ Description: OpenZFS Event Daemon
+ Package: zfs-test
+ Section: contrib/admin
+ Architecture: linux-any
+-Depends: ${misc:Depends}, ${shlibs:Depends}, zfs-modules | zfs-dkms, zfsutils-linux, parted, lsscsi, mdadm, bc, ksh, fio, acl, sudo, sysstat, python
++Depends: ${misc:Depends}, ${shlibs:Depends}, zfsutils-linux, parted, lsscsi, mdadm, bc, ksh, fio, acl, sudo, sysstat, python
+ Description: OpenZFS test infrastructure an support scripts
+  The Z file system is a pooled filesystem designed for maximum data
+  integrity, supporting data snapshots, multiple copies, and data
 diff --git a/debian/control b/debian/control
-index 76907e45..3bcb9a96 100644
+index 18d2417cc..b426b93c0 100644
 --- a/debian/control
 +++ b/debian/control
 @@ -9,7 +9,6 @@ Build-Depends: dh-autoreconf,
-                dh-systemd,
+                dh-systemd | debhelper (>= 10.1),
                 autotools-dev,
                 debhelper (>= 9),
 -               dkms (>> 2.1.1.2-5),
                 libselinux1-dev,
                 libtool,
                 lsb-release,
+diff --git a/debian/not-installed b/debian/not-installed
+index f54fe7310..16b1cef6c 100644
+--- a/debian/not-installed
++++ b/debian/not-installed
+@@ -5,3 +5,4 @@ etc/zfs/vdev_id.conf.alias.example
+ etc/zfs/vdev_id.conf.multipath.example
+ etc/zfs/vdev_id.conf.sas_direct.example
+ etc/zfs/vdev_id.conf.sas_switch.example
++usr/lib/dracut
 diff --git a/debian/rules b/debian/rules
-index 9efbace6..49da7067 100755
+index 800df22e0..8c5beca10 100755
 --- a/debian/rules
 +++ b/debian/rules
 @@ -5,9 +5,6 @@ NAME := $(shell awk '$$1 == "Name:" { print $$2; }' META)
@@ -251,5 +270,5 @@ index 9efbace6..49da7067 100755
  debian-copyright:
  	cme update dpkg-copyright -file debian/copyright.cme
 -- 
-2.11.0
+2.14.2
 
