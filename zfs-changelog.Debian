@@ -1,3 +1,11 @@
+zfs-linux (0.7.4-pve2~bpo9) unstable; urgency=medium
+
+  * cherry-pick ARC hit rate fix from 0.7.6
+
+  * always load ZFS modules on boot
+
+ -- Proxmox Support Team <support@proxmox.com>  Fri, 19 Jan 2018 11:31:14 +0100
+
 zfs-linux (0.7.4-pve1~bpo9) unstable; urgency=medium
 
   * update ZFS to 0.7.4
