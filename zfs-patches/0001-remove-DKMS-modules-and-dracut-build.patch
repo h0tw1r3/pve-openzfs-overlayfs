@@ -1,7 +1,7 @@
-From bb4b48440d2048d3f9461753a976b7c102bad5c5 Mon Sep 17 00:00:00 2001
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
 From: =?UTF-8?q?Fabian=20Gr=C3=BCnbichler?= <f.gruenbichler@proxmox.com>
 Date: Mon, 6 Feb 2017 11:03:10 +0100
-Subject: [PATCH 1/4] remove DKMS, modules and dracut build
+Subject: [PATCH] remove DKMS, modules and dracut build
 MIME-Version: 1.0
 Content-Type: text/plain; charset=UTF-8
 Content-Transfer-Encoding: 8bit

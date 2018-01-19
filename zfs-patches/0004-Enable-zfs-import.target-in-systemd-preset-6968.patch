@@ -1,7 +1,7 @@
-From 98fdf1c88fd8c42eb1fa3e0df98d6f217b74b5f6 Mon Sep 17 00:00:00 2001
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
 From: Antonio Russo <antonio.e.russo@gmail.com>
 Date: Mon, 18 Dec 2017 12:43:55 -0500
-Subject: [PATCH 4/4] Enable zfs-import.target in systemd preset (#6968)
+Subject: [PATCH] Enable zfs-import.target in systemd preset (#6968)
 MIME-Version: 1.0
 Content-Type: text/plain; charset=UTF-8
 Content-Transfer-Encoding: 8bit

@@ -1,7 +1,7 @@
-From e03f6d99c515ab83c3c6984cab00d6f0392e501f Mon Sep 17 00:00:00 2001
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
 From: Wolfgang Bumiller <w.bumiller@proxmox.com>
 Date: Tue, 31 Oct 2017 09:08:42 +0100
-Subject: [PATCH 3/4] Use user namespaces for FSETID policy check.
+Subject: [PATCH] Use user namespaces for FSETID policy check.
 MIME-Version: 1.0
 Content-Type: text/plain; charset=UTF-8
 Content-Transfer-Encoding: 8bit
