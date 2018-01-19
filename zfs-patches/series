@@ -3,3 +3,4 @@
 0003-Use-user-namespaces-for-FSETID-policy-check.patch
 0004-Enable-zfs-import.target-in-systemd-preset-6968.patch
 0005-Fix-ARC-hit-rate.patch
+0006-always-load-ZFS-module-on-boot.patch
