@@ -1,4 +1,4 @@
-From 8c0a5dd331d746c5c114dda69f2eb5a4a0ac8eb9 Mon Sep 17 00:00:00 2001
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
 From: =?UTF-8?q?Fabian=20Gr=C3=BCnbichler?= <f.gruenbichler@proxmox.com>
 Date: Wed, 12 Oct 2016 10:57:39 +0200
 Subject: [PATCH] remove DKMS and module build
@@ -14,7 +14,7 @@ Signed-off-by: Fabian Grünbichler <f.gruenbichler@proxmox.com>
  3 files changed, 1 insertion(+), 92 deletions(-)
 
 diff --git a/debian/control.in b/debian/control.in
-index 6846796..786e689 100644
+index b910704..786e689 100644
 --- a/debian/control.in
 +++ b/debian/control.in
 @@ -8,40 +8,16 @@ Build-Depends: autogen,
@@ -30,7 +30,7 @@ index 6846796..786e689 100644
  
 -Package: spl-dkms
 -Architecture: all
--Depends: dkms (>> 2.2.1.0), file, libc-dev, lsb-release, ${misc:Depends}
+-Depends: dkms (>> 2.2.1.0), file, libc-dev, libelf-dev, lsb-release, ${misc:Depends}
 -Recommends: spl (>= ${source:Upstream-Version})
 -Provides: spl-modules
 -Description: Solaris Porting Layer kernel modules for Linux
@@ -59,7 +59,7 @@ index 6846796..786e689 100644
   The Solaris Porting Layer (SPL) is a Linux kernel module which provides
   many of the Solaris kernel APIs. This shim layer makes it possible to
 diff --git a/debian/control b/debian/control
-index 6846796..af4b7bb 100644
+index b910704..9ddc12d 100644
 --- a/debian/control
 +++ b/debian/control
 @@ -8,7 +8,6 @@ Build-Depends: autogen,
