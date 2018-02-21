@@ -1,0 +1,67 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Don Brady <dev.fs.zfs@gmail.com>
+Date: Thu, 21 Sep 2017 11:17:56 -0600
+Subject: [PATCH] Cleanup zloop working directory after each pass
+MIME-Version: 1.0
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 8bit
+
+Reviewed-by: George Melikov <mail@gmelikov.ru>
+Reviewed-by: Giuseppe Di Natale <dinatale2@llnl.gov>
+Reviewed by: John Kennedy <jwk404@gmail.com>
+Reviewed-by: Olaf Faaland <faaland1@llnl.gov>
+Signed-off-by: Don Brady <don.brady@delphix.com>
+Issue #6595
+Closes #6663
+(cherry picked from commit d1630dda5857175bad0ac7f6e142ae299606d88a)
+Signed-off-by: Fabian Grünbichler <f.gruenbichler@proxmox.com>
+---
+ scripts/zloop.sh | 11 +++++++++--
+ 1 file changed, 9 insertions(+), 2 deletions(-)
+
+diff --git a/scripts/zloop.sh b/scripts/zloop.sh
+index 03e825059..f0af87553 100755
+--- a/scripts/zloop.sh
++++ b/scripts/zloop.sh
+@@ -101,6 +101,7 @@ function store_core
+ {
+ 	core="$(core_file)"
+ 	if [[ $ztrc -ne 0 ]] || [[ -f "$core" ]]; then
++		df -h "$workdir" >>ztest.out
+ 		coreid=$(date "+zloop-%y%m%d-%H%M%S")
+ 		foundcrashes=$((foundcrashes + 1))
+ 
+@@ -150,7 +151,8 @@ function store_core
+ # parse arguments
+ # expected format: zloop [-t timeout] [-c coredir] [-- extra ztest args]
+ coredir=$DEFAULTCOREDIR
+-workdir=$DEFAULTWORKDIR
++basedir=$DEFAULTWORKDIR
++rundir="zloop-run"
+ timeout=0
+ size="512m"
+ while getopts ":ht:s:c:f:" opt; do
+@@ -158,7 +160,7 @@ while getopts ":ht:s:c:f:" opt; do
+ 		t ) [[ $OPTARG -gt 0 ]] && timeout=$OPTARG ;;
+ 		s ) [[ $OPTARG ]] && size=$OPTARG ;;
+ 		c ) [[ $OPTARG ]] && coredir=$OPTARG ;;
+-		f ) [[ $OPTARG ]] && workdir=$(readlink -f "$OPTARG") ;;
++		f ) [[ $OPTARG ]] && basedir=$(readlink -f "$OPTARG") ;;
+ 		h ) usage
+ 		    exit 2
+ 		    ;;
+@@ -202,6 +204,11 @@ curtime=$starttime
+ while [[ $timeout -eq 0 ]] || [[ $curtime -le $((starttime + timeout)) ]]; do
+ 	zopt="-VVVVV"
+ 
++	# start each run with an empty directory
++	workdir="$basedir/$rundir"
++	or_die rm -rf "$workdir"
++	or_die mkdir "$workdir"
++
+ 	# switch between common arrangements & fully randomized
+ 	if [[ $((RANDOM % 2)) -eq 0 ]]; then
+ 		mirrors=2
+-- 
+2.14.2
+

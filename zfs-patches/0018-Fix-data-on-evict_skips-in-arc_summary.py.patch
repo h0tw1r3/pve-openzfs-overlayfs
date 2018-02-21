@@ -1,0 +1,55 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: "Scot W. Stevenson" <scot.stevenson@gmail.com>
+Date: Sat, 18 Nov 2017 23:07:04 +0100
+Subject: [PATCH] Fix data on evict_skips in arc_summary.py
+MIME-Version: 1.0
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 8bit
+
+Display correct data from kstat arcstats for evict_skips,
+which is currently repeating the data from mutex_misses.
+Fixes #6882
+
+Reviewed-by: Brian Behlendorf <behlendorf1@llnl.gov>
+Reviewed-by: George Melikov <mail@gmelikov.ru>
+Reviewed-by: Giuseppe Di Natale <dinatale2@llnl.gov>
+Signed-off-by: Scot W. Stevenson <scot.stevenson@gmail.com>
+Closes #6882
+Closes #6883
+(cherry picked from commit 7a8bef39838cdb9f996bf400add5a8583fe10e87)
+Signed-off-by: Fabian Grünbichler <f.gruenbichler@proxmox.com>
+---
+ cmd/arc_summary/arc_summary.py | 5 +++--
+ 1 file changed, 3 insertions(+), 2 deletions(-)
+
+diff --git a/cmd/arc_summary/arc_summary.py b/cmd/arc_summary/arc_summary.py
+index c9a2c5d03..5da81347c 100755
+--- a/cmd/arc_summary/arc_summary.py
++++ b/cmd/arc_summary/arc_summary.py
+@@ -179,12 +179,13 @@ def get_arc_summary(Kstat):
+     # ARC Misc.
+     deleted = Kstat["kstat.zfs.misc.arcstats.deleted"]
+     mutex_miss = Kstat["kstat.zfs.misc.arcstats.mutex_miss"]
++    evict_skip = Kstat["kstat.zfs.misc.arcstats.evict_skip"]
+ 
+     # ARC Misc.
+     output["arc_misc"] = {}
+     output["arc_misc"]["deleted"] = fHits(deleted)
+     output["arc_misc"]['mutex_miss'] = fHits(mutex_miss)
+-    output["arc_misc"]['evict_skips'] = fHits(mutex_miss)
++    output["arc_misc"]['evict_skips'] = fHits(evict_skip)
+ 
+     # ARC Sizing
+     arc_size = Kstat["kstat.zfs.misc.arcstats.size"]
+@@ -281,7 +282,7 @@ def _arc_summary(Kstat):
+     sys.stdout.write("\tMutex Misses:\t\t\t\t%s\n" %
+                      arc['arc_misc']['mutex_miss'])
+     sys.stdout.write("\tEvict Skips:\t\t\t\t%s\n" %
+-                     arc['arc_misc']['mutex_miss'])
++                     arc['arc_misc']['evict_skips'])
+     sys.stdout.write("\n")
+ 
+     # ARC Sizing
+-- 
+2.14.2
+

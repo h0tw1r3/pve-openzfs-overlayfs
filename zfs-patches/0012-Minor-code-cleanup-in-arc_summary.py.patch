@@ -1,0 +1,84 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: "Scot W. Stevenson" <scot.stevenson@gmail.com>
+Date: Fri, 3 Nov 2017 23:43:53 +0100
+Subject: [PATCH] Minor code cleanup in arc_summary.py
+MIME-Version: 1.0
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 8bit
+
+Simplify and inline single-use function div1(); inline twice-used
+function div2(); add function comment to zfs_header(); replace
+variable "unused" in get_Kstat() with "_" following convention.
+
+Reviewed-by: Brian Behlendorf <behlendorf1@llnl.gov>
+Reviewed-by: George Melikov <mail@gmelikov.ru>
+Reviewed-by: Giuseppe Di Natale <dinatale2@llnl.gov>
+Signed-off-by: Scot W. Stevenson <scot.stevenson@gmail.com>
+Closes #6802
+(cherry picked from commit 03f638a8efe4f8e5901fc0e07fad5604e2550f22)
+Signed-off-by: Fabian Grünbichler <f.gruenbichler@proxmox.com>
+---
+ cmd/arc_summary/arc_summary.py | 25 ++++++++-----------------
+ 1 file changed, 8 insertions(+), 17 deletions(-)
+
+diff --git a/cmd/arc_summary/arc_summary.py b/cmd/arc_summary/arc_summary.py
+index e19278cef..6b818edc7 100755
+--- a/cmd/arc_summary/arc_summary.py
++++ b/cmd/arc_summary/arc_summary.py
+@@ -63,7 +63,7 @@ def get_Kstat():
+         del kstats[0:2]
+         for kstat in kstats:
+             kstat = kstat.strip()
+-            name, unused, value = kstat.split()
++            name, _, value = kstat.split()
+             Kstat[namespace + name] = D(value)
+ 
+     Kstat = {}
+@@ -77,17 +77,6 @@ def get_Kstat():
+     return Kstat
+ 
+ 
+-def div1():
+-    sys.stdout.write("\n")
+-    for i in range(18):
+-        sys.stdout.write("%s" % "----")
+-    sys.stdout.write("\n")
+-
+-
+-def div2():
+-    sys.stdout.write("\n")
+-
+-
+ def fBytes(b=0):
+     """Return human-readable representation of a byte value in
+     powers of 2 (eg "KiB" for "kibibytes", etc) to two decimal
+@@ -908,11 +897,13 @@ unSub = [
+ 
+ 
+ def zfs_header():
+-    daydate = time.strftime("%a %b %d %H:%M:%S %Y")
++    """Print title string with date
++    """
++    daydate = time.strftime('%a %b %d %H:%M:%S %Y')
+ 
+-    div1()
+-    sys.stdout.write("ZFS Subsystem Report\t\t\t\t%s" % daydate)
+-    div2()
++    sys.stdout.write('\n'+'-'*72+'\n')
++    sys.stdout.write('ZFS Subsystem Report\t\t\t\t%s' % daydate)
++    sys.stdout.write('\n')
+ 
+ 
+ def usage():
+@@ -975,7 +966,7 @@ def main():
+     zfs_header()
+     for page in pages:
+         page(Kstat)
+-        div2()
++        sys.stdout.write("\n")
+ 
+ 
+ if __name__ == '__main__':
+-- 
+2.14.2
+

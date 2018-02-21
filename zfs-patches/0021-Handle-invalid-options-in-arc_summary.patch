@@ -1,0 +1,137 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: LOLi <loli10K@users.noreply.github.com>
+Date: Tue, 19 Dec 2017 22:02:40 +0100
+Subject: [PATCH] Handle invalid options in arc_summary
+MIME-Version: 1.0
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 8bit
+
+If an invalid option is provided to arc_summary.py we handle any error
+thrown from the getopt Python module and print the usage help message.
+
+Reviewed-by: George Melikov <mail@gmelikov.ru>
+Reviewed-by: Giuseppe Di Natale <dinatale2@llnl.gov>
+Reviewed-by: Brian Behlendorf <behlendorf1@llnl.gov>
+Signed-off-by: loli10K <ezomori.nozomu@gmail.com>
+Closes #6983
+(cherry picked from commit 9a6c57845a431f55fd617c38e180b26215f0ca6f)
+Signed-off-by: Fabian Grünbichler <f.gruenbichler@proxmox.com>
+---
+ .../tests/functional/cli_user/misc/Makefile.am     |  1 +
+ cmd/arc_summary/arc_summary.py                     | 16 ++++++---
+ tests/runfiles/linux.run                           |  2 +-
+ .../cli_user/misc/arc_summary_002_neg.ksh          | 38 ++++++++++++++++++++++
+ 4 files changed, 51 insertions(+), 6 deletions(-)
+ create mode 100755 tests/zfs-tests/tests/functional/cli_user/misc/arc_summary_002_neg.ksh
+
+diff --git a/tests/zfs-tests/tests/functional/cli_user/misc/Makefile.am b/tests/zfs-tests/tests/functional/cli_user/misc/Makefile.am
+index cf7502c27..75a3d0886 100644
+--- a/tests/zfs-tests/tests/functional/cli_user/misc/Makefile.am
++++ b/tests/zfs-tests/tests/functional/cli_user/misc/Makefile.am
+@@ -46,4 +46,5 @@ dist_pkgdata_SCRIPTS = \
+ 	zpool_upgrade_001_neg.ksh \
+ 	arcstat_001_pos.ksh \
+ 	arc_summary_001_pos.ksh \
++	arc_summary_002_neg.ksh \
+ 	dbufstat_001_pos.ksh
+diff --git a/cmd/arc_summary/arc_summary.py b/cmd/arc_summary/arc_summary.py
+index 5da81347c..2472f87ea 100755
+--- a/cmd/arc_summary/arc_summary.py
++++ b/cmd/arc_summary/arc_summary.py
+@@ -977,9 +977,15 @@ def main():
+     global show_tunable_descriptions
+     global alternate_tunable_layout
+ 
+-    opts, args = getopt.getopt(
+-        sys.argv[1:], "adp:h", ["alternate", "description", "page=", "help"]
+-    )
++    try:
++        opts, args = getopt.getopt(
++            sys.argv[1:],
++            "adp:h", ["alternate", "description", "page=", "help"]
++        )
++    except getopt.error as e:
++        sys.stderr.write("Error: %s\n" % e.msg)
++        usage()
++        sys.exit(1)
+ 
+     args = {}
+     for opt, arg in opts:
+@@ -991,7 +997,7 @@ def main():
+             args['p'] = arg
+         if opt in ('-h', '--help'):
+             usage()
+-            sys.exit()
++            sys.exit(0)
+ 
+     Kstat = get_Kstat()
+ 
+@@ -1006,7 +1012,7 @@ def main():
+         except IndexError:
+             sys.stderr.write('the argument to -p must be between 1 and ' +
+                              str(len(unSub)) + '\n')
+-            sys.exit()
++            sys.exit(1)
+     else:
+         pages = unSub
+ 
+diff --git a/tests/runfiles/linux.run b/tests/runfiles/linux.run
+index 10bd110a6..f872c0cbf 100644
+--- a/tests/runfiles/linux.run
++++ b/tests/runfiles/linux.run
+@@ -366,7 +366,7 @@ tests = ['zdb_001_neg', 'zfs_001_neg', 'zfs_allow_001_neg',
+     'zpool_offline_001_neg', 'zpool_online_001_neg', 'zpool_remove_001_neg',
+     'zpool_replace_001_neg', 'zpool_scrub_001_neg', 'zpool_set_001_neg',
+     'zpool_status_001_neg', 'zpool_upgrade_001_neg', 'arcstat_001_pos',
+-    'arc_summary_001_pos', 'dbufstat_001_pos']
++    'arc_summary_001_pos', 'arc_summary_002_neg', 'dbufstat_001_pos']
+ user =
+ tags = ['functional', 'cli_user', 'misc']
+ 
+diff --git a/tests/zfs-tests/tests/functional/cli_user/misc/arc_summary_002_neg.ksh b/tests/zfs-tests/tests/functional/cli_user/misc/arc_summary_002_neg.ksh
+new file mode 100755
+index 000000000..e63552feb
+--- /dev/null
++++ b/tests/zfs-tests/tests/functional/cli_user/misc/arc_summary_002_neg.ksh
+@@ -0,0 +1,38 @@
++#!/bin/ksh -p
++#
++# CDDL HEADER START
++#
++# The contents of this file are subject to the terms of the
++# Common Development and Distribution License (the "License").
++# You may not use this file except in compliance with the License.
++#
++# You can obtain a copy of the license at usr/src/OPENSOLARIS.LICENSE
++# or http://www.opensolaris.org/os/licensing.
++# See the License for the specific language governing permissions
++# and limitations under the License.
++#
++# When distributing Covered Code, include this CDDL HEADER in each
++# file and include the License file at usr/src/OPENSOLARIS.LICENSE.
++# If applicable, add the following below this CDDL HEADER, with the
++# fields enclosed by brackets "[]" replaced with your own identifying
++# information: Portions Copyright [yyyy] [name of copyright owner]
++#
++# CDDL HEADER END
++#
++
++#
++# Copyright (c) 2015 by Lawrence Livermore National Security, LLC.
++# All rights reserved.
++#
++
++. $STF_SUITE/include/libtest.shlib
++
++typeset args=("-x" "-r" "-5" "-p 7" "--err" "-@")
++
++log_assert "arc_summary.py generates an error code with invalid options"
++
++for arg in "${args[@]}"; do
++        log_mustnot eval "arc_summary.py $arg > /dev/null"
++done
++
++log_pass "arc_summary.py generates an error code with invalid options"
+-- 
+2.14.2
+

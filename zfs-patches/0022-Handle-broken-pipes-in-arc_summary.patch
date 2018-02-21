@@ -1,0 +1,70 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Giuseppe Di Natale <dinatale2@users.noreply.github.com>
+Date: Tue, 19 Dec 2017 13:19:24 -0800
+Subject: [PATCH] Handle broken pipes in arc_summary
+MIME-Version: 1.0
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 8bit
+
+Using a command similar to 'arc_summary.py | head' causes
+a broken pipe exception. Gracefully exit in the case of a
+broken pipe in arc_summary.py.
+
+Reviewed-by: Richard Elling <Richard.Elling@RichardElling.com>
+Reviewed-by: loli10K <ezomori.nozomu@gmail.com>
+Signed-off-by: Giuseppe Di Natale <dinatale2@llnl.gov>
+Closes #6965
+Closes #6969
+(cherry picked from commit c2aacf20872856559972a27f7c3f9b4a6fe10cd2)
+Signed-off-by: Fabian Grünbichler <f.gruenbichler@proxmox.com>
+---
+ cmd/arc_summary/arc_summary.py                              | 13 +++++++++++++
+ .../tests/functional/cli_user/misc/arc_summary_001_pos.ksh  |  3 +++
+ 2 files changed, 16 insertions(+)
+
+diff --git a/cmd/arc_summary/arc_summary.py b/cmd/arc_summary/arc_summary.py
+index 2472f87ea..f6dbb9bfb 100755
+--- a/cmd/arc_summary/arc_summary.py
++++ b/cmd/arc_summary/arc_summary.py
+@@ -47,6 +47,7 @@ import getopt
+ import os
+ import sys
+ import time
++import errno
+ 
+ from subprocess import Popen, PIPE
+ from decimal import Decimal as D
+@@ -55,6 +56,18 @@ show_tunable_descriptions = False
+ alternate_tunable_layout = False
+ 
+ 
++def handle_Exception(ex_cls, ex, tb):
++    if ex is IOError:
++        if ex.errno == errno.EPIPE:
++            sys.exit()
++
++    if ex is KeyboardInterrupt:
++        sys.exit()
++
++
++sys.excepthook = handle_Exception
++
++
+ def get_Kstat():
+     """Collect information on the ZFS subsystem from the /proc virtual
+     file system. The name "kstat" is a holdover from the Solaris utility
+diff --git a/tests/zfs-tests/tests/functional/cli_user/misc/arc_summary_001_pos.ksh b/tests/zfs-tests/tests/functional/cli_user/misc/arc_summary_001_pos.ksh
+index 67c11c8ab..6653b9c1a 100755
+--- a/tests/zfs-tests/tests/functional/cli_user/misc/arc_summary_001_pos.ksh
++++ b/tests/zfs-tests/tests/functional/cli_user/misc/arc_summary_001_pos.ksh
+@@ -37,4 +37,7 @@ while [[ $i -lt ${#args[*]} ]]; do
+         ((i = i + 1))
+ done
+ 
++log_must eval "arc_summary.py | head > /dev/null"
++log_must eval "arc_summary.py | head -1 > /dev/null"
++
+ log_pass "arc_summary.py generates output and doesn't return an error code"
+-- 
+2.14.2
+

@@ -1,0 +1,55 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Gvozden Neskovic <neskovic@gmail.com>
+Date: Wed, 30 Aug 2017 21:09:18 +0200
+Subject: [PATCH] dmu_objset: release bonus buffer in failure path
+MIME-Version: 1.0
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 8bit
+
+Reported by kmemleak during testing of a new patch:
+
+```
+unreferenced object 0xffff9f1c12e38800 (size 1024):
+  comm "z_upgrade", pid 17842, jiffies 4296870904 (age 8746.268s)
+  backtrace:
+    kmemleak_alloc+0x7a/0x100
+    __kmalloc_node+0x26c/0x510
+    range_tree_create+0x39/0xa0 [zfs]
+    dmu_zfetch_init+0x73/0xe0 [zfs]
+    dnode_create+0x12c/0x3b0 [zfs]
+    dnode_hold_impl+0x1096/0x1130 [zfs]
+    dnode_hold+0x23/0x30 [zfs]
+    dmu_bonus_hold_impl+0x6b/0x370 [zfs]
+    dmu_bonus_hold+0x1e/0x30 [zfs]
+    dmu_objset_space_upgrade+0x114/0x310 [zfs]
+    dmu_objset_userobjspace_upgrade_cb+0xd8/0x150 [zfs]
+    dmu_objset_upgrade_task_cb+0x136/0x1e0 [zfs]
+    kthread+0x119/0x150
+```
+
+Reviewed-by: George Melikov <mail@gmelikov.ru>
+Reviewed-by: Brian Behlendorf <behlendorf1@llnl.gov>
+Reviewed-by: Giuseppe Di Natale <dinatale2@llnl.gov>
+Signed-off-by: Gvozden Neskovic <neskovic@gmail.com>
+Closes #6575
+(cherry picked from commit a94447ddf3e8632e1e0476a3b1c985f41a0ae899)
+Signed-off-by: Fabian Grünbichler <f.gruenbichler@proxmox.com>
+---
+ module/zfs/dmu_objset.c | 1 +
+ 1 file changed, 1 insertion(+)
+
+diff --git a/module/zfs/dmu_objset.c b/module/zfs/dmu_objset.c
+index 9a7a6968d..3425d542f 100644
+--- a/module/zfs/dmu_objset.c
++++ b/module/zfs/dmu_objset.c
+@@ -1853,6 +1853,7 @@ dmu_objset_space_upgrade(objset_t *os)
+ 		dmu_tx_hold_bonus(tx, obj);
+ 		objerr = dmu_tx_assign(tx, TXG_WAIT);
+ 		if (objerr != 0) {
++			dmu_buf_rele(db, FTAG);
+ 			dmu_tx_abort(tx);
+ 			continue;
+ 		}
+-- 
+2.14.2
+

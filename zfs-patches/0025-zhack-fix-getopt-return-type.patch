@@ -1,0 +1,56 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Nathaniel Wesley Filardo
+ <VP331RHQ115POU58JFRLKB7OPA0L18E3@cmx.ietfng.org>
+Date: Tue, 9 Jan 2018 14:14:45 -0500
+Subject: [PATCH] zhack: fix getopt return type
+MIME-Version: 1.0
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 8bit
+
+This fixes zhack's command processing on ARM.  On ARM char
+is unsigned, and so, in promotion to an int, it will never
+compare equal to -1.
+
+Reviewed-by: Brian Behlendorf <behlendorf1@llnl.gov>
+Signed-off-by: Nathaniel Wesley Filardo <nwf@cs.jhu.edu>
+Closes #7016
+(cherry picked from commit a2ee6568c604fb455d6ee7fa51728fb2bc700dac)
+Signed-off-by: Fabian Grünbichler <f.gruenbichler@proxmox.com>
+---
+ cmd/zhack/zhack.c | 6 +++---
+ 1 file changed, 3 insertions(+), 3 deletions(-)
+
+diff --git a/cmd/zhack/zhack.c b/cmd/zhack/zhack.c
+index 70f88fc69..e15af8f4e 100644
+--- a/cmd/zhack/zhack.c
++++ b/cmd/zhack/zhack.c
+@@ -268,7 +268,7 @@ zhack_feature_enable_sync(void *arg, dmu_tx_t *tx)
+ static void
+ zhack_do_feature_enable(int argc, char **argv)
+ {
+-	char c;
++	int c;
+ 	char *desc, *target;
+ 	spa_t *spa;
+ 	objset_t *mos;
+@@ -363,7 +363,7 @@ feature_decr_sync(void *arg, dmu_tx_t *tx)
+ static void
+ zhack_do_feature_ref(int argc, char **argv)
+ {
+-	char c;
++	int c;
+ 	char *target;
+ 	boolean_t decr = B_FALSE;
+ 	spa_t *spa;
+@@ -483,7 +483,7 @@ main(int argc, char **argv)
+ 	char *path[MAX_NUM_PATHS];
+ 	const char *subcommand;
+ 	int rv = 0;
+-	char c;
++	int c;
+ 
+ 	g_importargs.path = path;
+ 
+-- 
+2.14.2
+

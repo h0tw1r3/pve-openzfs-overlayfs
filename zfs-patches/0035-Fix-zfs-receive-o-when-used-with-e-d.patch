@@ -1,0 +1,101 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: LOLi <loli10K@users.noreply.github.com>
+Date: Wed, 31 Jan 2018 00:54:33 +0100
+Subject: [PATCH] Fix 'zfs receive -o' when used with '-e|-d'
+MIME-Version: 1.0
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 8bit
+
+When used in conjunction with one of '-e' or '-d' zfs receive options
+none of the properties requested to be set (-o) are actually applied:
+this is caused by a wrong assumption made about the toplevel dataset
+in zfs_receive_one().
+
+Fix this by correctly detecting the toplevel dataset.
+
+Reviewed-by: Tony Hutter <hutter2@llnl.gov>
+Reviewed-by: Brian Behlendorf <behlendorf1@llnl.gov>
+Signed-off-by: loli10K <ezomori.nozomu@gmail.com>
+Closes #7088
+
+Requires-spl: refs/pull/679/head
+(cherry picked from commit 2f62fdd6447b1a765dfea3cc5bf9e35dc0901aff)
+Signed-off-by: Fabian Grünbichler <f.gruenbichler@proxmox.com>
+---
+ lib/libzfs/libzfs_sendrecv.c                       |  5 +--
+ .../zfs_receive/receive-o-x_props_override.ksh     | 36 ++++++++++++++++++++++
+ 2 files changed, 39 insertions(+), 2 deletions(-)
+
+diff --git a/lib/libzfs/libzfs_sendrecv.c b/lib/libzfs/libzfs_sendrecv.c
+index db8079fb3..ec190022f 100644
+--- a/lib/libzfs/libzfs_sendrecv.c
++++ b/lib/libzfs/libzfs_sendrecv.c
+@@ -3252,7 +3252,7 @@ zfs_receive_one(libzfs_handle_t *hdl, int infd, const char *tosnap,
+ 	nvlist_t *oxprops = NULL; /* override (-o) and exclude (-x) props */
+ 	nvlist_t *origprops = NULL; /* original props (if destination exists) */
+ 	zfs_type_t type;
+-	boolean_t toplevel;
++	boolean_t toplevel = B_FALSE;
+ 	boolean_t zoned = B_FALSE;
+ 
+ 	begin_time = time(NULL);
+@@ -3586,7 +3586,8 @@ zfs_receive_one(libzfs_handle_t *hdl, int infd, const char *tosnap,
+ 		goto out;
+ 	}
+ 
+-	toplevel = chopprefix[0] != '/';
++	if (top_zfs && *top_zfs == NULL)
++		toplevel = B_TRUE;
+ 	if (drrb->drr_type == DMU_OST_ZVOL) {
+ 		type = ZFS_TYPE_VOLUME;
+ 	} else if (drrb->drr_type == DMU_OST_ZFS) {
+diff --git a/tests/zfs-tests/tests/functional/cli_root/zfs_receive/receive-o-x_props_override.ksh b/tests/zfs-tests/tests/functional/cli_root/zfs_receive/receive-o-x_props_override.ksh
+index 7137fe278..e4e69851f 100755
+--- a/tests/zfs-tests/tests/functional/cli_root/zfs_receive/receive-o-x_props_override.ksh
++++ b/tests/zfs-tests/tests/functional/cli_root/zfs_receive/receive-o-x_props_override.ksh
+@@ -371,6 +371,42 @@ log_must eval "check_prop_source $dest type filesystem -"
+ log_must eval "check_prop_source $dest atime off local"
+ log_must eval "check_prop_source $destsub type volume -"
+ log_must eval "check_prop_source $destsub atime - -"
++# Cleanup
++log_must zfs destroy -r -f $orig
++log_must zfs destroy -r -f $dest
++
++#
++# 3.8 Verify 'zfs recv -x|-o' works correctly when used in conjunction with -d
++#     and -e options.
++#
++log_must zfs create -p $orig/1/2/3/4
++log_must eval "zfs set copies=2 $orig"
++log_must eval "zfs set atime=on $orig"
++log_must eval "zfs set '$userprop:orig'='oldval' $orig"
++log_must zfs snapshot -r $orig@snap1
++log_must eval "zfs send -R $orig/1/2@snap1 > $streamfile_repl"
++# Verify 'zfs recv -e'
++log_must zfs create $dest
++log_must eval "zfs receive -e -o copies=3 -x atime "\
++	"-o '$userprop:orig'='newval' $dest < $streamfile_repl"
++log_must datasetexists $dest/2/3/4
++log_must eval "check_prop_source $dest/2 copies 3 local"
++log_must eval "check_prop_inherit $dest/2/3/4 copies $dest/2"
++log_must eval "check_prop_source $dest/2/3/4 atime on default"
++log_must eval "check_prop_source $dest/2 '$userprop:orig' 'newval' local"
++log_must eval "check_prop_inherit $dest/2/3/4 '$userprop:orig' $dest/2"
++log_must zfs destroy -r -f $dest
++# Verify 'zfs recv -d'
++log_must zfs create $dest
++typeset fs="$(echo $orig | awk -F'/' '{print $NF}')"
++log_must eval "zfs receive -d -o copies=3 -x atime "\
++	"-o '$userprop:orig'='newval' $dest < $streamfile_repl"
++log_must datasetexists $dest/$fs/1/2/3/4
++log_must eval "check_prop_source $dest/$fs/1/2 copies 3 local"
++log_must eval "check_prop_inherit $dest/$fs/1/2/3/4 copies $dest/$fs/1/2"
++log_must eval "check_prop_source $dest/$fs/1/2/3/4 atime on default"
++log_must eval "check_prop_source $dest/$fs/1/2 '$userprop:orig' 'newval' local"
++log_must eval "check_prop_inherit $dest/$fs/1/2/3/4 '$userprop:orig' $dest/$fs/1/2"
+ # We don't need to cleanup here
+ 
+ log_pass "ZFS receive property override and exclude options passed."
+-- 
+2.14.2
+

@@ -1,0 +1,93 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Brian Behlendorf <behlendorf1@llnl.gov>
+Date: Wed, 17 Jan 2018 10:17:16 -0800
+Subject: [PATCH] Fix shellcheck v0.4.6 warnings
+MIME-Version: 1.0
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 8bit
+
+Resolve new warnings reported after upgrading to shellcheck
+version 0.4.6.  This patch contains no functional changes.
+
+* egrep is non-standard and deprecated. Use grep -E instead. [SC2196]
+* Check exit code directly with e.g. 'if mycmd;', not indirectly
+  with $?.  [SC2181]  Suppressed.
+
+Reviewed-by: George Melikov <mail@gmelikov.ru>
+Reviewed-by: Giuseppe Di Natale <dinatale2@llnl.gov>
+Signed-off-by: Brian Behlendorf <behlendorf1@llnl.gov>
+Closes #7040
+(cherry picked from commit 9d1a39cec6ba98c33cf0e358d2bac35dc1552d01)
+Signed-off-by: Fabian Grünbichler <f.gruenbichler@proxmox.com>
+---
+ cmd/zed/zed.d/zed-functions.sh                         | 4 ++--
+ scripts/zloop.sh                                       | 6 +++---
+ tests/zfs-tests/tests/functional/acl/acl_common.kshlib | 2 +-
+ 3 files changed, 6 insertions(+), 6 deletions(-)
+
+diff --git a/cmd/zed/zed.d/zed-functions.sh b/cmd/zed/zed.d/zed-functions.sh
+index b7de5104f..ed6a95914 100644
+--- a/cmd/zed/zed.d/zed-functions.sh
++++ b/cmd/zed/zed.d/zed-functions.sh
+@@ -397,7 +397,7 @@ zed_rate_limit()
+ 
+     zed_lock "${lockfile}" "${lockfile_fd}"
+     time_now="$(date +%s)"
+-    time_prev="$(egrep "^[0-9]+;${tag}\$" "${statefile}" 2>/dev/null \
++    time_prev="$(grep -E "^[0-9]+;${tag}\$" "${statefile}" 2>/dev/null \
+         | tail -1 | cut -d\; -f1)"
+ 
+     if [ -n "${time_prev}" ] \
+@@ -406,7 +406,7 @@ zed_rate_limit()
+     else
+         umask_bak="$(umask)"
+         umask 077
+-        egrep -v "^[0-9]+;${tag}\$" "${statefile}" 2>/dev/null \
++        grep -E -v "^[0-9]+;${tag}\$" "${statefile}" 2>/dev/null \
+             > "${statefile}.$$"
+         echo "${time_now};${tag}" >> "${statefile}.$$"
+         mv -f "${statefile}.$$" "${statefile}"
+diff --git a/scripts/zloop.sh b/scripts/zloop.sh
+index 854c2048a..03e825059 100755
+--- a/scripts/zloop.sh
++++ b/scripts/zloop.sh
+@@ -70,12 +70,12 @@ function or_die
+ 
+ # core file helpers
+ origcorepattern="$(cat /proc/sys/kernel/core_pattern)"
+-coreglob="$(egrep -o '^([^|%[:space:]]*)' /proc/sys/kernel/core_pattern)*"
++coreglob="$(grep -E -o '^([^|%[:space:]]*)' /proc/sys/kernel/core_pattern)*"
+ 
+ if [[ $coreglob = "*" ]]; then
+         echo "Setting core file pattern..."
+         echo "core" > /proc/sys/kernel/core_pattern
+-        coreglob="$(egrep -o '^([^|%[:space:]]*)' \
++        coreglob="$(grep -E -o '^([^|%[:space:]]*)' \
+             /proc/sys/kernel/core_pattern)*"
+ fi
+ 
+@@ -235,7 +235,7 @@ while [[ $timeout -eq 0 ]] || [[ $curtime -le $((starttime + timeout)) ]]; do
+ 	echo "$desc" >>ztest.out
+ 	$cmd >>ztest.out 2>&1
+ 	ztrc=$?
+-	egrep '===|WARNING' ztest.out >>ztest.history
++	grep -E '===|WARNING' ztest.out >>ztest.history
+ 	$ZDB -U "$workdir/zpool.cache" -DD ztest >>ztest.ddt
+ 
+ 	store_core
+diff --git a/tests/zfs-tests/tests/functional/acl/acl_common.kshlib b/tests/zfs-tests/tests/functional/acl/acl_common.kshlib
+index def25d390..75bb82455 100644
+--- a/tests/zfs-tests/tests/functional/acl/acl_common.kshlib
++++ b/tests/zfs-tests/tests/functional/acl/acl_common.kshlib
+@@ -410,7 +410,7 @@ function get_xattr #<obj>
+ 	fi
+ 
+ 	for xattr in `runat $obj ls | \
+-		/usr/xpg4/bin/egrep -v -e SUNWattr_ro -e SUNWattr_rw` ; do
++		grep -E -v -e SUNWattr_ro -e SUNWattr_rw` ; do
+ 		runat $obj sum $xattr
+ 	done
+ }
+-- 
+2.14.2
+

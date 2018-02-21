@@ -1,0 +1,83 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Nathaniel Wesley Filardo
+ <VP331RHQ115POU58JFRLKB7OPA0L18E3@cmx.ietfng.org>
+Date: Tue, 9 Jan 2018 17:46:52 -0500
+Subject: [PATCH] Revert raidz_map and _col structure types
+MIME-Version: 1.0
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 8bit
+
+As part of the refactoring of ab9f4b0b824ab4cc64a4fa382c037f4154de12d6,
+several uint64_t-s and uint8_t-s were changed to other types.  This
+caused ZoL github issue #6981, an overflow of a size_t on a 32-bit ARM
+machine.  In absense of any strong motivation for the type changes, this
+simply puts them back, modulo the changes accumulated for ABD.
+
+Compile-tested on amd64 and run-tested on armhf.
+
+Reviewed-by: Brian Behlendorf <behlendorf1@llnl.gov>
+Reviewed-by: Gvozden Neskovic <neskovic@gmail.com>
+Signed-off-by: Nathaniel Wesley Filardo <nwf@cs.jhu.edu>
+Closes #6981
+Closes #7023
+(cherry picked from commit 9fb09f79e573d377b2b041f620eac703be3acc3f)
+Signed-off-by: Fabian Grünbichler <f.gruenbichler@proxmox.com>
+---
+ include/sys/vdev_raidz_impl.h | 34 +++++++++++++++++-----------------
+ 1 file changed, 17 insertions(+), 17 deletions(-)
+
+diff --git a/include/sys/vdev_raidz_impl.h b/include/sys/vdev_raidz_impl.h
+index 4bd15e3d5..0799ed19d 100644
+--- a/include/sys/vdev_raidz_impl.h
++++ b/include/sys/vdev_raidz_impl.h
+@@ -102,30 +102,30 @@ typedef struct raidz_impl_ops {
+ } raidz_impl_ops_t;
+ 
+ typedef struct raidz_col {
+-	size_t rc_devidx;		/* child device index for I/O */
+-	size_t rc_offset;		/* device offset */
+-	size_t rc_size;			/* I/O size */
++	uint64_t rc_devidx;		/* child device index for I/O */
++	uint64_t rc_offset;		/* device offset */
++	uint64_t rc_size;		/* I/O size */
+ 	abd_t *rc_abd;			/* I/O data */
+ 	void *rc_gdata;			/* used to store the "good" version */
+ 	int rc_error;			/* I/O error for this device */
+-	unsigned int rc_tried;		/* Did we attempt this I/O column? */
+-	unsigned int rc_skipped;	/* Did we skip this I/O column? */
++	uint8_t rc_tried;		/* Did we attempt this I/O column? */
++	uint8_t rc_skipped;		/* Did we skip this I/O column? */
+ } raidz_col_t;
+ 
+ typedef struct raidz_map {
+-	size_t rm_cols;			/* Regular column count */
+-	size_t rm_scols;		/* Count including skipped columns */
+-	size_t rm_bigcols;		/* Number of oversized columns */
+-	size_t rm_asize;		/* Actual total I/O size */
+-	size_t rm_missingdata;		/* Count of missing data devices */
+-	size_t rm_missingparity;	/* Count of missing parity devices */
+-	size_t rm_firstdatacol;		/* First data column/parity count */
+-	size_t rm_nskip;		/* Skipped sectors for padding */
+-	size_t rm_skipstart;		/* Column index of padding start */
++	uint64_t rm_cols;		/* Regular column count */
++	uint64_t rm_scols;		/* Count including skipped columns */
++	uint64_t rm_bigcols;		/* Number of oversized columns */
++	uint64_t rm_asize;		/* Actual total I/O size */
++	uint64_t rm_missingdata;	/* Count of missing data devices */
++	uint64_t rm_missingparity;	/* Count of missing parity devices */
++	uint64_t rm_firstdatacol;	/* First data column/parity count */
++	uint64_t rm_nskip;		/* Skipped sectors for padding */
++	uint64_t rm_skipstart;		/* Column index of padding start */
+ 	abd_t *rm_abd_copy;		/* rm_asize-buffer of copied data */
+-	size_t rm_reports;		/* # of referencing checksum reports */
+-	unsigned int rm_freed;		/* map no longer has referencing ZIO */
+-	unsigned int rm_ecksuminjected;	/* checksum error was injected */
++	uintptr_t rm_reports;		/* # of referencing checksum reports */
++	uint8_t	rm_freed;		/* map no longer has referencing ZIO */
++	uint8_t	rm_ecksuminjected;	/* checksum error was injected */
+ 	raidz_impl_ops_t *rm_ops;	/* RAIDZ math operations */
+ 	raidz_col_t rm_col[1];		/* Flexible array of I/O columns */
+ } raidz_map_t;
+-- 
+2.14.2
+

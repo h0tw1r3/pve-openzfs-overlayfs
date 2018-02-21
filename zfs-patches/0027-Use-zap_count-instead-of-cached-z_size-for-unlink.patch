@@ -1,0 +1,63 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Alex Zhuravlev <alexey.zhuravlev@intel.com>
+Date: Mon, 8 Jan 2018 10:57:47 -0800
+Subject: [PATCH] Use zap_count instead of cached z_size for unlink
+MIME-Version: 1.0
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 8bit
+
+As a performance optimization Lustre does not strictly update
+the SA_ZPL_SIZE when adding/removing from non-directory entries.
+This results in entries which cannot be removed through the ZPL
+layer even though the ZAP is empty and safe to remove.
+
+Resolve this issue by checking the zap_count() directly instead
+on relying on the cached SA_ZPL_SIZE.  Micro-benchmarks show no
+significant performance impact due to the additional overhead
+of using zap_count().
+
+Reviewed-by: Olaf Faaland <faaland1@llnl.gov>
+Reviewed-by: Giuseppe Di Natale <dinatale2@llnl.gov>
+Signed-off-by: Alex Zhuravlev <alexey.zhuravlev@intel.com>
+Signed-off-by: Brian Behlendorf <behlendorf1@llnl.gov>
+Closes #7019
+(cherry picked from commit 129e3e8dc32673809d1d3523a0e773567e281a4a)
+Signed-off-by: Fabian Grünbichler <f.gruenbichler@proxmox.com>
+---
+ module/zfs/zfs_dir.c | 16 +++++++++++++++-
+ 1 file changed, 15 insertions(+), 1 deletion(-)
+
+diff --git a/module/zfs/zfs_dir.c b/module/zfs/zfs_dir.c
+index c6ee30291..9a8bbccd9 100644
+--- a/module/zfs/zfs_dir.c
++++ b/module/zfs/zfs_dir.c
+@@ -977,11 +977,25 @@ zfs_link_destroy(zfs_dirlock_t *dl, znode_t *zp, dmu_tx_t *tx, int flag,
+  * Indicate whether the directory is empty.  Works with or without z_lock
+  * held, but can only be consider a hint in the latter case.  Returns true
+  * if only "." and ".." remain and there's no work in progress.
++ *
++ * The internal ZAP size, rather than zp->z_size, needs to be checked since
++ * some consumers (Lustre) do not strictly maintain an accurate SA_ZPL_SIZE.
+  */
+ boolean_t
+ zfs_dirempty(znode_t *dzp)
+ {
+-	return (dzp->z_size == 2 && dzp->z_dirlocks == 0);
++	zfsvfs_t *zfsvfs = ZTOZSB(dzp);
++	uint64_t count;
++	int error;
++
++	if (dzp->z_dirlocks != NULL)
++		return (B_FALSE);
++
++	error = zap_count(zfsvfs->z_os, dzp->z_id, &count);
++	if (error != 0 || count != 0)
++		return (B_FALSE);
++
++	return (B_TRUE);
+ }
+ 
+ int
+-- 
+2.14.2
+
