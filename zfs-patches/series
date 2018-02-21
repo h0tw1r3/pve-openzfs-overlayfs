@@ -34,3 +34,4 @@
 0034-Extend-zloop.sh-for-automated-testing.patch
 0035-Fix-zfs-receive-o-when-used-with-e-d.patch
 0036-Tag-zfs-0.7.6.patch
+0037-Revert-cherry-pick-fix-distclean-which-removes-neede.patch
