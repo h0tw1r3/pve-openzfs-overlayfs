@@ -1,4 +1,1 @@
 0001-remove-DKMS-and-module-build.patch
-0002-Linux-4.15-compat-timer-updates.patch
-0003-Fix-Debian-packaging-on-ARMv7-ARM64.patch
-0004-Tag-spl-0.7.6.patch
