@@ -1,0 +1,48 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: DeHackEd <DeHackEd@users.noreply.github.com>
+Date: Wed, 21 Feb 2018 17:54:26 -0500
+Subject: [PATCH] Fix multiple evaluations of VERIFY() and ASSERT() on failures
+MIME-Version: 1.0
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 8bit
+
+Reviewed-by: loli10K <ezomori.nozomu@gmail.com>
+Reviewed-by: Brian Behlendorf <behlendorf1@llnl.gov>
+Signed-off-by: DHE <git@dehacked.net>
+Closes #684
+Closes #685
+(cherry picked from commit 610988f2dbf0e1c5811e6115d7ff8948b90a660e)
+Signed-off-by: Fabian Grünbichler <f.gruenbichler@proxmox.com>
+---
+ include/sys/debug.h | 15 +++++++++------
+ 1 file changed, 9 insertions(+), 6 deletions(-)
+
+diff --git a/include/sys/debug.h b/include/sys/debug.h
+index 6d683c2..b523ea1 100644
+--- a/include/sys/debug.h
++++ b/include/sys/debug.h
+@@ -63,12 +63,15 @@ void spl_dumpstack(void);
+ 	    spl_panic(__FILE__, __FUNCTION__, __LINE__,			\
+ 	    "%s", "VERIFY(" #cond ") failed\n"))
+ 
+-#define	VERIFY3_IMPL(LEFT, OP, RIGHT, TYPE, FMT, CAST)			\
+-	(void) ((!((TYPE)(LEFT) OP (TYPE)(RIGHT))) &&			\
+-	    spl_panic(__FILE__, __FUNCTION__, __LINE__,			\
+-	    "VERIFY3(" #LEFT " " #OP " " #RIGHT ") "			\
+-	    "failed (" FMT " " #OP " " FMT ")\n",			\
+-	    CAST (LEFT), CAST (RIGHT)))
++#define	VERIFY3_IMPL(LEFT, OP, RIGHT, TYPE, FMT, CAST)	do {		\
++		TYPE _verify3_left = (TYPE)(LEFT);				\
++		TYPE _verify3_right = (TYPE)(RIGHT);				\
++		if (!(_verify3_left OP _verify3_right))			\
++		    spl_panic(__FILE__, __FUNCTION__, __LINE__,		\
++		    "VERIFY3(" #LEFT " " #OP " " #RIGHT ") "		\
++		    "failed (" FMT " " #OP " " FMT ")\n",		\
++		    CAST (_verify3_left), CAST (_verify3_right));	\
++	} while (0)
+ 
+ #define	VERIFY3B(x,y,z)	VERIFY3_IMPL(x, y, z, boolean_t, "%d", (boolean_t))
+ #define	VERIFY3S(x,y,z)	VERIFY3_IMPL(x, y, z, int64_t, "%lld", (long long))
+-- 
+2.14.2
+

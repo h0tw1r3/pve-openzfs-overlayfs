@@ -1,0 +1,36 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Tomohiro Kusumi <kusumi.tomohiro@osnexus.com>
+Date: Mon, 19 Feb 2018 19:23:53 +0900
+Subject: [PATCH] Staticize kstat_default_update()
+MIME-Version: 1.0
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 8bit
+
+This is only used via ->ks_update of `kstat_t *`.
+This isn't exported nor do headers have its prototype.
+
+Reviewed-by: Brian Behlendorf <behlendorf1@llnl.gov>
+Signed-off-by: Tomohiro Kusumi <kusumi.tomohiro@osnexus.com>
+Closes #686
+(cherry picked from commit 76ede57c7d927f34fcb5df30c3e7f2b2254ff5ed)
+Signed-off-by: Fabian Grünbichler <f.gruenbichler@proxmox.com>
+---
+ module/spl/spl-kstat.c | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+
+diff --git a/module/spl/spl-kstat.c b/module/spl/spl-kstat.c
+index d2baa49..e769510 100644
+--- a/module/spl/spl-kstat.c
++++ b/module/spl/spl-kstat.c
+@@ -327,7 +327,7 @@ restart:
+ 	return (-rc);
+ }
+ 
+-int
++static int
+ kstat_default_update(kstat_t *ksp, int rw)
+ {
+ 	ASSERT(ksp != NULL);
+-- 
+2.14.2
+

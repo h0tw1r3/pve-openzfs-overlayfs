@@ -1,0 +1,391 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Brian Behlendorf <behlendorf1@llnl.gov>
+Date: Sat, 24 Feb 2018 10:05:37 -0800
+Subject: [PATCH] Fix more cstyle warnings
+MIME-Version: 1.0
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 8bit
+
+This patch contains no functional changes.  It is solely intended
+to resolve cstyle warnings in order to facilitate moving the spl
+source code in to the zfs repository.
+
+Reviewed-by: Giuseppe Di Natale <dinatale2@llnl.gov>
+Reviewed by: George Melikov <mail@gmelikov.ru>
+Signed-off-by: Brian Behlendorf <behlendorf1@llnl.gov>
+Closes #687
+(cherry picked from commit 37a93c61226f3fd76f6f1e67291128a5d2d6d7c1)
+Signed-off-by: Fabian Grünbichler <f.gruenbichler@proxmox.com>
+---
+ module/spl/spl-err.c        |  5 ++++-
+ module/spl/spl-generic.c    | 11 ++++++++---
+ module/spl/spl-kmem-cache.c |  5 ++++-
+ module/spl/spl-kmem.c       |  5 ++++-
+ module/spl/spl-kstat.c      | 17 ++++++++++-------
+ module/spl/spl-proc.c       | 18 ++++++++++--------
+ module/spl/spl-thread.c     |  3 +--
+ module/spl/spl-vnode.c      | 11 +++++------
+ module/spl/spl-xdr.c        | 10 +++++-----
+ 9 files changed, 51 insertions(+), 34 deletions(-)
+
+diff --git a/module/spl/spl-err.c b/module/spl/spl-err.c
+index e089de2..adfa555 100644
+--- a/module/spl/spl-err.c
++++ b/module/spl/spl-err.c
+@@ -34,9 +34,11 @@
+  * analysis and other such goodies.
+  * But we would still default to the current default of not to do that.
+  */
++/* BEGIN CSTYLED */
+ unsigned int spl_panic_halt;
+ module_param(spl_panic_halt, uint, 0644);
+ MODULE_PARM_DESC(spl_panic_halt, "Cause kernel panic on assertion failures");
++/* END CSTYLED */
+ 
+ /*
+  * Limit the number of stack traces dumped to not more than 5 every
+@@ -55,7 +57,8 @@ spl_dumpstack(void)
+ EXPORT_SYMBOL(spl_dumpstack);
+ 
+ int
+-spl_panic(const char *file, const char *func, int line, const char *fmt, ...) {
++spl_panic(const char *file, const char *func, int line, const char *fmt, ...)
++{
+ 	const char *newfile;
+ 	char msg[MAXMSGLEN];
+ 	va_list ap;
+diff --git a/module/spl/spl-generic.c b/module/spl/spl-generic.c
+index 80fc54c..1098d9a 100644
+--- a/module/spl/spl-generic.c
++++ b/module/spl/spl-generic.c
+@@ -50,10 +50,12 @@
+ char spl_version[32] = "SPL v" SPL_META_VERSION "-" SPL_META_RELEASE;
+ EXPORT_SYMBOL(spl_version);
+ 
++/* BEGIN CSTYLED */
+ unsigned long spl_hostid = 0;
+ EXPORT_SYMBOL(spl_hostid);
+ module_param(spl_hostid, ulong, 0644);
+ MODULE_PARM_DESC(spl_hostid, "The system hostid.");
++/* END CSTYLED */
+ 
+ proc_t p0;
+ EXPORT_SYMBOL(p0);
+@@ -98,7 +100,8 @@ static DEFINE_PER_CPU(uint64_t[2], spl_pseudo_entropy);
+  */
+ 
+ static inline uint64_t
+-spl_rand_next(uint64_t *s) {
++spl_rand_next(uint64_t *s)
++{
+ 	uint64_t s1 = s[0];
+ 	const uint64_t s0 = s[1];
+ 	s[0] = s0;
+@@ -108,7 +111,8 @@ spl_rand_next(uint64_t *s) {
+ }
+ 
+ static inline void
+-spl_rand_jump(uint64_t *s) {
++spl_rand_jump(uint64_t *s)
++{
+ 	static const uint64_t JUMP[] =
+ 	    { 0x8a5cd789635d2dff, 0x121fd2155c472f96 };
+ 
+@@ -184,7 +188,8 @@ EXPORT_SYMBOL(random_get_pseudo_bytes);
+  * Calculate number of leading of zeros for a 64-bit value.
+  */
+ static int
+-nlz64(uint64_t x) {
++nlz64(uint64_t x)
++{
+ 	register int n = 0;
+ 
+ 	if (x == 0)
+diff --git a/module/spl/spl-kmem-cache.c b/module/spl/spl-kmem-cache.c
+index e4bcdd8..c73a2fd 100644
+--- a/module/spl/spl-kmem-cache.c
++++ b/module/spl/spl-kmem-cache.c
+@@ -66,6 +66,7 @@
+  * because it has been shown to improve responsiveness on low memory systems.
+  * This policy may be changed by setting KMC_EXPIRE_AGE or KMC_EXPIRE_MEM.
+  */
++/* BEGIN CSTYLED */
+ unsigned int spl_kmem_cache_expire = KMC_EXPIRE_MEM;
+ EXPORT_SYMBOL(spl_kmem_cache_expire);
+ module_param(spl_kmem_cache_expire, uint, 0644);
+@@ -148,6 +149,7 @@ unsigned int spl_kmem_cache_kmem_threads = 4;
+ module_param(spl_kmem_cache_kmem_threads, uint, 0444);
+ MODULE_PARM_DESC(spl_kmem_cache_kmem_threads,
+ 	"Number of spl_kmem_cache threads");
++/* END CSTYLED */
+ 
+ /*
+  * Slab allocation interfaces
+@@ -356,8 +358,9 @@ out:
+ 	if (rc) {
+ 		if (skc->skc_flags & KMC_OFFSLAB)
+ 			list_for_each_entry_safe(sko,
+-			    n, &sks->sks_free_list, sko_list)
++			    n, &sks->sks_free_list, sko_list) {
+ 				kv_free(skc, sko->sko_addr, offslab_size);
++			}
+ 
+ 		kv_free(skc, base, skc->skc_slab_size);
+ 		sks = NULL;
+diff --git a/module/spl/spl-kmem.c b/module/spl/spl-kmem.c
+index bf9c6b1..e0d5510 100755
+--- a/module/spl/spl-kmem.c
++++ b/module/spl/spl-kmem.c
+@@ -44,6 +44,7 @@
+  * allocations are quickly caught.  These warnings may be disabled by setting
+  * the threshold to zero.
+  */
++/* BEGIN CSTYLED */
+ unsigned int spl_kmem_alloc_warn = MIN(16 * PAGE_SIZE, 64 * 1024);
+ module_param(spl_kmem_alloc_warn, uint, 0644);
+ MODULE_PARM_DESC(spl_kmem_alloc_warn,
+@@ -64,6 +65,7 @@ module_param(spl_kmem_alloc_max, uint, 0644);
+ MODULE_PARM_DESC(spl_kmem_alloc_max,
+ 	"Maximum size in bytes for a kmem_alloc()");
+ EXPORT_SYMBOL(spl_kmem_alloc_max);
++/* END CSTYLED */
+ 
+ int
+ kmem_debugging(void)
+@@ -520,10 +522,11 @@ spl_kmem_fini_tracking(struct list_head *list, spinlock_t *lock)
+ 		printk(KERN_WARNING "%-16s %-5s %-16s %s:%s\n", "address",
+ 		    "size", "data", "func", "line");
+ 
+-	list_for_each_entry(kd, list, kd_list)
++	list_for_each_entry(kd, list, kd_list) {
+ 		printk(KERN_WARNING "%p %-5d %-16s %s:%d\n", kd->kd_addr,
+ 		    (int)kd->kd_size, spl_sprintf_addr(kd, str, 17, 8),
+ 		    kd->kd_func, kd->kd_line);
++	}
+ 
+ 	spin_unlock_irqrestore(lock, flags);
+ }
+diff --git a/module/spl/spl-kstat.c b/module/spl/spl-kstat.c
+index e769510..6970fcc 100644
+--- a/module/spl/spl-kstat.c
++++ b/module/spl/spl-kstat.c
+@@ -305,7 +305,7 @@ restart:
+ 			} else {
+ 				ASSERT(ksp->ks_ndata == 1);
+ 				rc = kstat_seq_show_raw(f, ksp->ks_data,
+-							ksp->ks_data_size);
++				    ksp->ks_data_size);
+ 			}
+ 			break;
+ 		case KSTAT_TYPE_NAMED:
+@@ -434,9 +434,10 @@ kstat_find_module(char *name)
+ {
+ 	kstat_module_t *module;
+ 
+-	list_for_each_entry(module, &kstat_module_list, ksm_module_list)
++	list_for_each_entry(module, &kstat_module_list, ksm_module_list) {
+ 		if (strncmp(name, module->ksm_name, KSTAT_STRLEN) == 0)
+ 			return (module);
++	}
+ 
+ 	return (NULL);
+ }
+@@ -517,9 +518,9 @@ static struct file_operations proc_kstat_operations = {
+ 
+ void
+ __kstat_set_raw_ops(kstat_t *ksp,
+-		    int (*headers)(char *buf, size_t size),
+-		    int (*data)(char *buf, size_t size, void *data),
+-		    void *(*addr)(kstat_t *ksp, loff_t index))
++    int (*headers)(char *buf, size_t size),
++    int (*data)(char *buf, size_t size, void *data),
++    void *(*addr)(kstat_t *ksp, loff_t index))
+ {
+ 	ksp->ks_raw_ops.headers = headers;
+ 	ksp->ks_raw_ops.data    = data;
+@@ -628,11 +629,12 @@ kstat_detect_collision(kstat_t *ksp)
+ 
+ 	cp[0] = '\0';
+ 	if ((module = kstat_find_module(parent)) != NULL) {
+-		list_for_each_entry(tmp, &module->ksm_kstat_list, ks_list)
++		list_for_each_entry(tmp, &module->ksm_kstat_list, ks_list) {
+ 			if (strncmp(tmp->ks_name, cp+1, KSTAT_STRLEN) == 0) {
+ 				strfree(parent);
+ 				return (EEXIST);
+ 			}
++		}
+ 	}
+ 
+ 	strfree(parent);
+@@ -665,9 +667,10 @@ __kstat_install(kstat_t *ksp)
+ 	 * Only one entry by this name per-module, on failure the module
+ 	 * shouldn't be deleted because we know it has at least one entry.
+ 	 */
+-	list_for_each_entry(tmp, &module->ksm_kstat_list, ks_list)
++	list_for_each_entry(tmp, &module->ksm_kstat_list, ks_list) {
+ 		if (strncmp(tmp->ks_name, ksp->ks_name, KSTAT_STRLEN) == 0)
+ 			goto out;
++	}
+ 
+ 	list_add_tail(&ksp->ks_list, &module->ksm_kstat_list);
+ 
+diff --git a/module/spl/spl-proc.c b/module/spl/spl-proc.c
+index 60d6bbb..8ce5bbe 100644
+--- a/module/spl/spl-proc.c
++++ b/module/spl/spl-proc.c
+@@ -85,8 +85,8 @@ proc_copyin_string(char *kbuffer, int kbuffer_size, const char *ubuffer,
+ }
+ 
+ static int
+-proc_copyout_string(char *ubuffer, int ubuffer_size,
+-		    const char *kbuffer, char *append)
++proc_copyout_string(char *ubuffer, int ubuffer_size, const char *kbuffer,
++    char *append)
+ {
+ 	/*
+ 	 * NB if 'append' != NULL, it's a single character to append to the
+@@ -239,9 +239,11 @@ taskq_seq_show_headers(struct seq_file *f)
+ #define	LHEAD_ACTIVE	4
+ #define	LHEAD_SIZE	5
+ 
++/* BEGIN CSTYLED */
+ static unsigned int spl_max_show_tasks = 512;
+ module_param(spl_max_show_tasks, uint, 0644);
+ MODULE_PARM_DESC(spl_max_show_tasks, "Max number of tasks shown in taskq proc");
++/* END CSTYLED */
+ 
+ static int
+ taskq_seq_show_impl(struct seq_file *f, void *p, boolean_t allflag)
+@@ -719,15 +721,15 @@ spl_proc_init(void)
+ 		goto out;
+ 	}
+ 
+-	proc_spl_taskq_all = proc_create_data("taskq-all", 0444,
+-		proc_spl, &proc_taskq_all_operations, NULL);
++	proc_spl_taskq_all = proc_create_data("taskq-all", 0444, proc_spl,
++	    &proc_taskq_all_operations, NULL);
+ 	if (proc_spl_taskq_all == NULL) {
+ 		rc = -EUNATCH;
+ 		goto out;
+ 	}
+ 
+-	proc_spl_taskq = proc_create_data("taskq", 0444,
+-		proc_spl, &proc_taskq_operations, NULL);
++	proc_spl_taskq = proc_create_data("taskq", 0444, proc_spl,
++	    &proc_taskq_operations, NULL);
+ 	if (proc_spl_taskq == NULL) {
+ 		rc = -EUNATCH;
+ 		goto out;
+@@ -739,8 +741,8 @@ spl_proc_init(void)
+ 		goto out;
+ 	}
+ 
+-	proc_spl_kmem_slab = proc_create_data("slab", 0444,
+-		proc_spl_kmem, &proc_slab_operations, NULL);
++	proc_spl_kmem_slab = proc_create_data("slab", 0444, proc_spl_kmem,
++	    &proc_slab_operations, NULL);
+ 	if (proc_spl_kmem_slab == NULL) {
+ 		rc = -EUNATCH;
+ 		goto out;
+diff --git a/module/spl/spl-thread.c b/module/spl/spl-thread.c
+index 357d0ca..6f640fd 100644
+--- a/module/spl/spl-thread.c
++++ b/module/spl/spl-thread.c
+@@ -79,8 +79,7 @@ EXPORT_SYMBOL(__thread_exit);
+  */
+ kthread_t *
+ __thread_create(caddr_t stk, size_t  stksize, thread_func_t func,
+-		const char *name, void *args, size_t len, proc_t *pp,
+-		int state, pri_t pri)
++    const char *name, void *args, size_t len, proc_t *pp, int state, pri_t pri)
+ {
+ 	thread_priv_t *tp;
+ 	struct task_struct *tsk;
+diff --git a/module/spl/spl-vnode.c b/module/spl/spl-vnode.c
+index 23008af..74ae8fe 100644
+--- a/module/spl/spl-vnode.c
++++ b/module/spl/spl-vnode.c
+@@ -118,8 +118,8 @@ vn_free(vnode_t *vp)
+ EXPORT_SYMBOL(vn_free);
+ 
+ int
+-vn_open(const char *path, uio_seg_t seg, int flags, int mode,
+-	vnode_t **vpp, int x1, void *x2)
++vn_open(const char *path, uio_seg_t seg, int flags, int mode, vnode_t **vpp,
++    int x1, void *x2)
+ {
+ 	struct file *fp;
+ 	struct kstat stat;
+@@ -210,7 +210,7 @@ EXPORT_SYMBOL(vn_openat);
+ 
+ int
+ vn_rdwr(uio_rw_t uio, vnode_t *vp, void *addr, ssize_t len, offset_t off,
+-	uio_seg_t seg, int ioflag, rlim64_t x2, void *x3, ssize_t *residp)
++    uio_seg_t seg, int ioflag, rlim64_t x2, void *x3, ssize_t *residp)
+ {
+ 	struct file *fp = vp->v_file;
+ 	loff_t offset = off;
+@@ -401,9 +401,8 @@ int vn_space(vnode_t *vp, int cmd, struct flock *bfp, int flag,
+ 		--end;
+ 
+ 		vp->v_file->f_dentry->d_inode->i_op->truncate_range(
+-			vp->v_file->f_dentry->d_inode,
+-			bfp->l_start, end
+-		);
++		    vp->v_file->f_dentry->d_inode, bfp->l_start, end);
++
+ 		return (0);
+ 	}
+ #endif
+diff --git a/module/spl/spl-xdr.c b/module/spl/spl-xdr.c
+index 7c166e9..456887e 100644
+--- a/module/spl/spl-xdr.c
++++ b/module/spl/spl-xdr.c
+@@ -160,7 +160,7 @@ EXPORT_SYMBOL(xdrmem_create);
+ static bool_t
+ xdrmem_control(XDR *xdrs, int req, void *info)
+ {
+-	struct xdr_bytesrec *rec = (struct xdr_bytesrec *) info;
++	struct xdr_bytesrec *rec = (struct xdr_bytesrec *)info;
+ 
+ 	if (req != XDR_GET_BYTES_AVAIL)
+ 		return (FALSE);
+@@ -236,7 +236,7 @@ xdrmem_enc_uint32(XDR *xdrs, uint32_t val)
+ 	if (xdrs->x_addr + sizeof (uint32_t) > xdrs->x_addr_end)
+ 		return (FALSE);
+ 
+-	*((uint32_t *) xdrs->x_addr) = cpu_to_be32(val);
++	*((uint32_t *)xdrs->x_addr) = cpu_to_be32(val);
+ 
+ 	xdrs->x_addr += sizeof (uint32_t);
+ 
+@@ -249,7 +249,7 @@ xdrmem_dec_uint32(XDR *xdrs, uint32_t *val)
+ 	if (xdrs->x_addr + sizeof (uint32_t) > xdrs->x_addr_end)
+ 		return (FALSE);
+ 
+-	*val = be32_to_cpu(*((uint32_t *) xdrs->x_addr));
++	*val = be32_to_cpu(*((uint32_t *)xdrs->x_addr));
+ 
+ 	xdrs->x_addr += sizeof (uint32_t);
+ 
+@@ -333,7 +333,7 @@ xdrmem_dec_uint(XDR *xdrs, unsigned *up)
+ {
+ 	BUILD_BUG_ON(sizeof (unsigned) != 4);
+ 
+-	return (xdrmem_dec_uint32(xdrs, (uint32_t *) up));
++	return (xdrmem_dec_uint32(xdrs, (uint32_t *)up));
+ }
+ 
+ static bool_t
+@@ -359,7 +359,7 @@ xdrmem_dec_ulonglong(XDR *xdrs, u_longlong_t *ullp)
+ 	if (!xdrmem_dec_uint32(xdrs, &low))
+ 		return (FALSE);
+ 
+-	*ullp = ((u_longlong_t) high << 32) | low;
++	*ullp = ((u_longlong_t)high << 32) | low;
+ 
+ 	return (TRUE);
+ }
+-- 
+2.14.2
+
