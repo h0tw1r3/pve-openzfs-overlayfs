@@ -1,3 +1,9 @@
+spl-linux (0.7.7-pve1~bpo9) unstable; urgency=medium
+
+  * update SPL to 0.7.7
+
+ -- Proxmox Support Team <support@proxmox.com>  Tue, 3 Apr 2018 14:28:35 +0200
+
 spl-linux (0.7.6-pve1~bpo9) unstable; urgency=medium
 
   * update SPL to 0.7.6
