@@ -10,9 +10,9 @@ Signed-off-by: Fabian Grünbichler <f.gruenbichler@proxmox.com>
 ---
  debian/control.in    |  41 ++------------------
  debian/control       |   1 -
- debian/not-installed |   1 +
+ debian/not-installed |   2 +
  debian/rules         | 105 +--------------------------------------------------
- 4 files changed, 6 insertions(+), 142 deletions(-)
+ 4 files changed, 7 insertions(+), 142 deletions(-)
 
 diff --git a/debian/control.in b/debian/control.in
 index aef8cac2e..3cc15a05b 100644
@@ -117,14 +117,15 @@ index 3cf6fb649..51cfe6a64 100644
                 libblkid-dev,
                 libselinux1-dev,
 diff --git a/debian/not-installed b/debian/not-installed
-index f54fe7310..16b1cef6c 100644
+index f54fe7310..c3929d90e 100644
 --- a/debian/not-installed
 +++ b/debian/not-installed
-@@ -5,3 +5,4 @@ etc/zfs/vdev_id.conf.alias.example
+@@ -5,3 +5,5 @@ etc/zfs/vdev_id.conf.alias.example
  etc/zfs/vdev_id.conf.multipath.example
  etc/zfs/vdev_id.conf.sas_direct.example
  etc/zfs/vdev_id.conf.sas_switch.example
 +usr/lib/dracut
++usr/share/zfs/enum-extract.pl
 diff --git a/debian/rules b/debian/rules
 index cc47a74a1..a5c37c81d 100755
 --- a/debian/rules
