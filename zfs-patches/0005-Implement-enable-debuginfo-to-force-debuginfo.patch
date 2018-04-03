@@ -1,0 +1,122 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Richard Yao <richard.yao@clusterhq.com>
+Date: Tue, 23 Sep 2014 14:29:30 -0400
+Subject: [PATCH] Implement --enable-debuginfo to force debuginfo
+MIME-Version: 1.0
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 8bit
+
+Inspection of a Ubuntu 14.04 x64 system revealed that the config file
+used to build the kernel image differs from the config file used to
+build kernel modules by the presence of CONFIG_DEBUG_INFO=y:
+
+This in itself is insufficient to show that the kernel is built with
+debuginfo, but a cursory analysis of the debuginfo provided and the
+size of the kernel strongly suggests that it was built with
+CONFIG_DEBUG_INFO=y while the modules were not. Installing
+linux-image-$(uname -r)-dbgsym had no obvious effect on the debuginfo
+provided by either the modules or the kernel.
+
+The consequence is that issue reports from distributions such as Ubuntu
+and its derivatives build kernel modules without debuginfo contain
+nonsensical backtraces. It is therefore desireable to force generation
+of debuginfo, so we implement --enable-debuginfo. Since the build system
+can build both userspace components and kernel modules, the generic
+--enable-debuginfo option will force debuginfo for both. However, it
+also supports --enable-debuginfo=kernel and --enable-debuginfo=user for
+finer grained control.
+
+Enabling debuginfo for the kernel modules works by injecting
+CONFIG_DEBUG_INFO=y into the make environment. This is enables
+generation of debuginfo by the kernel build systems on all Linux
+kernels, but the build environment is slightly different int hat
+CONFIG_DEBUG_INFO has not been in the CPP. Adding -DCONFIG_DEBUG_INFO
+would fix that, but it would also cause build failures on kernels where
+CONFIG_DEBUG_INFO=y is already set. That would complicate its use in
+DKMS environments that support a range of kernels and is therefore
+undesireable. We could write a compatibility shim to enable
+CONFIG_DEBUG_INFO only when it is explicitly disabled, but we forgo
+doing that because it is unnecessary. Nothing in ZoL or the kernel uses
+CONFIG_DEBUG_INFO in the CPP at this time and that is unlikely to
+change.
+
+Enabling debuginfo for the userspace components is done by injecting -g
+into CPPFLAGS. This is not necessary because the build system honors the
+environment's CPPFLAGS by appending them to the actual CPPFLAGS used,
+but it is supported for consistency.
+
+Reviewed-by: Chunwei Chen <tuxoko@gmail.com>
+Reviewed-by: Brian Behlendorf <behlendorf1@llnl.gov>
+Signed-off-by: Richard Yao <richard.yao@clusterhq.com>
+Closes #2734
+(cherry picked from commit 834815e9f767c9c5e7220ff84f29b1f069822a4d)
+Signed-off-by: Fabian Grünbichler <f.gruenbichler@proxmox.com>
+---
+ configure.ac        |  1 +
+ config/zfs-build.m4 | 33 ++++++++++++++++++++++++++++++++-
+ 2 files changed, 33 insertions(+), 1 deletion(-)
+
+diff --git a/configure.ac b/configure.ac
+index 0c7977ef8..e145aa370 100644
+--- a/configure.ac
++++ b/configure.ac
+@@ -55,6 +55,7 @@ ZFS_AC_LICENSE
+ ZFS_AC_PACKAGE
+ ZFS_AC_CONFIG
+ ZFS_AC_DEBUG
++ZFS_AC_DEBUGINFO
+ 
+ AC_CONFIG_FILES([
+ 	Makefile
+diff --git a/config/zfs-build.m4 b/config/zfs-build.m4
+index 78a87aef7..a8609b829 100644
+--- a/config/zfs-build.m4
++++ b/config/zfs-build.m4
+@@ -38,12 +38,43 @@ AC_DEFUN([ZFS_AC_DEBUG], [
+ 		[ZFS_AC_DEBUG_DISABLE],
+ 		[AC_MSG_ERROR([Unknown option $enable_debug])])
+ 
+-	AC_SUBST(DEBUG_CFLAGS)
+ 	AC_SUBST(DEBUG_STACKFLAGS)
+ 	AC_SUBST(DEBUG_ZFS)
+ 	AC_MSG_RESULT([$enable_debug])
+ ])
+ 
++AC_DEFUN([ZFS_AC_DEBUGINFO_KERNEL], [
++	KERNELMAKE_PARAMS="$KERNELMAKE_PARAMS CONFIG_DEBUG_INFO=y"
++])
++
++AC_DEFUN([ZFS_AC_DEBUGINFO_USER], [
++	DEBUG_CFLAGS="$DEBUG_CFLAGS -g"
++])
++
++AC_DEFUN([ZFS_AC_DEBUGINFO], [
++	AC_MSG_CHECKING([whether debuginfo support will be forced])
++	AC_ARG_ENABLE([debuginfo],
++		[AS_HELP_STRING([--enable-debuginfo],
++		[Force generation of debuginfo @<:@default=no@:>@])],
++		[],
++		[enable_debuginfo=no])
++
++	AS_CASE(["x$enable_debuginfo"],
++		["xyes"],
++		[ZFS_AC_DEBUGINFO_KERNEL
++		ZFS_AC_DEBUGINFO_USER],
++		["xkernel"],
++		[ZFS_AC_DEBUGINFO_KERNEL],
++		["xuser"],
++		[ZFS_AC_DEBUGINFO_USER],
++		["xno"],
++		[],
++		[AC_MSG_ERROR([Unknown option $enable_debug])])
++
++	AC_SUBST(DEBUG_CFLAGS)
++	AC_MSG_RESULT([$enable_debuginfo])
++])
++
+ AC_DEFUN([ZFS_AC_CONFIG_ALWAYS], [
+ 	ZFS_AC_CONFIG_ALWAYS_NO_UNUSED_BUT_SET_VARIABLE
+ 	ZFS_AC_CONFIG_ALWAYS_NO_BOOL_COMPARE
+-- 
+2.14.2
+

@@ -1,0 +1,217 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Chunwei Chen <david.chen@nutanix.com>
+Date: Thu, 1 Feb 2018 16:36:40 -0800
+Subject: [PATCH] Fix zdb -ed on objset for exported pool
+MIME-Version: 1.0
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 8bit
+
+zdb -ed on objset for exported pool would failed with:
+  failed to own dataset 'qq/fs0': No such file or directory
+
+The reason is that zdb pass objset name to spa_import, it uses that
+name to create a spa. Later, when dmu_objset_own tries to lookup the spa
+using real pool name, it can't find one.
+
+We fix this by make sure we pass pool name rather than objset name to
+spa_import.
+
+Reviewed-by: Brian Behlendorf <behlendorf1@llnl.gov>
+Reviewed-by: loli10K <ezomori.nozomu@gmail.com>
+Signed-off-by: Chunwei Chen <david.chen@nutanix.com>
+Closes #7099
+Closes #6464
+(cherry picked from commit 478754a8f5ff0f3b9f6dfe4ce272efc1681d243e)
+Signed-off-by: Fabian Grünbichler <f.gruenbichler@proxmox.com>
+---
+ .../tests/functional/cli_root/zdb/Makefile.am      |  3 +-
+ cmd/zdb/zdb.c                                      | 32 +++++++----
+ tests/runfiles/linux.run                           |  2 +-
+ .../tests/functional/clean_mirror/cleanup.ksh      |  4 +-
+ .../tests/functional/cli_root/zdb/zdb_006_pos.ksh  | 64 ++++++++++++++++++++++
+ 5 files changed, 90 insertions(+), 15 deletions(-)
+ create mode 100755 tests/zfs-tests/tests/functional/cli_root/zdb/zdb_006_pos.ksh
+
+diff --git a/tests/zfs-tests/tests/functional/cli_root/zdb/Makefile.am b/tests/zfs-tests/tests/functional/cli_root/zdb/Makefile.am
+index 51170fbc8..d37bcf607 100644
+--- a/tests/zfs-tests/tests/functional/cli_root/zdb/Makefile.am
++++ b/tests/zfs-tests/tests/functional/cli_root/zdb/Makefile.am
+@@ -4,4 +4,5 @@ dist_pkgdata_SCRIPTS = \
+ 	zdb_002_pos.ksh \
+ 	zdb_003_pos.ksh \
+ 	zdb_004_pos.ksh \
+-	zdb_005_pos.ksh
++	zdb_005_pos.ksh \
++	zdb_006_pos.ksh
+diff --git a/cmd/zdb/zdb.c b/cmd/zdb/zdb.c
+index 90847d8d9..17a0ae251 100644
+--- a/cmd/zdb/zdb.c
++++ b/cmd/zdb/zdb.c
+@@ -4177,7 +4177,7 @@ main(int argc, char **argv)
+ 	int error = 0;
+ 	char **searchdirs = NULL;
+ 	int nsearch = 0;
+-	char *target;
++	char *target, *target_pool;
+ 	nvlist_t *policy = NULL;
+ 	uint64_t max_txg = UINT64_MAX;
+ 	int flags = ZFS_IMPORT_MISSING_LOG;
+@@ -4380,6 +4380,20 @@ main(int argc, char **argv)
+ 	error = 0;
+ 	target = argv[0];
+ 
++	if (strpbrk(target, "/@") != NULL) {
++		size_t targetlen;
++
++		target_pool = strdup(target);
++		*strpbrk(target_pool, "/@") = '\0';
++
++		target_is_spa = B_FALSE;
++		targetlen = strlen(target);
++		if (targetlen && target[targetlen - 1] == '/')
++			target[targetlen - 1] = '\0';
++	} else {
++		target_pool = target;
++	}
++
+ 	if (dump_opt['e']) {
+ 		importargs_t args = { 0 };
+ 		nvlist_t *cfg = NULL;
+@@ -4388,8 +4402,10 @@ main(int argc, char **argv)
+ 		args.path = searchdirs;
+ 		args.can_be_active = B_TRUE;
+ 
+-		error = zpool_tryimport(g_zfs, target, &cfg, &args);
++		error = zpool_tryimport(g_zfs, target_pool, &cfg, &args);
++
+ 		if (error == 0) {
++
+ 			if (nvlist_add_nvlist(cfg,
+ 			    ZPOOL_REWIND_POLICY, policy) != 0) {
+ 				fatal("can't open '%s': %s",
+@@ -4404,19 +4420,13 @@ main(int argc, char **argv)
+ 				(void) printf("\nConfiguration for import:\n");
+ 				dump_nvlist(cfg, 8);
+ 			}
+-			error = spa_import(target, cfg, NULL,
++			error = spa_import(target_pool, cfg, NULL,
+ 			    flags | ZFS_IMPORT_SKIP_MMP);
+ 		}
+ 	}
+ 
+-	if (strpbrk(target, "/@") != NULL) {
+-		size_t targetlen;
+-
+-		target_is_spa = B_FALSE;
+-		targetlen = strlen(target);
+-		if (targetlen && target[targetlen - 1] == '/')
+-			target[targetlen - 1] = '\0';
+-	}
++	if (target_pool != target)
++		free(target_pool);
+ 
+ 	if (error == 0) {
+ 		if (target_is_spa || dump_opt['R']) {
+diff --git a/tests/runfiles/linux.run b/tests/runfiles/linux.run
+index 303c27529..ea2dbb282 100644
+--- a/tests/runfiles/linux.run
++++ b/tests/runfiles/linux.run
+@@ -73,7 +73,7 @@ tags = ['functional', 'clean_mirror']
+ 
+ [tests/functional/cli_root/zdb]
+ tests = ['zdb_001_neg', 'zdb_002_pos', 'zdb_003_pos', 'zdb_004_pos',
+-    'zdb_005_pos']
++    'zdb_005_pos', 'zdb_006_pos']
+ pre =
+ post =
+ tags = ['functional', 'cli_root', 'zdb']
+diff --git a/tests/zfs-tests/tests/functional/clean_mirror/cleanup.ksh b/tests/zfs-tests/tests/functional/clean_mirror/cleanup.ksh
+index ac3bfbca8..fb0db312e 100755
+--- a/tests/zfs-tests/tests/functional/clean_mirror/cleanup.ksh
++++ b/tests/zfs-tests/tests/functional/clean_mirror/cleanup.ksh
+@@ -38,10 +38,10 @@ df -F zfs -h | grep "$TESTFS " >/dev/null
+ [[ $? == 0 ]] && log_must zfs umount -f $TESTDIR
+ destroy_pool $TESTPOOL
+ 
+-if is_mpath_device $MIRROR_PRIMARY; then
++if ( is_mpath_device $MIRROR_PRIMARY || is_loop_device $MIRROR_SECONDARY); then
+ 	parted $DEV_DSKDIR/$MIRROR_PRIMARY -s rm 1
+ fi
+-if is_mpath_device $MIRROR_SECONDARY; then
++if ( is_mpath_device $MIRROR_SECONDARY || is_loop_device $MIRROR_SECONDARY); then
+ 	parted $DEV_DSKDIR/$MIRROR_SECONDARY -s rm 1
+ fi
+ # recreate and destroy a zpool over the disks to restore the partitions to
+diff --git a/tests/zfs-tests/tests/functional/cli_root/zdb/zdb_006_pos.ksh b/tests/zfs-tests/tests/functional/cli_root/zdb/zdb_006_pos.ksh
+new file mode 100755
+index 000000000..97b00e9e1
+--- /dev/null
++++ b/tests/zfs-tests/tests/functional/cli_root/zdb/zdb_006_pos.ksh
+@@ -0,0 +1,64 @@
++#!/bin/ksh
++
++#
++# This file and its contents are supplied under the terms of the
++# Common Development and Distribution License ("CDDL"), version 1.0.
++# You may only use this file in accordance with the terms of version
++# 1.0 of the CDDL.
++#
++# A full copy of the text of the CDDL should have accompanied this
++# source.  A copy of the CDDL is also available via the Internet at
++# http://www.illumos.org/license/CDDL.
++#
++
++#
++# Copyright (c) 2018 by Nutanix. All rights reserved.
++#
++
++. $STF_SUITE/include/libtest.shlib
++
++#
++# Description:
++# zdb -d will work on imported/exported pool with pool/dataset argument
++#
++# Strategy:
++# 1. Create a pool
++# 2. Run zdb -d with pool and dataset arguments.
++# 3. Export the pool
++# 4. Run zdb -ed with pool and dataset arguments.
++#
++
++function cleanup
++{
++	datasetexists $TESTPOOL && destroy_pool $TESTPOOL
++	for DISK in $DISKS; do
++		zpool labelclear -f $DEV_RDSKDIR/$DISK
++	done
++}
++
++log_assert "Verify zdb -d works on imported/exported pool with pool/dataset argument"
++log_onexit cleanup
++
++verify_runnable "global"
++verify_disk_count "$DISKS" 2
++
++default_mirror_setup_noexit $DISKS
++log_must zfs snap $TESTPOOL/$TESTFS@snap
++
++log_must zdb -d $TESTPOOL
++log_must zdb -d $TESTPOOL/
++log_must zdb -d $TESTPOOL/$TESTFS
++log_must zdb -d $TESTPOOL/$TESTFS@snap
++
++log_must zpool export $TESTPOOL
++
++log_must zdb -ed $TESTPOOL
++log_must zdb -ed $TESTPOOL/
++log_must zdb -ed $TESTPOOL/$TESTFS
++log_must zdb -ed $TESTPOOL/$TESTFS@snap
++
++log_must zpool import $TESTPOOL
++
++cleanup
++
++log_pass "zdb -d works on imported/exported pool with pool/dataset argument"
+-- 
+2.14.2
+

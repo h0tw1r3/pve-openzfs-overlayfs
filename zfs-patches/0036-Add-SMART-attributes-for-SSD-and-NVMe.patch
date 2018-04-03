@@ -1,0 +1,131 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: bunder2015 <omfgbunder@gmail.com>
+Date: Wed, 21 Feb 2018 16:52:47 -0500
+Subject: [PATCH] Add SMART attributes for SSD and NVMe
+MIME-Version: 1.0
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 8bit
+
+This adds the SMART attributes required to probe Samsung SSD and NVMe
+(and possibly others) disks when using the "zpool status -c" command.
+
+Reviewed-by: loli10K <ezomori.nozomu@gmail.com>
+Reviewed-by: Giuseppe Di Natale <dinatale2@llnl.gov>
+Reviewed-by: Tony Hutter <hutter2@llnl.gov>
+Reviewed-by: Brian Behlendorf <behlendorf1@llnl.gov>
+Signed-off-by: bunder2015 <omfgbunder@gmail.com>
+Closes #7183
+Closes #7193
+(cherry picked from commit c705d8386b21b08aefdc62b6b1a556aab6717316)
+Signed-off-by: Fabian Grünbichler <f.gruenbichler@proxmox.com>
+---
+ cmd/zpool/Makefile.am      |  2 ++
+ cmd/zpool/zpool.d/nvme_err |  1 +
+ cmd/zpool/zpool.d/smart    | 23 +++++++++++++++++++++--
+ 3 files changed, 24 insertions(+), 2 deletions(-)
+ create mode 120000 cmd/zpool/zpool.d/nvme_err
+
+diff --git a/cmd/zpool/Makefile.am b/cmd/zpool/Makefile.am
+index 6eff1d143..c7b8b76e3 100644
+--- a/cmd/zpool/Makefile.am
++++ b/cmd/zpool/Makefile.am
+@@ -60,6 +60,7 @@ dist_zpoolexec_SCRIPTS = \
+ 	zpool.d/pend_sec \
+ 	zpool.d/off_ucor \
+ 	zpool.d/ata_err \
++	zpool.d/nvme_err \
+ 	zpool.d/pwr_cyc \
+ 	zpool.d/upath \
+ 	zpool.d/vendor
+@@ -98,6 +99,7 @@ zpoolconfdefaults = \
+ 	pend_sec \
+ 	off_ucor \
+ 	ata_err \
++	nvme_err \
+ 	pwr_cyc \
+ 	upath \
+ 	vendor
+diff --git a/cmd/zpool/zpool.d/nvme_err b/cmd/zpool/zpool.d/nvme_err
+new file mode 120000
+index 000000000..94f22861f
+--- /dev/null
++++ b/cmd/zpool/zpool.d/nvme_err
+@@ -0,0 +1 @@
++smart
+\ No newline at end of file
+diff --git a/cmd/zpool/zpool.d/smart b/cmd/zpool/zpool.d/smart
+index 3721f30ed..4bc3af39d 100755
+--- a/cmd/zpool/zpool.d/smart
++++ b/cmd/zpool/zpool.d/smart
+@@ -23,6 +23,7 @@ off_ucor:	Show SMART offline uncorrectable errors (ATA).
+ ata_err:	Show SMART ATA errors (ATA).
+ pwr_cyc:	Show SMART power cycle count (ATA).
+ serial:		Show disk serial number.
++nvme_err:	Show SMART NVMe errors (NVMe).
+ "
+ 
+ script=$(basename "$0")
+@@ -37,7 +38,7 @@ smartctl_path=$(which smartctl)
+ if [ -b "$VDEV_UPATH" ] && [ -x "$smartctl_path" ]; then
+ 	raw_out=$(eval "sudo $smartctl_path -a $VDEV_UPATH")
+ 
+-	# Are we a SAS or ATA drive?  Look for the right line in smartctl:
++	# What kind of drive are we?  Look for the right line in smartctl:
+ 	#
+ 	# SAS:
+ 	#	Transport protocol:   SAS
+@@ -45,7 +46,10 @@ if [ -b "$VDEV_UPATH" ] && [ -x "$smartctl_path" ]; then
+ 	# SATA:
+ 	#	ATA Version is:   8
+ 	#
+-	type=$(echo "$raw_out" | grep -m 1 -Eo '^ATA|SAS$')
++	# NVMe:
++	#       SMART/Health Information (NVMe Log 0xnn, NSID 0xnn)
++	#
++	type=$(echo "$raw_out" | grep -m 1 -Eo '^ATA|NVMe|SAS$')
+ 	out=$(echo "$raw_out" | awk '
+ # SAS specific
+ /read:/{print "rrd="$4"\nr_cor="$5"\nr_proc="$7"\nr_ucor="$8}
+@@ -71,10 +75,21 @@ if [ -b "$VDEV_UPATH" ] && [ -x "$smartctl_path" ]; then
+ 
+ # SATA common
+ /Temperature_Celsius/{print "temp="$10}
++/Airflow_Temperature_Cel/{print "temp="$10}
+ /SMART overall-health self-assessment test result:/{print "health="$6}
+ /Power_On_Hours/{print "hours_on="$10}
+ /Serial Number:/{print "serial="$3}
+ 
++# NVMe common
++/Temperature:/{print "temp="$2}
++/SMART overall-health self-assessment test result:/{print "health="$6}
++/Power On Hours:/{gsub("[^0-9]","",$4); print "hours_on="$4}
++/Serial Number:/{print "serial="$3}
++/Power Cycles:/{print "pwr_cyc="$3}
++
++# NVMe specific
++/Media and Data Integrity Errors:/{print "nvme_err="$6}
++
+ END {ORS="\n"; print ""}
+ ');
+ fi
+@@ -94,6 +109,8 @@ smart)
+ 		scripts="temp|health|r_ucor|w_ucor"
+ 	elif [ "$type" = "ATA" ] ; then
+ 		scripts="temp|health|ata_err|realloc|rep_ucor|cmd_to|pend_sec|off_ucor"
++	elif [ "$type" = "NVMe" ] ; then
++		scripts="temp|health|nvme_err"
+ 	fi
+ 	;;
+ smartx)
+@@ -102,6 +119,8 @@ smartx)
+ 		scripts="hours_on|defect|nonmed|r_proc|w_proc"
+ 	elif [ "$type" = "ATA" ] ; then
+ 		scripts="hours_on|pwr_cyc"
++	elif [ "$type" = "NVMe" ] ; then
++		scripts="hours_on|pwr_cyc"
+ 	fi
+ 	;;
+ *)
+-- 
+2.14.2
+

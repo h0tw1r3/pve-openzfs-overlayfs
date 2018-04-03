@@ -1,0 +1,116 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Chunwei Chen <david.chen@nutanix.com>
+Date: Tue, 30 Jan 2018 13:39:11 -0800
+Subject: [PATCH] Fix zdb -c traverse stop on damaged objset root
+MIME-Version: 1.0
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 8bit
+
+If a corruption happens to be on a root block of an objset, zdb -c will
+not correctly report the error, and it will not traverse the datasets
+that come after. This is because traverse_visitbp, which does the
+callback and reset error for TRAVERSE_HARD, is skipped when traversing
+zil is failed in traverse_impl.
+
+Here's example of what 'zdb -eLcc' command looks like on a pool with
+damaged objset root:
+
+== before patch:
+
+Traversing all blocks to verify checksums ...
+
+Error counts:
+
+	errno  count
+block traversal size 379392 != alloc 33987072 (unreachable 33607680)
+
+	bp count:             172
+	ganged count:           0
+	bp logical:       1678336      avg:   9757
+	bp physical:       130560      avg:    759     compression:  12.85
+	bp allocated:      379392      avg:   2205     compression:   4.42
+	bp deduped:             0    ref>1:      0   deduplication:   1.00
+	SPA allocated:   33987072     used:  0.80%
+
+	additional, non-pointer bps of type 0:         71
+	Dittoed blocks on same vdev: 101
+
+== after patch:
+
+Traversing all blocks to verify checksums ...
+
+zdb_blkptr_cb: Got error 52 reading <54, 0, -1, 0>  -- skipping
+
+Error counts:
+
+	errno  count
+	   52  1
+block traversal size 33963520 != alloc 33987072 (unreachable 23552)
+
+	bp count:             447
+	ganged count:           0
+	bp logical:      36093440      avg:  80745
+	bp physical:     33699840      avg:  75391     compression:   1.07
+	bp allocated:    33963520      avg:  75981     compression:   1.06
+	bp deduped:             0    ref>1:      0   deduplication:   1.00
+	SPA allocated:   33987072     used:  0.80%
+
+	additional, non-pointer bps of type 0:         76
+	Dittoed blocks on same vdev: 115
+
+==
+
+Reviewed-by: Brian Behlendorf <behlendorf1@llnl.gov>
+Reviewed-by: loli10K <ezomori.nozomu@gmail.com>
+Signed-off-by: Chunwei Chen <david.chen@nutanix.com>
+Closes #7099
+(cherry picked from commit 23227313a2016449176cbfcbae2d4fc463a2bc09)
+Signed-off-by: Fabian Grünbichler <f.gruenbichler@proxmox.com>
+---
+ module/zfs/dmu_traverse.c | 26 +++++++++++++++++---------
+ 1 file changed, 17 insertions(+), 9 deletions(-)
+
+diff --git a/module/zfs/dmu_traverse.c b/module/zfs/dmu_traverse.c
+index c78228d74..b494bef35 100644
+--- a/module/zfs/dmu_traverse.c
++++ b/module/zfs/dmu_traverse.c
+@@ -599,19 +599,27 @@ traverse_impl(spa_t *spa, dsl_dataset_t *ds, uint64_t objset, blkptr_t *rootbp,
+ 
+ 	/* See comment on ZIL traversal in dsl_scan_visitds. */
+ 	if (ds != NULL && !ds->ds_is_snapshot && !BP_IS_HOLE(rootbp)) {
++		enum zio_flag zio_flags = ZIO_FLAG_CANFAIL;
+ 		uint32_t flags = ARC_FLAG_WAIT;
+ 		objset_phys_t *osp;
+ 		arc_buf_t *buf;
+ 
+-		err = arc_read(NULL, td->td_spa, rootbp,
+-		    arc_getbuf_func, &buf,
+-		    ZIO_PRIORITY_ASYNC_READ, ZIO_FLAG_CANFAIL, &flags, czb);
+-		if (err != 0)
+-			return (err);
+-
+-		osp = buf->b_data;
+-		traverse_zil(td, &osp->os_zil_header);
+-		arc_buf_destroy(buf, &buf);
++		err = arc_read(NULL, td->td_spa, rootbp, arc_getbuf_func,
++		    &buf, ZIO_PRIORITY_ASYNC_READ, zio_flags, &flags, czb);
++		if (err != 0) {
++			/*
++			 * If both TRAVERSE_HARD and TRAVERSE_PRE are set,
++			 * continue to visitbp so that td_func can be called
++			 * in pre stage, and err will reset to zero.
++			 */
++			if (!(td->td_flags & TRAVERSE_HARD) ||
++			    !(td->td_flags & TRAVERSE_PRE))
++				return (err);
++		} else {
++			osp = buf->b_data;
++			traverse_zil(td, &osp->os_zil_header);
++			arc_buf_destroy(buf, &buf);
++		}
+ 	}
+ 
+ 	if (!(flags & TRAVERSE_PREFETCH_DATA) ||
+-- 
+2.14.2
+

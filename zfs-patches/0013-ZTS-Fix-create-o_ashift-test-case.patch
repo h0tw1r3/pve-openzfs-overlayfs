@@ -1,0 +1,137 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: LOLi <loli10K@users.noreply.github.com>
+Date: Tue, 19 Dec 2017 19:49:33 +0100
+Subject: [PATCH] ZTS: Fix create-o_ashift test case
+MIME-Version: 1.0
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 8bit
+
+The function that fills the uberblock ring buffer on every device label
+has been reworked to avoid occasional failures caused by a race
+condition that prevents 'zpool sync' from writing some uberblock
+sequentially: this happens when the pool sync ioctl dispatch code calls
+txg_wait_synced() while we're already waiting for a TXG to sync.
+
+Reviewed-by: Brian Behlendorf <behlendorf1@llnl.gov>
+Signed-off-by: loli10K <ezomori.nozomu@gmail.com>
+Closes #6924
+Closes #6977
+(cherry picked from commit 6c891ade8bee9c54484d5cf9b939582b7a9b7eeb)
+Signed-off-by: Fabian Grünbichler <f.gruenbichler@proxmox.com>
+---
+ cmd/zdb/zdb.c                                      |  8 ++--
+ .../cli_root/zpool_create/create-o_ashift.ksh      | 47 ++++++++++------------
+ 2 files changed, 26 insertions(+), 29 deletions(-)
+
+diff --git a/cmd/zdb/zdb.c b/cmd/zdb/zdb.c
+index 1097501e8..442685486 100644
+--- a/cmd/zdb/zdb.c
++++ b/cmd/zdb/zdb.c
+@@ -2716,10 +2716,6 @@ dump_label(const char *dev)
+ 		exit(1);
+ 	}
+ 
+-	if (ioctl(fd, BLKFLSBUF) != 0)
+-		(void) printf("failed to invalidate cache '%s' : %s\n", path,
+-		    strerror(errno));
+-
+ 	if (fstat64_blk(fd, &statbuf) != 0) {
+ 		(void) printf("failed to stat '%s': %s\n", path,
+ 		    strerror(errno));
+@@ -2727,6 +2723,10 @@ dump_label(const char *dev)
+ 		exit(1);
+ 	}
+ 
++	if (S_ISBLK(statbuf.st_mode) && ioctl(fd, BLKFLSBUF) != 0)
++		(void) printf("failed to invalidate cache '%s' : %s\n", path,
++		    strerror(errno));
++
+ 	avl_create(&config_tree, cksum_record_compare,
+ 	    sizeof (cksum_record_t), offsetof(cksum_record_t, link));
+ 	avl_create(&uberblock_tree, cksum_record_compare,
+diff --git a/tests/zfs-tests/tests/functional/cli_root/zpool_create/create-o_ashift.ksh b/tests/zfs-tests/tests/functional/cli_root/zpool_create/create-o_ashift.ksh
+index 6449c8a91..6a9c3e28c 100755
+--- a/tests/zfs-tests/tests/functional/cli_root/zpool_create/create-o_ashift.ksh
++++ b/tests/zfs-tests/tests/functional/cli_root/zpool_create/create-o_ashift.ksh
+@@ -44,47 +44,45 @@ verify_runnable "global"
+ 
+ function cleanup
+ {
+-	poolexists $TESTPOOL && destroy_pool $TESTPOOL
++	destroy_pool $TESTPOOL
+ 	log_must rm -f $disk
+ }
+ 
+ #
+-# Commit the specified number of TXGs to the provided pool
+-# We use 'zpool sync' here because we can't force it via sync(1) like on illumos
+-# $1 pool name
+-# $2 number of txg syncs
++# Fill the uberblock ring in every <device> label: we do this by committing
++# TXGs to the provided <pool> until every slot contains a valid uberblock.
++# NOTE: We use 'zpool sync' here because we can't force it via sync(1) like on
++# illumos
+ #
+-function txg_sync
++function write_device_uberblocks # <device> <pool>
+ {
+-	typeset pool=$1
+-	typeset -i count=$2
+-	typeset -i i=0;
++	typeset device=$1
++	typeset pool=$2
+ 
+-	while [ $i -lt $count ]
++	while [ "$(zdb -quuul $device | grep -c 'invalid')" -ne 0 ]
+ 	do
+-		log_must sync_pool $pool true
+-		((i = i + 1))
++		sync_pool $pool true
+ 	done
+ }
+ 
+ #
+-# Verify device $1 labels contains $2 valid uberblocks in every label
+-# $1 device
+-# $2 uberblocks count
++# Verify every label on <device> contains <count> (valid) uberblocks
+ #
+-function verify_device_uberblocks
++function verify_device_uberblocks # <device> <count>
+ {
+ 	typeset device=$1
+ 	typeset ubcount=$2
+ 
+ 	zdb -quuul $device | egrep '^(\s+)?Uberblock' |
+-	    egrep -v 'invalid$' | awk \
+-	    -v ubcount=$ubcount '{ uberblocks[$0]++; }
+-	    END { for (i in uberblocks) {
+-		count++;
+-		if (uberblocks[i] != 4) { exit 1; }
+-	    }
+-	    if (count != ubcount) { exit 1; } }'
++	    awk -v ubcount=$ubcount 'BEGIN { count=0 } { uberblocks[$0]++; }
++	    END {
++	        for (i in uberblocks) {
++	            if (i ~ /invalid/) { continue; }
++	            if (uberblocks[i] != 4) { exit 1; }
++	            count++;
++	        }
++	        if (count != ubcount) { exit 1; }
++	    }'
+ 
+ 	return $?
+ }
+@@ -110,8 +108,7 @@ do
+ 		log_fail "Pool was created without setting ashift value to "\
+ 		    "$ashift (current = $pprop)"
+ 	fi
+-	# force 128 txg sync to fill the uberblock ring
+-	txg_sync $TESTPOOL 128
++	write_device_uberblocks $disk $TESTPOOL
+ 	verify_device_uberblocks $disk ${ubcount[$i]}
+ 	if [[ $? -ne 0 ]]
+ 	then
+-- 
+2.14.2
+

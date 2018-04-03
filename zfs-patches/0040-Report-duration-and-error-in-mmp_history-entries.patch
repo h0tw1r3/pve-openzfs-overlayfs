@@ -1,0 +1,237 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Olaf Faaland <faaland1@llnl.gov>
+Date: Thu, 22 Feb 2018 15:34:34 -0800
+Subject: [PATCH] Report duration and error in mmp_history entries
+MIME-Version: 1.0
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 8bit
+
+After an MMP write completes, update the relevant mmp_history entry
+with the time between submission and completion, and the error
+status of the write.
+
+[faaland1@toss3a zfs]$ cat /proc/spl/kstat/zfs/pool/multihost
+39 0 0x01 100 8800 69147946270893 72723903122926
+id       txg     timestamp  error  duration   mmp_delay    vdev_guid
+10607    1166    1518985089 0      138301     637785455    4882...
+10608    1166    1518985089 0      136154     635407747    1151...
+10609    1166    1518985089 0      803618560  633048078    9740...
+10610    1166    1518985090 0      144826     633048078    4882...
+10611    1166    1518985090 0      164527     666187671    1151...
+
+Where duration = gethrtime_in_done_fn - gethrtime_at_submission, and
+error = zio->io_error.
+
+Reviewed-by: Giuseppe Di Natale <dinatale2@llnl.gov>
+Reviewed-by: Brian Behlendorf <behlendorf1@llnl.gov>
+Signed-off-by: Olaf Faaland <faaland1@llnl.gov>
+Closes #7190
+(cherry picked from commit 2644784f49a6b6be063d54ca0e1662ee6bef7ebd)
+Signed-off-by: Fabian Grünbichler <f.gruenbichler@proxmox.com>
+---
+ include/sys/mmp.h       |  1 +
+ include/sys/spa.h       |  4 +++-
+ include/sys/vdev_impl.h |  1 +
+ module/zfs/mmp.c        | 13 ++++++++++--
+ module/zfs/spa_stats.c  | 54 ++++++++++++++++++++++++++++++++++++++++---------
+ 5 files changed, 60 insertions(+), 13 deletions(-)
+
+diff --git a/include/sys/mmp.h b/include/sys/mmp.h
+index 5b2fea1a6..1ce685f9c 100644
+--- a/include/sys/mmp.h
++++ b/include/sys/mmp.h
+@@ -42,6 +42,7 @@ typedef struct mmp_thread {
+ 	uint64_t	mmp_delay;	/* decaying avg ns between MMP writes */
+ 	uberblock_t	mmp_ub;		/* last ub written by sync */
+ 	zio_t		*mmp_zio_root;	/* root of mmp write zios */
++	uint64_t	mmp_kstat_id;	/* unique id for next MMP write kstat */
+ } mmp_thread_t;
+ 
+ 
+diff --git a/include/sys/spa.h b/include/sys/spa.h
+index 67235871f..53fa5514a 100644
+--- a/include/sys/spa.h
++++ b/include/sys/spa.h
+@@ -759,8 +759,10 @@ extern txg_stat_t *spa_txg_history_init_io(spa_t *, uint64_t,
+     struct dsl_pool *);
+ extern void spa_txg_history_fini_io(spa_t *, txg_stat_t *);
+ extern void spa_tx_assign_add_nsecs(spa_t *spa, uint64_t nsecs);
++extern int spa_mmp_history_set(spa_t *spa, uint64_t mmp_kstat_id, int io_error,
++    hrtime_t duration);
+ extern void spa_mmp_history_add(uint64_t txg, uint64_t timestamp,
+-    uint64_t mmp_delay, vdev_t *vd, int label);
++    uint64_t mmp_delay, vdev_t *vd, int label, uint64_t mmp_kstat_id);
+ 
+ /* Pool configuration locks */
+ extern int spa_config_tryenter(spa_t *spa, int locks, void *tag, krw_t rw);
+diff --git a/include/sys/vdev_impl.h b/include/sys/vdev_impl.h
+index 4c2e3cd2e..13c495822 100644
+--- a/include/sys/vdev_impl.h
++++ b/include/sys/vdev_impl.h
+@@ -238,6 +238,7 @@ struct vdev {
+ 	vdev_aux_t	vdev_label_aux;	/* on-disk aux state		*/
+ 	uint64_t	vdev_leaf_zap;
+ 	hrtime_t	vdev_mmp_pending; /* 0 if write finished	*/
++	uint64_t	vdev_mmp_kstat_id;	/* to find kstat entry */
+ 
+ 	/*
+ 	 * For DTrace to work in userland (libzpool) context, these fields must
+diff --git a/module/zfs/mmp.c b/module/zfs/mmp.c
+index d003d79de..ee8e9201b 100644
+--- a/module/zfs/mmp.c
++++ b/module/zfs/mmp.c
+@@ -135,6 +135,7 @@ mmp_init(spa_t *spa)
+ 	mutex_init(&mmp->mmp_thread_lock, NULL, MUTEX_DEFAULT, NULL);
+ 	cv_init(&mmp->mmp_thread_cv, NULL, CV_DEFAULT, NULL);
+ 	mutex_init(&mmp->mmp_io_lock, NULL, MUTEX_DEFAULT, NULL);
++	mmp->mmp_kstat_id = 1;
+ }
+ 
+ void
+@@ -244,7 +245,8 @@ mmp_write_done(zio_t *zio)
+ 	mmp_thread_t *mts = zio->io_private;
+ 
+ 	mutex_enter(&mts->mmp_io_lock);
+-	vd->vdev_mmp_pending = 0;
++	uint64_t mmp_kstat_id = vd->vdev_mmp_kstat_id;
++	hrtime_t mmp_write_duration = gethrtime() - vd->vdev_mmp_pending;
+ 
+ 	if (zio->io_error)
+ 		goto unlock;
+@@ -278,9 +280,15 @@ mmp_write_done(zio_t *zio)
+ 	mts->mmp_last_write = gethrtime();
+ 
+ unlock:
++	vd->vdev_mmp_pending = 0;
++	vd->vdev_mmp_kstat_id = 0;
++
+ 	mutex_exit(&mts->mmp_io_lock);
+ 	spa_config_exit(spa, SCL_STATE, mmp_tag);
+ 
++	spa_mmp_history_set(spa, mmp_kstat_id, zio->io_error,
++	    mmp_write_duration);
++
+ 	abd_free(zio->io_abd);
+ }
+ 
+@@ -333,6 +341,7 @@ mmp_write_uberblock(spa_t *spa)
+ 	ub->ub_mmp_magic = MMP_MAGIC;
+ 	ub->ub_mmp_delay = mmp->mmp_delay;
+ 	vd->vdev_mmp_pending = gethrtime();
++	vd->vdev_mmp_kstat_id = mmp->mmp_kstat_id++;
+ 
+ 	zio_t *zio  = zio_null(mmp->mmp_zio_root, spa, NULL, NULL, NULL, flags);
+ 	abd_t *ub_abd = abd_alloc_for_io(VDEV_UBERBLOCK_SIZE(vd), B_TRUE);
+@@ -350,7 +359,7 @@ mmp_write_uberblock(spa_t *spa)
+ 	    flags | ZIO_FLAG_DONT_PROPAGATE);
+ 
+ 	spa_mmp_history_add(ub->ub_txg, ub->ub_timestamp, ub->ub_mmp_delay, vd,
+-	    label);
++	    label, vd->vdev_mmp_kstat_id);
+ 
+ 	zio_nowait(zio);
+ }
+diff --git a/module/zfs/spa_stats.c b/module/zfs/spa_stats.c
+index 7ca359806..58967e9fc 100644
+--- a/module/zfs/spa_stats.c
++++ b/module/zfs/spa_stats.c
+@@ -718,21 +718,24 @@ spa_io_history_destroy(spa_t *spa)
+  */
+ 
+ typedef struct spa_mmp_history {
++	uint64_t	mmp_kstat_id;	/* unique # for updates */
+ 	uint64_t	txg;		/* txg of last sync */
+ 	uint64_t	timestamp;	/* UTC time of of last sync */
+ 	uint64_t	mmp_delay;	/* nanosec since last MMP write */
+ 	uint64_t	vdev_guid;	/* unique ID of leaf vdev */
+ 	char		*vdev_path;
+ 	uint64_t	vdev_label;	/* vdev label */
++	int		io_error;	/* error status of MMP write */
++	hrtime_t	duration;	/* time from submission to completion */
+ 	list_node_t	smh_link;
+ } spa_mmp_history_t;
+ 
+ static int
+ spa_mmp_history_headers(char *buf, size_t size)
+ {
+-	(void) snprintf(buf, size, "%-10s %-10s %-12s %-24s %-10s %s\n",
+-	    "txg", "timestamp", "mmp_delay", "vdev_guid", "vdev_label",
+-	    "vdev_path");
++	(void) snprintf(buf, size, "%-10s %-10s %-10s %-6s %-10s %-12s %-24s "
++	    "%-10s %s\n", "id", "txg", "timestamp", "error", "duration",
++	    "mmp_delay", "vdev_guid", "vdev_label", "vdev_path");
+ 	return (0);
+ }
+ 
+@@ -741,11 +744,12 @@ spa_mmp_history_data(char *buf, size_t size, void *data)
+ {
+ 	spa_mmp_history_t *smh = (spa_mmp_history_t *)data;
+ 
+-	(void) snprintf(buf, size, "%-10llu %-10llu %-12llu %-24llu %-10llu "
+-	    "%s\n",
+-	    (u_longlong_t)smh->txg, (u_longlong_t)smh->timestamp,
+-	    (u_longlong_t)smh->mmp_delay, (u_longlong_t)smh->vdev_guid,
+-	    (u_longlong_t)smh->vdev_label,
++	(void) snprintf(buf, size, "%-10llu %-10llu %-10llu %-6lld %-10lld "
++	    "%-12llu %-24llu %-10llu %s\n",
++	    (u_longlong_t)smh->mmp_kstat_id, (u_longlong_t)smh->txg,
++	    (u_longlong_t)smh->timestamp, (longlong_t)smh->io_error,
++	    (longlong_t)smh->duration, (u_longlong_t)smh->mmp_delay,
++	    (u_longlong_t)smh->vdev_guid, (u_longlong_t)smh->vdev_label,
+ 	    (smh->vdev_path ? smh->vdev_path : "-"));
+ 
+ 	return (0);
+@@ -861,11 +865,40 @@ spa_mmp_history_destroy(spa_t *spa)
+ }
+ 
+ /*
+- * Add a new MMP update to historical record.
++ * Set MMP write duration and error status in existing record.
++ */
++int
++spa_mmp_history_set(spa_t *spa, uint64_t mmp_kstat_id, int io_error,
++    hrtime_t duration)
++{
++	spa_stats_history_t *ssh = &spa->spa_stats.mmp_history;
++	spa_mmp_history_t *smh;
++	int error = ENOENT;
++
++	if (zfs_multihost_history == 0 && ssh->size == 0)
++		return (0);
++
++	mutex_enter(&ssh->lock);
++	for (smh = list_head(&ssh->list); smh != NULL;
++	    smh = list_next(&ssh->list, smh)) {
++		if (smh->mmp_kstat_id == mmp_kstat_id) {
++			smh->io_error = io_error;
++			smh->duration = duration;
++			error = 0;
++			break;
++		}
++	}
++	mutex_exit(&ssh->lock);
++
++	return (error);
++}
++
++/*
++ * Add a new MMP write to historical record.
+  */
+ void
+ spa_mmp_history_add(uint64_t txg, uint64_t timestamp, uint64_t mmp_delay,
+-    vdev_t *vd, int label)
++    vdev_t *vd, int label, uint64_t mmp_kstat_id)
+ {
+ 	spa_t *spa = vd->vdev_spa;
+ 	spa_stats_history_t *ssh = &spa->spa_stats.mmp_history;
+@@ -882,6 +915,7 @@ spa_mmp_history_add(uint64_t txg, uint64_t timestamp, uint64_t mmp_delay,
+ 	if (vd->vdev_path)
+ 		smh->vdev_path = strdup(vd->vdev_path);
+ 	smh->vdev_label = label;
++	smh->mmp_kstat_id = mmp_kstat_id;
+ 
+ 	mutex_enter(&ssh->lock);
+ 
+-- 
+2.14.2
+

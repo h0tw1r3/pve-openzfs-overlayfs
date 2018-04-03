@@ -1,0 +1,51 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: WHR <msl0000023508@gmail.com>
+Date: Sun, 14 Jan 2018 23:57:54 +0300
+Subject: [PATCH] OpenZFS 8966 - Source file zfs_acl.c, function
+ zfs_aclset_common contains a use after end of the lifetime of a local
+ variable
+MIME-Version: 1.0
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 8bit
+
+Authored by: WHR <msl0000023508@gmail.com>
+Reviewed by: Matt Ahrens <mahrens@delphix.com>
+Reviewed by: Andriy Gapon <avg@FreeBSD.org>
+Reviewed by: George Melikov <mail@gmelikov.ru>
+Reviewed by: Brian Behlendorf <behlendorf1@llnl.gov>
+Approved by: Richard Lowe <richlowe@richlowe.net>
+Ported-by: Giuseppe Di Natale <dinatale2@llnl.gov>
+
+OpenZFS-issue: https://www.illumos.org/issues/8966
+OpenZFS-commit: https://github.com/openzfs/openzfs/commit/c95549fcdc
+Closes #7141
+
+(cherry picked from commit a196b3bc3dcc14bda32b2fbed40d5e436319aca6)
+Signed-off-by: Fabian Grünbichler <f.gruenbichler@proxmox.com>
+---
+ module/zfs/zfs_acl.c | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+
+diff --git a/module/zfs/zfs_acl.c b/module/zfs/zfs_acl.c
+index 7ddedeaaf..1fcfca0c7 100644
+--- a/module/zfs/zfs_acl.c
++++ b/module/zfs/zfs_acl.c
+@@ -1323,6 +1323,7 @@ zfs_aclset_common(znode_t *zp, zfs_acl_t *aclp, cred_t *cr, dmu_tx_t *tx)
+ 	sa_bulk_attr_t		bulk[5];
+ 	uint64_t		ctime[2];
+ 	int			count = 0;
++	zfs_acl_phys_t		acl_phys;
+ 
+ 	mode = zp->z_mode;
+ 
+@@ -1369,7 +1370,6 @@ zfs_aclset_common(znode_t *zp, zfs_acl_t *aclp, cred_t *cr, dmu_tx_t *tx)
+ 	} else { /* Painful legacy way */
+ 		zfs_acl_node_t *aclnode;
+ 		uint64_t off = 0;
+-		zfs_acl_phys_t acl_phys;
+ 		uint64_t aoid;
+ 
+ 		if ((error = sa_lookup(zp->z_sa_hdl, SA_ZPL_ZNODE_ACL(zfsvfs),
+-- 
+2.14.2
+

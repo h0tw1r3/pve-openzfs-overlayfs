@@ -1,0 +1,39 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Olaf Faaland <faaland1@llnl.gov>
+Date: Thu, 22 Feb 2018 09:14:46 -0800
+Subject: [PATCH] Do not initiate MMP writes while pool is suspended
+MIME-Version: 1.0
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 8bit
+
+While the pool is suspended on host A, it may be imported on host B.
+If host A continued to write MMP blocks, it would be blindly
+overwriting MMP blocks written by host B, and the blocks written by
+host A would have outdated txg information.
+
+Reviewed-by: Giuseppe Di Natale <dinatale2@llnl.gov>
+Reviewed-by: Brian Behlendorf <behlendorf1@llnl.gov>
+Signed-off-by: Olaf Faaland <faaland1@llnl.gov>
+Closes #7182
+(cherry picked from commit b1f61f05b4b2edc77ec5f3d28d041d7b3c873f01)
+Signed-off-by: Fabian Grünbichler <f.gruenbichler@proxmox.com>
+---
+ module/zfs/mmp.c | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+
+diff --git a/module/zfs/mmp.c b/module/zfs/mmp.c
+index 1dfb7c05b..d003d79de 100644
+--- a/module/zfs/mmp.c
++++ b/module/zfs/mmp.c
+@@ -437,7 +437,7 @@ mmp_thread(spa_t *spa)
+ 			zio_suspend(spa, NULL);
+ 		}
+ 
+-		if (multihost)
++		if (multihost && !suspended)
+ 			mmp_write_uberblock(spa);
+ 
+ 		CALLB_CPR_SAFE_BEGIN(&cpr);
+-- 
+2.14.2
+

@@ -1,0 +1,60 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Olaf Faaland <faaland1@llnl.gov>
+Date: Thu, 8 Mar 2018 15:21:54 -0800
+Subject: [PATCH] Handle zio_resume and mmp => off
+MIME-Version: 1.0
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 8bit
+
+When multihost is disabled on a pool, and the pool is resumed via zpool
+clear, within a single cycle of the mmp thread's loop (e.g.  while it's
+in the cv_timedwait call), both mmp_last_write and mmp_delay should be
+updated.
+
+The original code mistakenly treated the two cases as if they could not
+occur at the same time.
+
+Reviewed-by: Brian Behlendorf <behlendorf1@llnl.gov>
+Reviewed-by: Tony Hutter <hutter2@llnl.gov>
+Signed-off-by: Olaf Faaland <faaland1@llnl.gov>
+Closes #7286
+(cherry picked from commit 267fd7b0f14251026c35d7ceab4fbbe2f06717e6)
+Signed-off-by: Fabian Grünbichler <f.gruenbichler@proxmox.com>
+---
+ module/zfs/mmp.c | 14 ++++++++++----
+ 1 file changed, 10 insertions(+), 4 deletions(-)
+
+diff --git a/module/zfs/mmp.c b/module/zfs/mmp.c
+index 634e48287..15eea41ab 100644
+--- a/module/zfs/mmp.c
++++ b/module/zfs/mmp.c
+@@ -409,16 +409,22 @@ mmp_thread(spa_t *spa)
+ 		}
+ 
+ 		/*
+-		 * When MMP goes off => on, or spa goes suspended =>
+-		 * !suspended, we know no writes occurred recently.  We
+-		 * update mmp_last_write to give us some time to try.
++		 * MMP off => on, or suspended => !suspended:
++		 * No writes occurred recently.  Update mmp_last_write to give
++		 * us some time to try.
+ 		 */
+ 		if ((!last_spa_multihost && multihost) ||
+ 		    (last_spa_suspended && !suspended)) {
+ 			mutex_enter(&mmp->mmp_io_lock);
+ 			mmp->mmp_last_write = gethrtime();
+ 			mutex_exit(&mmp->mmp_io_lock);
+-		} else if (last_spa_multihost && !multihost) {
++		}
++
++		/*
++		 * MMP on => off:
++		 * mmp_delay == 0 tells importing node to skip activity check.
++		 */
++		if (last_spa_multihost && !multihost) {
+ 			mutex_enter(&mmp->mmp_io_lock);
+ 			mmp->mmp_delay = 0;
+ 			mutex_exit(&mmp->mmp_io_lock);
+-- 
+2.14.2
+

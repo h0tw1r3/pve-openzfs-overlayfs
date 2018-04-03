@@ -1,0 +1,59 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Chunwei Chen <david.chen@nutanix.com>
+Date: Thu, 1 Feb 2018 15:42:41 -0800
+Subject: [PATCH] Fix racy assignment of zcb.zcb_haderrors
+MIME-Version: 1.0
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 8bit
+
+zcb_haderrors will be modified in zdb_blkptr_done, which is
+asynchronous. So we must move this assignment after zio_wait.
+
+Reviewed-by: Brian Behlendorf <behlendorf1@llnl.gov>
+Reviewed-by: loli10K <ezomori.nozomu@gmail.com>
+Signed-off-by: Chunwei Chen <david.chen@nutanix.com>
+Closes #7099
+(cherry picked from commit c797f0898ec11669427e2fc481118bc2e2d8ef3f)
+Signed-off-by: Fabian Grünbichler <f.gruenbichler@proxmox.com>
+---
+ cmd/zdb/zdb.c | 10 ++++++++--
+ 1 file changed, 8 insertions(+), 2 deletions(-)
+
+diff --git a/cmd/zdb/zdb.c b/cmd/zdb/zdb.c
+index 442685486..0cc1656a8 100644
+--- a/cmd/zdb/zdb.c
++++ b/cmd/zdb/zdb.c
+@@ -3313,7 +3313,7 @@ dump_block_stats(spa_t *spa)
+ 	uint64_t norm_alloc, norm_space, total_alloc, total_found;
+ 	int flags = TRAVERSE_PRE | TRAVERSE_PREFETCH_METADATA | TRAVERSE_HARD;
+ 	boolean_t leaks = B_FALSE;
+-	int e, c;
++	int e, c, err;
+ 	bp_embedded_type_t i;
+ 
+ 	(void) printf("\nTraversing all blocks %s%s%s%s%s...\n\n",
+@@ -3354,7 +3354,7 @@ dump_block_stats(spa_t *spa)
+ 
+ 	zcb.zcb_totalasize = metaslab_class_get_alloc(spa_normal_class(spa));
+ 	zcb.zcb_start = zcb.zcb_lastprint = gethrtime();
+-	zcb.zcb_haderrors |= traverse_pool(spa, 0, flags, zdb_blkptr_cb, &zcb);
++	err = traverse_pool(spa, 0, flags, zdb_blkptr_cb, &zcb);
+ 
+ 	/*
+ 	 * If we've traversed the data blocks then we need to wait for those
+@@ -3370,6 +3370,12 @@ dump_block_stats(spa_t *spa)
+ 		}
+ 	}
+ 
++	/*
++	 * Done after zio_wait() since zcb_haderrors is modified in
++	 * zdb_blkptr_done()
++	 */
++	zcb.zcb_haderrors |= err;
++
+ 	if (zcb.zcb_haderrors) {
+ 		(void) printf("\nError counts:\n\n");
+ 		(void) printf("\t%5s  %s\n", "errno", "count");
+-- 
+2.14.2
+

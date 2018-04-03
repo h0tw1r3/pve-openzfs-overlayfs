@@ -1,0 +1,40 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Olaf Faaland <faaland1@llnl.gov>
+Date: Thu, 15 Feb 2018 09:50:06 -0800
+Subject: [PATCH] Clarify zinject(8) explanation of -e
+MIME-Version: 1.0
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 8bit
+
+Error injection of EIO or ENXIO simply sets the zio's io_error value,
+rather than preventing the read or write from occurring.  This is
+important information as it affects how the probes must be used.
+
+Reviewed-by: Giuseppe Di Natale <dinatale2@llnl.gov>
+Reviewed-by: Brian Behlendorf <behlendorf1@llnl.gov>
+Reviewed-by: George Melikov <mail@gmelikov.ru>
+Signed-off-by: Olaf Faaland <faaland1@llnl.gov>
+Closes #7172
+(cherry picked from commit 26941ce90b8f056949a3bc29da606513af799781)
+Signed-off-by: Fabian Grünbichler <f.gruenbichler@proxmox.com>
+---
+ man/man8/zinject.8 | 3 +++
+ 1 file changed, 3 insertions(+)
+
+diff --git a/man/man8/zinject.8 b/man/man8/zinject.8
+index 50fecfb64..7f363974b 100644
+--- a/man/man8/zinject.8
++++ b/man/man8/zinject.8
+@@ -111,6 +111,9 @@ Specify
+ .BR "dtl" " for an ECHILD error,"
+ .BR "io" " for an EIO error where reopening the device will succeed, or"
+ .BR "nxio" " for an ENXIO error where reopening the device will fail."
++For EIO and ENXIO, the "failed" reads or writes still occur.  The probe simply
++sets the error value reported by the I/O pipeline so it appears the read or
++write failed.
+ .TP
+ .BI "\-f" " frequency"
+ Only inject errors a fraction of the time. Expressed as a real number
+-- 
+2.14.2
+

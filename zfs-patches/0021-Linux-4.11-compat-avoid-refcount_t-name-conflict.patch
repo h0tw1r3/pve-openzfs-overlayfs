@@ -1,0 +1,53 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Brian Behlendorf <behlendorf1@llnl.gov>
+Date: Thu, 8 Feb 2018 14:31:08 -0800
+Subject: [PATCH] Linux 4.11 compat: avoid refcount_t name conflict
+MIME-Version: 1.0
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 8bit
+
+Related to commit 4859fe796, when directly using the kernel's
+refcount functions in kernel compatibility code do not map
+refcount_t to zfs_refcount_t.  This leads to a type mismatch.
+
+Longer term we should consider renaming refcount_t to
+zfs_refcount_t in the zfs code base.
+
+Reviewed-by: Olaf Faaland <faaland1@llnl.gov>
+Reviewed-by: Giuseppe Di Natale <dinatale2@llnl.gov>
+Reviewed-by: Chunwei Chen <david.chen@nutanix.com>
+Signed-off-by: Brian Behlendorf <behlendorf1@llnl.gov>
+Closes #7148
+(cherry picked from commit 3713b7333532f221733f7b74189d996359ed4311)
+Signed-off-by: Fabian Grünbichler <f.gruenbichler@proxmox.com>
+---
+ include/linux/vfs_compat.h | 6 ++++++
+ 1 file changed, 6 insertions(+)
+
+diff --git a/include/linux/vfs_compat.h b/include/linux/vfs_compat.h
+index f51ff887d..7fcf3c055 100644
+--- a/include/linux/vfs_compat.h
++++ b/include/linux/vfs_compat.h
+@@ -272,6 +272,10 @@ lseek_execute(
+  * This is several orders of magnitude larger than expected grace period.
+  * At 60 seconds the kernel will also begin issuing RCU stall warnings.
+  */
++#ifdef refcount_t
++#undef refcount_t
++#endif
++
+ #include <linux/posix_acl.h>
+ 
+ #if defined(HAVE_POSIX_ACL_RELEASE) && !defined(HAVE_POSIX_ACL_RELEASE_GPL_ONLY)
+@@ -397,6 +401,8 @@ typedef mode_t zpl_equivmode_t;
+ #define	zpl_posix_acl_valid(ip, acl)  posix_acl_valid(acl)
+ #endif
+ 
++#define	refcount_t	zfs_refcount_t
++
+ #endif /* CONFIG_FS_POSIX_ACL */
+ 
+ /*
+-- 
+2.14.2
+

@@ -1,0 +1,39 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: LOLi <loli10K@users.noreply.github.com>
+Date: Fri, 9 Mar 2018 22:52:37 +0100
+Subject: [PATCH] Fix zfs-kmod builds when using rpm >= 4.14
+MIME-Version: 1.0
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 8bit
+
+With rpm-software-management/rpm@5e94633 a package version containing
+invalid characters (most commonly a double '-') causes the kmod package
+generation to terminate with an error.  This change takes advantage of
+the newly introduced rpm macro "_wrong_version_format_terminate_build"
+to allow kmod packages to be built.
+
+Reviewed-by: Brian Behlendorf <behlendorf1@llnl.gov>
+Signed-off-by:  loli10K <ezomori.nozomu@gmail.com>
+Closes #7284
+(cherry picked from commit dc0176eeec9719827610fc68742ea3c76796a81f)
+Signed-off-by: Fabian Grünbichler <f.gruenbichler@proxmox.com>
+---
+ config/zfs-build.m4 | 2 ++
+ 1 file changed, 2 insertions(+)
+
+diff --git a/config/zfs-build.m4 b/config/zfs-build.m4
+index 7c19cecd6..8fc3863f4 100644
+--- a/config/zfs-build.m4
++++ b/config/zfs-build.m4
+@@ -162,6 +162,8 @@ AC_DEFUN([ZFS_AC_RPM], [
+ 	RPM_DEFINE_COMMON='--define "$(DEBUG_ZFS) 1"'
+ 	RPM_DEFINE_UTIL='--define "_dracutdir $(dracutdir)" --define "_udevdir $(udevdir)" --define "_udevruledir $(udevruledir)" --define "_initconfdir $(DEFAULT_INITCONF_DIR)" $(DEFINE_INITRAMFS) $(DEFINE_SYSTEMD)'
+ 	RPM_DEFINE_KMOD='--define "kernels $(LINUX_VERSION)" --define "require_spldir $(SPL)" --define "require_splobj $(SPL_OBJ)" --define "ksrc $(LINUX)" --define "kobj $(LINUX_OBJ)"'
++	RPM_DEFINE_KMOD+=' --define "_wrong_version_format_terminate_build 0"'
++
+ 	RPM_DEFINE_DKMS=
+ 
+ 	dnl # Override default lib directory on Debian/Ubuntu systems.  The provided
+-- 
+2.14.2
+

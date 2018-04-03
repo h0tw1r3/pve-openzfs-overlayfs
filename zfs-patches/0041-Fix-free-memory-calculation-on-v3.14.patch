@@ -1,0 +1,451 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: chrisrd <chris@onthe.net.au>
+Date: Sat, 24 Feb 2018 03:50:06 +1100
+Subject: [PATCH] Fix free memory calculation on v3.14+
+MIME-Version: 1.0
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 8bit
+
+Provide infrastructure to auto-configure to enum and API changes in the
+global page stats used for our free memory calculations.
+
+arc_free_memory has been broken since an API change in Linux v3.14:
+
+2016-07-28 v4.8 599d0c95 mm, vmscan: move LRU lists to node
+2016-07-28 v4.8 75ef7184 mm, vmstat: add infrastructure for per-node
+  vmstats
+
+These commits moved some of global_page_state() into
+global_node_page_state(). The API change was particularly egregious as,
+instead of breaking the old code, it silently did the wrong thing and we
+continued using global_page_state() where we should have been using
+global_node_page_state(), thus indexing into the wrong array via
+NR_SLAB_RECLAIMABLE et al.
+
+There have been further API changes along the way:
+
+2017-07-06 v4.13 385386cf mm: vmstat: move slab statistics from zone to
+  node counters
+2017-09-06 v4.14 c41f012a mm: rename global_page_state to
+  global_zone_page_state
+
+...and various (incomplete, as it turns out) attempts to accomodate
+these changes in ZoL:
+
+2017-08-24 2209e409 Linux 4.8+ compatibility fix for vm stats
+2017-09-16 787acae0 Linux 3.14 compat: IO acct, global_page_state, etc
+2017-09-19 661907e6 Linux 4.14 compat: IO acct, global_page_state, etc
+
+The config infrastructure provided here resolves these issues going back
+to the original API change in v3.14 and is robust against further Linux
+changes in this area.
+
+Reviewed-by: Giuseppe Di Natale <dinatale2@llnl.gov>
+Reviewed-by: Brian Behlendorf <behlendorf1@llnl.gov>
+Reviewed-by: George Melikov <mail@gmelikov.ru>
+Signed-off-by: Chris Dunlop <chris@onthe.net.au>
+Closes #7170
+(cherry picked from commit 338523dd6ec641cc4d552c3f67e1becfb9e22b0a)
+Signed-off-by: Fabian Grünbichler <f.gruenbichler@proxmox.com>
+---
+ include/linux/Makefile.am          |   3 +-
+ scripts/Makefile.am                |   2 +
+ include/linux/page_compat.h        |  78 ++++++++++++++++++++++++++
+ module/zfs/arc.c                   |  23 ++------
+ config/kernel-global_page_state.m4 | 109 +++++++++++++++++++++++++++++++++++++
+ config/kernel-vm_node_stat.m4      |  22 --------
+ config/kernel.m4                   |   2 +-
+ scripts/enum-extract.pl            |  58 ++++++++++++++++++++
+ 8 files changed, 256 insertions(+), 41 deletions(-)
+ create mode 100644 include/linux/page_compat.h
+ create mode 100644 config/kernel-global_page_state.m4
+ delete mode 100644 config/kernel-vm_node_stat.m4
+ create mode 100755 scripts/enum-extract.pl
+
+diff --git a/include/linux/Makefile.am b/include/linux/Makefile.am
+index 9bb0b3493..89c2689f6 100644
+--- a/include/linux/Makefile.am
++++ b/include/linux/Makefile.am
+@@ -9,7 +9,8 @@ KERNEL_H = \
+ 	$(top_srcdir)/include/linux/kmap_compat.h \
+ 	$(top_srcdir)/include/linux/simd_x86.h \
+ 	$(top_srcdir)/include/linux/simd_aarch64.h \
+-	$(top_srcdir)/include/linux/mod_compat.h
++	$(top_srcdir)/include/linux/mod_compat.h \
++	$(top_srcdir)/include/linux/page_compat.h
+ 
+ USER_H =
+ 
+diff --git a/scripts/Makefile.am b/scripts/Makefile.am
+index 74b8b31a5..5a8abd135 100644
+--- a/scripts/Makefile.am
++++ b/scripts/Makefile.am
+@@ -5,6 +5,7 @@ EXTRA_DIST = dkms.mkconf dkms.postbuild kmodtool zfs2zol-patch.sed cstyle.pl
+ pkgdatadir = $(datadir)/@PACKAGE@
+ dist_pkgdata_SCRIPTS = \
+ 	$(top_builddir)/scripts/common.sh \
++	$(top_srcdir)/scripts/enum-extract.pl \
+ 	$(top_srcdir)/scripts/zimport.sh \
+ 	$(top_srcdir)/scripts/zfs.sh \
+ 	$(top_srcdir)/scripts/zfs-tests.sh \
+@@ -15,3 +16,4 @@ dist_pkgdata_SCRIPTS = \
+ 	$(top_srcdir)/scripts/zpios-survey.sh \
+ 	$(top_srcdir)/scripts/smb.sh \
+ 	$(top_srcdir)/scripts/zfs-helpers.sh
++
+diff --git a/include/linux/page_compat.h b/include/linux/page_compat.h
+new file mode 100644
+index 000000000..95acb7d53
+--- /dev/null
++++ b/include/linux/page_compat.h
+@@ -0,0 +1,78 @@
++#ifndef	_ZFS_PAGE_COMPAT_H
++#define	_ZFS_PAGE_COMPAT_H
++
++/*
++ * We have various enum members moving between two separate enum types,
++ * and accessed by different functions at various times. Centralise the
++ * insanity.
++ *
++ * < v4.8: all enums in zone_stat_item, via global_page_state()
++ * v4.8: some enums moved to node_stat_item, global_node_page_state() introduced
++ * v4.13: some enums moved from zone_stat_item to node_state_item
++ * v4.14: global_page_state() rename to global_zone_page_state()
++ *
++ * The defines used here are created by config/kernel-global_page_state.m4
++ */
++
++/*
++ * Create our own accessor functions to follow the Linux API changes
++ */
++#if	defined(ZFS_GLOBAL_ZONE_PAGE_STATE)
++
++/* global_zone_page_state() introduced */
++#if	defined(ZFS_ENUM_NODE_STAT_ITEM_NR_FILE_PAGES)
++#define	nr_file_pages() global_node_page_state(NR_FILE_PAGES)
++#else
++#define	nr_file_pages() global_zone_page_state(NR_FILE_PAGES)
++#endif
++#if	defined(ZFS_ENUM_NODE_STAT_ITEM_NR_INACTIVE_ANON)
++#define	nr_inactive_anon_pages() global_node_page_state(NR_INACTIVE_ANON)
++#else
++#define	nr_inactive_anon_pages() global_zone_page_state(NR_INACTIVE_ANON)
++#endif
++#if	defined(ZFS_ENUM_NODE_STAT_ITEM_NR_INACTIVE_FILE)
++#define	nr_inactive_file_pages() global_node_page_state(NR_INACTIVE_FILE)
++#else
++#define	nr_inactive_file_pages() global_zone_page_state(NR_INACTIVE_FILE)
++#endif
++#if	defined(ZFS_ENUM_NODE_STAT_ITEM_NR_SLAB_RECLAIMABLE)
++#define	nr_slab_reclaimable_pages() global_node_page_state(NR_SLAB_RECLAIMABLE)
++#else
++#define	nr_slab_reclaimable_pages() global_zone_page_state(NR_SLAB_RECLAIMABLE)
++#endif
++
++#elif	defined(ZFS_GLOBAL_NODE_PAGE_STATE)
++
++/* global_node_page_state() introduced */
++#if	defined(ZFS_ENUM_NODE_STAT_ITEM_NR_FILE_PAGES)
++#define	nr_file_pages() global_node_page_state(NR_FILE_PAGES)
++#else
++#define	nr_file_pages() global_page_state(NR_FILE_PAGES)
++#endif
++#if	defined(ZFS_ENUM_NODE_STAT_ITEM_NR_INACTIVE_ANON)
++#define	nr_inactive_anon_pages() global_node_page_state(NR_INACTIVE_ANON)
++#else
++#define	nr_inactive_anon_pages() global_page_state(NR_INACTIVE_ANON)
++#endif
++#if	defined(ZFS_ENUM_NODE_STAT_ITEM_NR_INACTIVE_FILE)
++#define	nr_inactive_file_pages() global_node_page_state(NR_INACTIVE_FILE)
++#else
++#define	nr_inactive_file_pages() global_page_state(NR_INACTIVE_FILE)
++#endif
++#if	defined(ZFS_ENUM_NODE_STAT_ITEM_NR_SLAB_RECLAIMABLE)
++#define	nr_slab_reclaimable_pages() global_node_page_state(NR_SLAB_RECLAIMABLE)
++#else
++#define	nr_slab_reclaimable_pages() global_page_state(NR_SLAB_RECLAIMABLE)
++#endif
++
++#else
++
++/* global_page_state() only */
++#define	nr_file_pages()			global_page_state(NR_FILE_PAGES)
++#define	nr_inactive_anon_pages()	global_page_state(NR_INACTIVE_ANON)
++#define	nr_inactive_file_pages()	global_page_state(NR_INACTIVE_FILE)
++#define	nr_slab_reclaimable_pages()	global_page_state(NR_SLAB_RECLAIMABLE)
++
++#endif /* ZFS_GLOBAL_ZONE_PAGE_STATE */
++
++#endif /* _ZFS_PAGE_COMPAT_H */
+diff --git a/module/zfs/arc.c b/module/zfs/arc.c
+index 9d1d0db1d..236794672 100644
+--- a/module/zfs/arc.c
++++ b/module/zfs/arc.c
+@@ -280,6 +280,7 @@
+ #include <sys/fs/swapnode.h>
+ #include <sys/zpl.h>
+ #include <linux/mm_compat.h>
++#include <linux/page_compat.h>
+ #endif
+ #include <sys/callb.h>
+ #include <sys/kstat.h>
+@@ -4016,17 +4017,11 @@ arc_free_memory(void)
+ 	si_meminfo(&si);
+ 	return (ptob(si.freeram - si.freehigh));
+ #else
+-#ifdef ZFS_GLOBAL_NODE_PAGE_STATE
+ 	return (ptob(nr_free_pages() +
+-	    global_node_page_state(NR_INACTIVE_FILE) +
+-	    global_node_page_state(NR_INACTIVE_ANON) +
+-	    global_node_page_state(NR_SLAB_RECLAIMABLE)));
+-#else
+-	return (ptob(nr_free_pages() +
+-	    global_page_state(NR_INACTIVE_FILE) +
+-	    global_page_state(NR_INACTIVE_ANON) +
+-	    global_page_state(NR_SLAB_RECLAIMABLE)));
+-#endif /* ZFS_GLOBAL_NODE_PAGE_STATE */
++	    nr_inactive_file_pages() +
++	    nr_inactive_anon_pages() +
++	    nr_slab_reclaimable_pages()));
++
+ #endif /* CONFIG_HIGHMEM */
+ #else
+ 	return (spa_get_random(arc_all_memory() * 20 / 100));
+@@ -4437,13 +4432,7 @@ arc_evictable_memory(void)
+ 	 * Scale reported evictable memory in proportion to page cache, cap
+ 	 * at specified min/max.
+ 	 */
+-#ifdef ZFS_GLOBAL_NODE_PAGE_STATE
+-	uint64_t min = (ptob(global_node_page_state(NR_FILE_PAGES)) / 100) *
+-	    zfs_arc_pc_percent;
+-#else
+-	uint64_t min = (ptob(global_page_state(NR_FILE_PAGES)) / 100) *
+-	    zfs_arc_pc_percent;
+-#endif
++	uint64_t min = (ptob(nr_file_pages()) / 100) * zfs_arc_pc_percent;
+ 	min = MAX(arc_c_min, MIN(arc_c_max, min));
+ 
+ 	if (arc_dirty >= min)
+diff --git a/config/kernel-global_page_state.m4 b/config/kernel-global_page_state.m4
+new file mode 100644
+index 000000000..f4a40011f
+--- /dev/null
++++ b/config/kernel-global_page_state.m4
+@@ -0,0 +1,109 @@
++dnl #
++dnl # 4.8 API change
++dnl #
++dnl # 75ef71840539 mm, vmstat: add infrastructure for per-node vmstats
++dnl # 599d0c954f91 mm, vmscan: move LRU lists to node
++dnl #
++AC_DEFUN([ZFS_AC_KERNEL_GLOBAL_NODE_PAGE_STATE], [
++	AC_MSG_CHECKING([whether global_node_page_state() exists])
++	ZFS_LINUX_TRY_COMPILE([
++		#include <linux/mm.h>
++		#include <linux/vmstat.h>
++	],[
++		(void) global_node_page_state(0);
++	],[
++		AC_MSG_RESULT(yes)
++		AC_DEFINE(ZFS_GLOBAL_NODE_PAGE_STATE, 1, [global_node_page_state() exists])
++	],[
++		AC_MSG_RESULT(no)
++	])
++])
++
++dnl #
++dnl # 4.14 API change
++dnl #
++dnl # c41f012ade0b mm: rename global_page_state to global_zone_page_state
++dnl #
++AC_DEFUN([ZFS_AC_KERNEL_GLOBAL_ZONE_PAGE_STATE], [
++	AC_MSG_CHECKING([whether global_zone_page_state() exists])
++	ZFS_LINUX_TRY_COMPILE([
++		#include <linux/mm.h>
++		#include <linux/vmstat.h>
++	],[
++		(void) global_zone_page_state(0);
++	],[
++		AC_MSG_RESULT(yes)
++		AC_DEFINE(ZFS_GLOBAL_ZONE_PAGE_STATE, 1, [global_zone_page_state() exists])
++	],[
++		AC_MSG_RESULT(no)
++	])
++])
++
++dnl #
++dnl # Create a define and autoconf variable for an enum member
++dnl #
++AC_DEFUN([ZFS_AC_KERNEL_ENUM_MEMBER], [
++	AC_MSG_CHECKING([whether enum $2 contains $1])
++	AS_IF([AC_TRY_COMMAND("${srcdir}/scripts/enum-extract.pl" "$2" "$3" | egrep -qx $1)],[
++		AC_MSG_RESULT([yes])
++		AC_DEFINE(m4_join([_], [ZFS_ENUM], m4_toupper($2), $1), 1, [enum $2 contains $1])
++		m4_join([_], [ZFS_ENUM], m4_toupper($2), $1)=1
++	],[
++		AC_MSG_RESULT([no])
++	])
++])
++
++dnl #
++dnl # Sanity check helpers
++dnl #
++AC_DEFUN([ZFS_AC_KERNEL_GLOBAL_PAGE_STATE_ENUM_ERROR],[
++	AC_MSG_RESULT(no)
++	AC_MSG_RESULT([$1 in either node_stat_item or zone_stat_item: $2])
++	AC_MSG_RESULT([configure needs updating, see: config/kernel-global_page_state.m4])
++	AC_MSG_FAILURE([SHUT 'ER DOWN CLANCY, SHE'S PUMPIN' MUD!])
++])
++
++AC_DEFUN([ZFS_AC_KERNEL_GLOBAL_PAGE_STATE_ENUM_CHECK], [
++	enum_check_a="m4_join([_], [$ZFS_ENUM_NODE_STAT_ITEM], $1)"
++	enum_check_b="m4_join([_], [$ZFS_ENUM_ZONE_STAT_ITEM], $1)"
++	AS_IF([test -n "$enum_check_a" -a -n "$enum_check_b"],[
++		ZFS_AC_KERNEL_GLOBAL_PAGE_STATE_ENUM_ERROR([$1], [DUPLICATE])
++	])
++	AS_IF([test -z "$enum_check_a" -a -z "$enum_check_b"],[
++		ZFS_AC_KERNEL_GLOBAL_PAGE_STATE_ENUM_ERROR([$1], [NOT FOUND])
++	])
++])
++
++dnl #
++dnl # Ensure the config tests are finding one and only one of each enum of interest
++dnl #
++AC_DEFUN([ZFS_AC_KERNEL_GLOBAL_ZONE_PAGE_STATE_SANITY], [
++	AC_MSG_CHECKING([global_page_state enums are sane])
++
++	ZFS_AC_KERNEL_GLOBAL_PAGE_STATE_ENUM_CHECK([NR_FILE_PAGES])
++	ZFS_AC_KERNEL_GLOBAL_PAGE_STATE_ENUM_CHECK([NR_INACTIVE_ANON])
++	ZFS_AC_KERNEL_GLOBAL_PAGE_STATE_ENUM_CHECK([NR_INACTIVE_FILE])
++	ZFS_AC_KERNEL_GLOBAL_PAGE_STATE_ENUM_CHECK([NR_SLAB_RECLAIMABLE])
++
++	AC_MSG_RESULT(yes)
++])
++
++dnl #
++dnl # enum members in which we're interested
++dnl #
++AC_DEFUN([ZFS_AC_KERNEL_GLOBAL_PAGE_STATE], [
++	ZFS_AC_KERNEL_GLOBAL_NODE_PAGE_STATE
++	ZFS_AC_KERNEL_GLOBAL_ZONE_PAGE_STATE
++
++	ZFS_AC_KERNEL_ENUM_MEMBER([NR_FILE_PAGES],		[node_stat_item], [$LINUX/include/linux/mmzone.h])
++	ZFS_AC_KERNEL_ENUM_MEMBER([NR_INACTIVE_ANON],		[node_stat_item], [$LINUX/include/linux/mmzone.h])
++	ZFS_AC_KERNEL_ENUM_MEMBER([NR_INACTIVE_FILE],		[node_stat_item], [$LINUX/include/linux/mmzone.h])
++	ZFS_AC_KERNEL_ENUM_MEMBER([NR_SLAB_RECLAIMABLE],	[node_stat_item], [$LINUX/include/linux/mmzone.h])
++
++	ZFS_AC_KERNEL_ENUM_MEMBER([NR_FILE_PAGES],		[zone_stat_item], [$LINUX/include/linux/mmzone.h])
++	ZFS_AC_KERNEL_ENUM_MEMBER([NR_INACTIVE_ANON],		[zone_stat_item], [$LINUX/include/linux/mmzone.h])
++	ZFS_AC_KERNEL_ENUM_MEMBER([NR_INACTIVE_FILE],		[zone_stat_item], [$LINUX/include/linux/mmzone.h])
++	ZFS_AC_KERNEL_ENUM_MEMBER([NR_SLAB_RECLAIMABLE],	[zone_stat_item], [$LINUX/include/linux/mmzone.h])
++
++	ZFS_AC_KERNEL_GLOBAL_ZONE_PAGE_STATE_SANITY
++])
+diff --git a/config/kernel-vm_node_stat.m4 b/config/kernel-vm_node_stat.m4
+deleted file mode 100644
+index 5dcd9d827..000000000
+--- a/config/kernel-vm_node_stat.m4
++++ /dev/null
+@@ -1,22 +0,0 @@
+-dnl #
+-dnl # 4.8 API change
+-dnl # kernel vm counters change
+-dnl #
+-AC_DEFUN([ZFS_AC_KERNEL_VM_NODE_STAT], [
+-	AC_MSG_CHECKING([whether to use vm_node_stat based fn's])
+-	ZFS_LINUX_TRY_COMPILE([
+-		#include <linux/mm.h>
+-		#include <linux/vmstat.h>
+-	],[
+-			int a __attribute__ ((unused)) = NR_VM_NODE_STAT_ITEMS;
+-			long x __attribute__ ((unused)) =
+-				atomic_long_read(&vm_node_stat[0]);
+-			(void) global_node_page_state(0);
+-	],[
+-		AC_MSG_RESULT(yes)
+-		AC_DEFINE(ZFS_GLOBAL_NODE_PAGE_STATE, 1,
+-			[using global_node_page_state()])
+-	],[
+-		AC_MSG_RESULT(no)
+-	])
+-])
+diff --git a/config/kernel.m4 b/config/kernel.m4
+index 7bb86a96e..3e499e447 100644
+--- a/config/kernel.m4
++++ b/config/kernel.m4
+@@ -123,7 +123,7 @@ AC_DEFUN([ZFS_AC_CONFIG_KERNEL], [
+ 	ZFS_AC_KERNEL_RENAME_WANTS_FLAGS
+ 	ZFS_AC_KERNEL_HAVE_GENERIC_SETXATTR
+ 	ZFS_AC_KERNEL_CURRENT_TIME
+-	ZFS_AC_KERNEL_VM_NODE_STAT
++	ZFS_AC_KERNEL_GLOBAL_PAGE_STATE
+ 	ZFS_AC_KERNEL_ACL_HAS_REFCOUNT
+ 
+ 	AS_IF([test "$LINUX_OBJ" != "$LINUX"], [
+diff --git a/scripts/enum-extract.pl b/scripts/enum-extract.pl
+new file mode 100755
+index 000000000..5112cc807
+--- /dev/null
++++ b/scripts/enum-extract.pl
+@@ -0,0 +1,58 @@
++#!/usr/bin/perl -w
++
++my $usage = <<EOT;
++usage: config-enum enum [file ...]
++
++Returns the elements from an enum declaration.
++
++"Best effort": we're not building an entire C interpreter here!
++EOT
++
++use warnings;
++use strict;
++use Getopt::Std;
++
++my %opts;
++
++if (!getopts("", \%opts) || @ARGV < 1) {
++	print $usage;
++	exit 2;
++}
++
++my $enum = shift;
++
++my $in_enum = 0;
++
++while (<>) {
++	# comments
++	s/\/\*.*\*\///;
++	if (m/\/\*/) {
++		while ($_ .= <>) {
++			last if s/\/\*.*\*\///s;
++		}
++	}
++
++	# preprocessor stuff
++	next if /^#/;
++
++	# find our enum
++	$in_enum = 1 if s/^\s*enum\s+${enum}(?:\s|$)//;
++	next unless $in_enum;
++
++	# remove explicit values
++	s/\s*=[^,]+,/,/g;
++
++	# extract each identifier
++	while (m/\b([a-z_][a-z0-9_]*)\b/ig) {
++		print $1, "\n";
++	}
++
++	#
++	# don't exit: there may be multiple versions of the same enum, e.g.
++	# inside different #ifdef blocks. Let's explicitly return all of
++	# them and let external tooling deal with it.
++	#
++	$in_enum = 0 if m/}\s*;/;
++}
++
++exit 0;
+-- 
+2.14.2
+

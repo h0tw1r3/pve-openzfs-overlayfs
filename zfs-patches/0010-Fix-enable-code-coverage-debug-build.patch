@@ -1,0 +1,35 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Brian Behlendorf <behlendorf1@llnl.gov>
+Date: Fri, 22 Sep 2017 22:16:18 -0700
+Subject: [PATCH] Fix "--enable-code-coverage" debug build
+MIME-Version: 1.0
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 8bit
+
+When --enable-code-coverage is provided it should not result
+in NDEBUG being defined.  This is controlled by --enable-debug.
+
+Signed-off-by: Brian Behlendorf <behlendorf1@llnl.gov>
+Closes #6674
+(cherry picked from commit 6897ea475fd0c82a74edacf374d4e339f9a9b86b)
+Signed-off-by: Fabian Grünbichler <f.gruenbichler@proxmox.com>
+---
+ config/ax_code_coverage.m4 | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+
+diff --git a/config/ax_code_coverage.m4 b/config/ax_code_coverage.m4
+index 6484f0332..4417d4444 100644
+--- a/config/ax_code_coverage.m4
++++ b/config/ax_code_coverage.m4
+@@ -124,7 +124,7 @@ AC_DEFUN([AX_CODE_COVERAGE],[
+ 
+ 		dnl Build the code coverage flags
+ 		dnl Define CODE_COVERAGE_LDFLAGS for backwards compatibility
+-		CODE_COVERAGE_CPPFLAGS="-DNDEBUG"
++		CODE_COVERAGE_CPPFLAGS=""
+ 		CODE_COVERAGE_CFLAGS="-O0 -g -fprofile-arcs -ftest-coverage"
+ 		CODE_COVERAGE_CXXFLAGS="-O0 -g -fprofile-arcs -ftest-coverage"
+ 		CODE_COVERAGE_LIBS="-lgcov"
+-- 
+2.14.2
+

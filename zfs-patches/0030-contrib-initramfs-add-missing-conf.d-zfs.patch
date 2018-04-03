@@ -1,0 +1,66 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: LOLi <loli10K@users.noreply.github.com>
+Date: Mon, 12 Feb 2018 20:40:00 +0100
+Subject: [PATCH] contrib/initramfs: add missing conf.d/zfs
+MIME-Version: 1.0
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 8bit
+
+When upgrading from the distribution-provided zfs-initramfs package on
+root-on-zfs Ubuntu and Debian the system may fail to boot: this change
+adds the missing initramfs configuration file.
+
+Reviewed-by: Brian Behlendorf <behlendorf1@llnl.gov>
+Reviewed-by: Richard Laager <rlaager@wiktel.com>
+Signed-off-by: loli10K <ezomori.nozomu@gmail.com>
+Closes #7158
+(cherry picked from commit a9ff89e05cd2f420e44b0e50c92d97c166772d2b)
+Signed-off-by: Fabian Grünbichler <f.gruenbichler@proxmox.com>
+---
+ contrib/initramfs/Makefile.am | 6 ++++--
+ contrib/initramfs/conf.d/zfs  | 8 ++++++++
+ 2 files changed, 12 insertions(+), 2 deletions(-)
+ create mode 100644 contrib/initramfs/conf.d/zfs
+
+diff --git a/contrib/initramfs/Makefile.am b/contrib/initramfs/Makefile.am
+index 998e588ab..b22940821 100644
+--- a/contrib/initramfs/Makefile.am
++++ b/contrib/initramfs/Makefile.am
+@@ -1,8 +1,10 @@
+ initrddir = $(datarootdir)/initramfs-tools
+ 
+-initrd_SCRIPTS = conf-hooks.d/zfs hooks/zfs scripts/zfs scripts/local-top/zfs
++initrd_SCRIPTS = \
++	conf.d/zfs conf-hooks.d/zfs hooks/zfs scripts/zfs scripts/local-top/zfs
+ 
+ EXTRA_DIST = \
++	$(top_srcdir)/contrib/initramfs/conf.d/zfs \
+ 	$(top_srcdir)/contrib/initramfs/conf-hooks.d/zfs \
+ 	$(top_srcdir)/contrib/initramfs/hooks/zfs \
+ 	$(top_srcdir)/contrib/initramfs/scripts/zfs \
+@@ -10,7 +12,7 @@ EXTRA_DIST = \
+ 	$(top_srcdir)/contrib/initramfs/README.initramfs.markdown
+ 
+ install-initrdSCRIPTS: $(EXTRA_DIST)
+-	for d in conf-hooks.d hooks scripts scripts/local-top; do \
++	for d in conf.d conf-hooks.d hooks scripts scripts/local-top; do \
+ 	  $(MKDIR_P) $(DESTDIR)$(initrddir)/$$d; \
+ 	  cp $(top_srcdir)/contrib/initramfs/$$d/zfs \
+ 	    $(DESTDIR)$(initrddir)/$$d/; \
+diff --git a/contrib/initramfs/conf.d/zfs b/contrib/initramfs/conf.d/zfs
+new file mode 100644
+index 000000000..c67d75ba8
+--- /dev/null
++++ b/contrib/initramfs/conf.d/zfs
+@@ -0,0 +1,8 @@
++for x in $(cat /proc/cmdline)
++do
++	case $x in
++		root=ZFS=*|root=zfs:*)
++			BOOT=zfs
++			;;
++	esac
++done
+-- 
+2.14.2
+

@@ -1,0 +1,130 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Chunwei Chen <david.chen@nutanix.com>
+Date: Thu, 1 Feb 2018 16:19:36 -0800
+Subject: [PATCH] Fix zdb -R decompression
+MIME-Version: 1.0
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 8bit
+
+There are some issues in the zdb -R decompression implementation.
+
+The first is that ZLE can easily decompress non-ZLE streams. So we add
+ZDB_NO_ZLE env to make zdb skip ZLE.
+
+The second is the random bytes appended to pabd, pbuf2 stuff. This serve
+no purpose at all, those bytes shouldn't be read during decompression
+anyway. Instead, we randomize lbuf2, so that we can make sure
+decompression fill exactly to lsize by bcmp lbuf and lbuf2.
+
+The last one is the condition to detect fail is wrong.
+
+Reviewed-by: Brian Behlendorf <behlendorf1@llnl.gov>
+Reviewed-by: loli10K <ezomori.nozomu@gmail.com>
+Signed-off-by: Chunwei Chen <david.chen@nutanix.com>
+Closes #7099
+Closes #4984
+(cherry picked from commit 18c662b84566cd34e6f6fb982d6a01a415a4e3cd)
+Signed-off-by: Fabian Grünbichler <f.gruenbichler@proxmox.com>
+---
+ cmd/zdb/zdb.c  | 38 ++++++++++++++++++--------------------
+ man/man8/zdb.8 |  4 +++-
+ 2 files changed, 21 insertions(+), 21 deletions(-)
+
+diff --git a/cmd/zdb/zdb.c b/cmd/zdb/zdb.c
+index 0cc1656a8..2d80589ca 100644
+--- a/cmd/zdb/zdb.c
++++ b/cmd/zdb/zdb.c
+@@ -3895,13 +3895,6 @@ name:
+ 	return (NULL);
+ }
+ 
+-/* ARGSUSED */
+-static int
+-random_get_pseudo_bytes_cb(void *buf, size_t len, void *unused)
+-{
+-	return (random_get_pseudo_bytes(buf, len));
+-}
+-
+ /*
+  * Read a block from a pool and print it out.  The syntax of the
+  * block descriptor is:
+@@ -4064,17 +4057,8 @@ zdb_read_block(char *thing, spa_t *spa)
+ 		 * every decompress function at every inflated blocksize.
+ 		 */
+ 		enum zio_compress c;
+-		void *pbuf2 = umem_alloc(SPA_MAXBLOCKSIZE, UMEM_NOFAIL);
+ 		void *lbuf2 = umem_alloc(SPA_MAXBLOCKSIZE, UMEM_NOFAIL);
+ 
+-		abd_copy_to_buf(pbuf2, pabd, psize);
+-
+-		VERIFY0(abd_iterate_func(pabd, psize, SPA_MAXBLOCKSIZE - psize,
+-		    random_get_pseudo_bytes_cb, NULL));
+-
+-		VERIFY0(random_get_pseudo_bytes((uint8_t *)pbuf2 + psize,
+-		    SPA_MAXBLOCKSIZE - psize));
+-
+ 		/*
+ 		 * XXX - On the one hand, with SPA_MAXBLOCKSIZE at 16MB,
+ 		 * this could take a while and we should let the user know
+@@ -4084,13 +4068,29 @@ zdb_read_block(char *thing, spa_t *spa)
+ 		for (lsize = psize + SPA_MINBLOCKSIZE;
+ 		    lsize <= SPA_MAXBLOCKSIZE; lsize += SPA_MINBLOCKSIZE) {
+ 			for (c = 0; c < ZIO_COMPRESS_FUNCTIONS; c++) {
++				/*
++				 * ZLE can easily decompress non zle stream.
++				 * So have an option to disable it.
++				 */
++				if (c == ZIO_COMPRESS_ZLE &&
++				    getenv("ZDB_NO_ZLE"))
++					continue;
++
+ 				(void) fprintf(stderr,
+ 				    "Trying %05llx -> %05llx (%s)\n",
+ 				    (u_longlong_t)psize, (u_longlong_t)lsize,
+ 				    zio_compress_table[c].ci_name);
++
++				/*
++				 * We randomize lbuf2, and decompress to both
++				 * lbuf and lbuf2. This way, we will know if
++				 * decompression fill exactly to lsize.
++				 */
++				VERIFY0(random_get_pseudo_bytes(lbuf2, lsize));
++
+ 				if (zio_decompress_data(c, pabd,
+ 				    lbuf, psize, lsize) == 0 &&
+-				    zio_decompress_data_buf(c, pbuf2,
++				    zio_decompress_data(c, pabd,
+ 				    lbuf2, psize, lsize) == 0 &&
+ 				    bcmp(lbuf, lbuf2, lsize) == 0)
+ 					break;
+@@ -4098,11 +4098,9 @@ zdb_read_block(char *thing, spa_t *spa)
+ 			if (c != ZIO_COMPRESS_FUNCTIONS)
+ 				break;
+ 		}
+-
+-		umem_free(pbuf2, SPA_MAXBLOCKSIZE);
+ 		umem_free(lbuf2, SPA_MAXBLOCKSIZE);
+ 
+-		if (lsize <= psize) {
++		if (lsize > SPA_MAXBLOCKSIZE) {
+ 			(void) printf("Decompress of %s failed\n", thing);
+ 			goto out;
+ 		}
+diff --git a/man/man8/zdb.8 b/man/man8/zdb.8
+index 4e47de7be..d991aae4c 100644
+--- a/man/man8/zdb.8
++++ b/man/man8/zdb.8
+@@ -246,7 +246,9 @@ and, optionally,
+ .It Sy b Ar offset
+ Print block pointer
+ .It Sy d
+-Decompress the block
++Decompress the block. Set environment variable
++.Nm ZBD_NO_ZLE
++to skip zle when guessing.
+ .It Sy e
+ Byte swap the block
+ .It Sy g
+-- 
+2.14.2
+

@@ -1,0 +1,52 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Brian Behlendorf <behlendorf1@llnl.gov>
+Date: Mon, 5 Feb 2018 20:42:52 -0800
+Subject: [PATCH] Fix default libdir for Debian/Ubuntu
+MIME-Version: 1.0
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 8bit
+
+The distribution provided architecture specific RPM macro files
+for x86_64 and other architectures on Debian/Ubuntu specify the
+wrong default libdir install location.  When building deb packages
+override _lib with the correct location.
+
+Reviewed-by: Giuseppe Di Natale <dinatale2@llnl.gov>
+Reviewed-by: loli10K <ezomori.nozomu@gmail.com>
+Reviewed by: George Melikov <mail@gmelikov.ru>
+Signed-off-by: Brian Behlendorf <behlendorf1@llnl.gov>
+Closes #7083
+Closes #7101
+(cherry picked from commit f1dde3fb20eb27c05b57ad82e0905a587ced8ee8)
+Signed-off-by: Fabian Grünbichler <f.gruenbichler@proxmox.com>
+---
+ config/zfs-build.m4 | 13 +++++++++++++
+ 1 file changed, 13 insertions(+)
+
+diff --git a/config/zfs-build.m4 b/config/zfs-build.m4
+index 5eaa49c87..7c19cecd6 100644
+--- a/config/zfs-build.m4
++++ b/config/zfs-build.m4
+@@ -164,6 +164,19 @@ AC_DEFUN([ZFS_AC_RPM], [
+ 	RPM_DEFINE_KMOD='--define "kernels $(LINUX_VERSION)" --define "require_spldir $(SPL)" --define "require_splobj $(SPL_OBJ)" --define "ksrc $(LINUX)" --define "kobj $(LINUX_OBJ)"'
+ 	RPM_DEFINE_DKMS=
+ 
++	dnl # Override default lib directory on Debian/Ubuntu systems.  The provided
++	dnl # /usr/lib/rpm/platform/<arch>/macros files do not specify the correct
++	dnl # path for multiarch systems as described by the packaging guidelines.
++	dnl #
++	dnl # https://wiki.ubuntu.com/MultiarchSpec
++	dnl # https://wiki.debian.org/Multiarch/Implementation
++	dnl #
++	AS_IF([test "$DEFAULT_PACKAGE" = "deb"], [
++		MULTIARCH_LIBDIR="lib/$(dpkg-architecture -qDEB_HOST_MULTIARCH)"
++		RPM_DEFINE_UTIL+=' --define "_lib $(MULTIARCH_LIBDIR)"'
++		AC_SUBST(MULTIARCH_LIBDIR)
++	])
++
+ 	SRPM_DEFINE_COMMON='--define "build_src_rpm 1"'
+ 	SRPM_DEFINE_UTIL=
+ 	SRPM_DEFINE_KMOD=
+-- 
+2.14.2
+

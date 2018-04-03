@@ -1,0 +1,56 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: sanjeevbagewadi <sanjeev.bagewadi@gmail.com>
+Date: Tue, 13 Feb 2018 01:00:38 +0530
+Subject: [PATCH] mmp should use a fixed tag for spa_config locks
+MIME-Version: 1.0
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 8bit
+
+mmp_write_uberblock() and mmp_write_done() should the same tag
+for spa_config_locks.
+
+Reviewed-by: Olaf Faaland <faaland1@llnl.gov>
+Reviewed-by: Giuseppe Di Natale <dinatale2@llnl.gov>
+Reviewed by: Brian Behlendorf <behlendorf1@llnl.gov>
+Signed-off-by: Sanjeev Bagewadi <sanjeev.bagewadi@gmail.com>
+Closes #6530
+Closes #7155
+(cherry picked from commit d85011ed696b41f4de963f7932dfb53ea871278b)
+Signed-off-by: Fabian Grünbichler <f.gruenbichler@proxmox.com>
+---
+ module/zfs/mmp.c | 5 +++--
+ 1 file changed, 3 insertions(+), 2 deletions(-)
+
+diff --git a/module/zfs/mmp.c b/module/zfs/mmp.c
+index e91ae628a..1dfb7c05b 100644
+--- a/module/zfs/mmp.c
++++ b/module/zfs/mmp.c
+@@ -125,6 +125,7 @@ uint_t zfs_multihost_import_intervals = MMP_DEFAULT_IMPORT_INTERVALS;
+ uint_t zfs_multihost_fail_intervals = MMP_DEFAULT_FAIL_INTERVALS;
+ 
+ static void mmp_thread(spa_t *spa);
++char *mmp_tag = "mmp_write_uberblock";
+ 
+ void
+ mmp_init(spa_t *spa)
+@@ -278,7 +279,7 @@ mmp_write_done(zio_t *zio)
+ 
+ unlock:
+ 	mutex_exit(&mts->mmp_io_lock);
+-	spa_config_exit(spa, SCL_STATE, FTAG);
++	spa_config_exit(spa, SCL_STATE, mmp_tag);
+ 
+ 	abd_free(zio->io_abd);
+ }
+@@ -314,7 +315,7 @@ mmp_write_uberblock(spa_t *spa)
+ 	int label;
+ 	uint64_t offset;
+ 
+-	spa_config_enter(spa, SCL_STATE, FTAG, RW_READER);
++	spa_config_enter(spa, SCL_STATE, mmp_tag, RW_READER);
+ 	vd = mmp_random_leaf(spa->spa_root_vdev);
+ 	if (vd == NULL) {
+ 		spa_config_exit(spa, SCL_STATE, FTAG);
+-- 
+2.14.2
+

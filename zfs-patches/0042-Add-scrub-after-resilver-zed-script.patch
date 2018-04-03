@@ -1,0 +1,516 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Tony Hutter <hutter2@llnl.gov>
+Date: Fri, 23 Feb 2018 11:38:05 -0800
+Subject: [PATCH] Add scrub after resilver zed script
+MIME-Version: 1.0
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 8bit
+
+* Add a zed script to kick off a scrub after a resilver.  The script is
+disabled by default.
+
+* Add a optional $PATH (-P) option to zed to allow it to use a custom
+$PATH for its zedlets.  This is needed when you're running zed under
+the ZTS in a local workspace.
+
+* Update test scripts to not copy in all-debug.sh and all-syslog.sh by
+default.  They can be optionally copied in as part of zed_setup().
+These scripts slow down zed considerably under heavy events loads and
+can cause events to be dropped or their delivery delayed. This was
+causing some sporadic failures in the 'fault' tests.
+
+Reviewed-by: Brian Behlendorf <behlendorf1@llnl.gov>
+Reviewed-by: Richard Laager <rlaager@wiktel.com>
+Signed-off-by: Tony Hutter <hutter2@llnl.gov>
+Closes #4662
+Closes #7086
+(cherry picked from commit 99920d823e8e1510a0ad133c985bd2aa11a02834)
+Signed-off-by: Fabian Grünbichler <f.gruenbichler@proxmox.com>
+---
+ cmd/zed/Makefile.am                                |  6 +-
+ tests/zfs-tests/tests/functional/fault/Makefile.am |  3 +-
+ cmd/zed/zed_conf.h                                 |  1 +
+ man/man8/zed.8.in                                  | 10 +++-
+ cmd/zed/zed_conf.c                                 |  7 ++-
+ cmd/zed/zed_event.c                                | 34 +++++++++--
+ cmd/zed/zed.d/resilver_finish-start-scrub.sh       | 17 ++++++
+ cmd/zed/zed.d/zed.rc                               |  3 +
+ tests/runfiles/linux.run                           |  2 +-
+ tests/zfs-tests/include/commands.cfg               |  1 +
+ tests/zfs-tests/include/libtest.shlib              | 50 ++++++++++++++---
+ .../zfs-tests/tests/functional/events/cleanup.ksh  |  2 +-
+ tests/zfs-tests/tests/functional/events/setup.ksh  |  2 +-
+ tests/zfs-tests/tests/functional/fault/cleanup.ksh |  2 +-
+ .../functional/fault/scrub_after_resilver.ksh      | 65 ++++++++++++++++++++++
+ tests/zfs-tests/tests/functional/fault/setup.ksh   |  2 +-
+ 16 files changed, 186 insertions(+), 21 deletions(-)
+ create mode 100755 cmd/zed/zed.d/resilver_finish-start-scrub.sh
+ create mode 100755 tests/zfs-tests/tests/functional/fault/scrub_after_resilver.ksh
+
+diff --git a/cmd/zed/Makefile.am b/cmd/zed/Makefile.am
+index 97733a512..ee44898cd 100644
+--- a/cmd/zed/Makefile.am
++++ b/cmd/zed/Makefile.am
+@@ -69,7 +69,8 @@ dist_zedexec_SCRIPTS = \
+ 	zed.d/statechange-notify.sh \
+ 	zed.d/vdev_clear-led.sh \
+ 	zed.d/vdev_attach-led.sh \
+-	zed.d/pool_import-led.sh
++	zed.d/pool_import-led.sh \
++	zed.d/resilver_finish-start-scrub.sh
+ 
+ zedconfdefaults = \
+ 	all-syslog.sh \
+@@ -80,7 +81,8 @@ zedconfdefaults = \
+ 	statechange-notify.sh \
+ 	vdev_clear-led.sh \
+ 	vdev_attach-led.sh \
+-	pool_import-led.sh
++	pool_import-led.sh \
++	resilver_finish-start-scrub.sh
+ 
+ install-data-hook:
+ 	$(MKDIR_P) "$(DESTDIR)$(zedconfdir)"
+diff --git a/tests/zfs-tests/tests/functional/fault/Makefile.am b/tests/zfs-tests/tests/functional/fault/Makefile.am
+index eeff31261..abe28501d 100644
+--- a/tests/zfs-tests/tests/functional/fault/Makefile.am
++++ b/tests/zfs-tests/tests/functional/fault/Makefile.am
+@@ -4,4 +4,5 @@ dist_pkgdata_SCRIPTS = \
+ 	setup.ksh \
+ 	cleanup.ksh \
+ 	auto_online_001_pos.ksh \
+-	auto_replace_001_pos.ksh
++	auto_replace_001_pos.ksh \
++	scrub_after_resilver.ksh
+diff --git a/cmd/zed/zed_conf.h b/cmd/zed/zed_conf.h
+index 2bc634134..7d6b63b1d 100644
+--- a/cmd/zed/zed_conf.h
++++ b/cmd/zed/zed_conf.h
+@@ -37,6 +37,7 @@ struct zed_conf {
+ 	int		state_fd;		/* fd to state file */
+ 	libzfs_handle_t	*zfs_hdl;		/* handle to libzfs */
+ 	int		zevent_fd;		/* fd for access to zevents */
++	char		*path;		/* custom $PATH for zedlets to use */
+ };
+ 
+ struct zed_conf *zed_conf_create(void);
+diff --git a/man/man8/zed.8.in b/man/man8/zed.8.in
+index 2ab088d98..645e91795 100644
+--- a/man/man8/zed.8.in
++++ b/man/man8/zed.8.in
+@@ -27,6 +27,7 @@ ZED \- ZFS Event Daemon
+ [\fB\-L\fR]
+ [\fB\-M\fR]
+ [\fB\-p\fR \fIpidfile\fR]
++[\fB\-P\fR \fIpath\fR]
+ [\fB\-s\fR \fIstatefile\fR]
+ [\fB\-v\fR]
+ [\fB\-V\fR]
+@@ -78,9 +79,16 @@ Read the enabled ZEDLETs from the specified directory.
+ .BI \-p\  pidfile
+ Write the daemon's process ID to the specified file.
+ .TP
++.BI \-P\  path
++Custom $PATH for zedlets to use.  Normally zedlets run in a locked-down
++environment, with hardcoded paths to the ZFS commands ($ZFS, $ZPOOL, $ZED, ...),
++and a hardcoded $PATH.  This is done for security reasons.  However, the
++ZFS test suite uses a custom PATH for its ZFS commands, and passes it to zed
++with -P.  In short, -P is only to be used by the ZFS test suite; never use
++it in production!
++.TP
+ .BI \-s\  statefile
+ Write the daemon's state to the specified file.
+-
+ .SH ZEVENTS
+ .PP
+ A zevent is comprised of a list of nvpairs (name/value pairs).  Each zevent
+diff --git a/cmd/zed/zed_conf.c b/cmd/zed/zed_conf.c
+index 5b27f1e4f..86671369c 100644
+--- a/cmd/zed/zed_conf.c
++++ b/cmd/zed/zed_conf.c
+@@ -155,6 +155,8 @@ _zed_conf_display_help(const char *prog, int got_err)
+ 	    "Run daemon in the foreground.");
+ 	fprintf(fp, "%*c%*s %s\n", w1, 0x20, -w2, "-M",
+ 	    "Lock all pages in memory.");
++	fprintf(fp, "%*c%*s %s\n", w1, 0x20, -w2, "-P",
++	    "$PATH for ZED to use (only used by ZTS).");
+ 	fprintf(fp, "%*c%*s %s\n", w1, 0x20, -w2, "-Z",
+ 	    "Zero state file.");
+ 	fprintf(fp, "\n");
+@@ -247,7 +249,7 @@ _zed_conf_parse_path(char **resultp, const char *path)
+ void
+ zed_conf_parse_opts(struct zed_conf *zcp, int argc, char **argv)
+ {
+-	const char * const opts = ":hLVc:d:p:s:vfFMZ";
++	const char * const opts = ":hLVc:d:p:P:s:vfFMZ";
+ 	int opt;
+ 
+ 	if (!zcp || !argv || !argv[0])
+@@ -275,6 +277,9 @@ zed_conf_parse_opts(struct zed_conf *zcp, int argc, char **argv)
+ 		case 'p':
+ 			_zed_conf_parse_path(&zcp->pid_file, optarg);
+ 			break;
++		case 'P':
++			_zed_conf_parse_path(&zcp->path, optarg);
++			break;
+ 		case 's':
+ 			_zed_conf_parse_path(&zcp->state_file, optarg);
+ 			break;
+diff --git a/cmd/zed/zed_event.c b/cmd/zed/zed_event.c
+index 390235019..2a7ff16fd 100644
+--- a/cmd/zed/zed_event.c
++++ b/cmd/zed/zed_event.c
+@@ -733,12 +733,14 @@ _zed_event_add_nvpair(uint64_t eid, zed_strings_t *zsp, nvpair_t *nvp)
+ 
+ /*
+  * Restrict various environment variables to safe and sane values
+- * when constructing the environment for the child process.
++ * when constructing the environment for the child process, unless
++ * we're running with a custom $PATH (like under the ZFS test suite).
+  *
+  * Reference: Secure Programming Cookbook by Viega & Messier, Section 1.1.
+  */
+ static void
+-_zed_event_add_env_restrict(uint64_t eid, zed_strings_t *zsp)
++_zed_event_add_env_restrict(uint64_t eid, zed_strings_t *zsp,
++    const char *path)
+ {
+ 	const char *env_restrict[][2] = {
+ 		{ "IFS",		" \t\n" },
+@@ -753,11 +755,35 @@ _zed_event_add_env_restrict(uint64_t eid, zed_strings_t *zsp)
+ 		{ "ZFS_RELEASE",	ZFS_META_RELEASE },
+ 		{ NULL,			NULL }
+ 	};
++
++	/*
++	 * If we have a custom $PATH, use the default ZFS binary locations
++	 * instead of the hard-coded ones.
++	 */
++	const char *env_path[][2] = {
++		{ "IFS",		" \t\n" },
++		{ "PATH",		NULL }, /* $PATH copied in later on */
++		{ "ZDB",		"zdb" },
++		{ "ZED",		"zed" },
++		{ "ZFS",		"zfs" },
++		{ "ZINJECT",		"zinject" },
++		{ "ZPOOL",		"zpool" },
++		{ "ZFS_ALIAS",		ZFS_META_ALIAS },
++		{ "ZFS_VERSION",	ZFS_META_VERSION },
++		{ "ZFS_RELEASE",	ZFS_META_RELEASE },
++		{ NULL,			NULL }
++	};
+ 	const char *(*pa)[2];
+ 
+ 	assert(zsp != NULL);
+ 
+-	for (pa = env_restrict; *(*pa); pa++) {
++	pa = path != NULL ? env_path : env_restrict;
++
++	for (; *(*pa); pa++) {
++		/* Use our custom $PATH if we have one */
++		if (path != NULL && strcmp((*pa)[0], "PATH") == 0)
++			(*pa)[1] = path;
++
+ 		_zed_event_add_var(eid, zsp, NULL, (*pa)[0], "%s", (*pa)[1]);
+ 	}
+ }
+@@ -902,7 +928,7 @@ zed_event_service(struct zed_conf *zcp)
+ 		while ((nvp = nvlist_next_nvpair(nvl, nvp)))
+ 			_zed_event_add_nvpair(eid, zsp, nvp);
+ 
+-		_zed_event_add_env_restrict(eid, zsp);
++		_zed_event_add_env_restrict(eid, zsp, zcp->path);
+ 		_zed_event_add_env_preserve(eid, zsp);
+ 
+ 		_zed_event_add_var(eid, zsp, ZED_VAR_PREFIX, "PID",
+diff --git a/cmd/zed/zed.d/resilver_finish-start-scrub.sh b/cmd/zed/zed.d/resilver_finish-start-scrub.sh
+new file mode 100755
+index 000000000..6f9c0b309
+--- /dev/null
++++ b/cmd/zed/zed.d/resilver_finish-start-scrub.sh
+@@ -0,0 +1,17 @@
++#!/bin/sh
++# resilver_finish-start-scrub.sh
++# Run a scrub after a resilver
++#
++# Exit codes:
++# 1: Internal error
++# 2: Script wasn't enabled in zed.rc
++[ -f "${ZED_ZEDLET_DIR}/zed.rc" ] && . "${ZED_ZEDLET_DIR}/zed.rc"
++. "${ZED_ZEDLET_DIR}/zed-functions.sh"
++
++[ "${ZED_SCRUB_AFTER_RESILVER}" = "1" ] || exit 2
++[ -n "${ZEVENT_POOL}" ] || exit 1
++[ -n "${ZEVENT_SUBCLASS}" ] || exit 1
++zed_check_cmd "${ZPOOL}" || exit 1
++
++zed_log_msg "Starting scrub after resilver on ${ZEVENT_POOL}"
++"${ZPOOL}" scrub "${ZEVENT_POOL}"
+diff --git a/cmd/zed/zed.d/zed.rc b/cmd/zed/zed.d/zed.rc
+index a1dd33704..8b0e476d5 100644
+--- a/cmd/zed/zed.d/zed.rc
++++ b/cmd/zed/zed.d/zed.rc
+@@ -86,6 +86,9 @@
+ #
+ ZED_USE_ENCLOSURE_LEDS=1
+ 
++##
++# Run a scrub after every resilver
++#ZED_SCRUB_AFTER_RESILVER=1
+ 
+ ##
+ # The syslog priority (e.g., specified as a "facility.level" pair).
+diff --git a/tests/runfiles/linux.run b/tests/runfiles/linux.run
+index 8be3e1c62..89c923db1 100644
+--- a/tests/runfiles/linux.run
++++ b/tests/runfiles/linux.run
+@@ -421,7 +421,7 @@ tests = ['exec_001_pos', 'exec_002_neg']
+ tags = ['functional', 'exec']
+ 
+ [tests/functional/fault]
+-tests = ['auto_online_001_pos', 'auto_replace_001_pos']
++tests = ['auto_online_001_pos', 'auto_replace_001_pos', 'scrub_after_resilver']
+ tags = ['functional', 'fault']
+ 
+ [tests/functional/features/async_destroy]
+diff --git a/tests/zfs-tests/include/commands.cfg b/tests/zfs-tests/include/commands.cfg
+index f6fd239de..936e54c1a 100644
+--- a/tests/zfs-tests/include/commands.cfg
++++ b/tests/zfs-tests/include/commands.cfg
+@@ -83,6 +83,7 @@ export SYSTEM_FILES='arp
+     pgrep
+     ping
+     pkill
++    printenv
+     printf
+     ps
+     pwd
+diff --git a/tests/zfs-tests/include/libtest.shlib b/tests/zfs-tests/include/libtest.shlib
+index 86f172a6d..48fb5e7c5 100644
+--- a/tests/zfs-tests/include/libtest.shlib
++++ b/tests/zfs-tests/include/libtest.shlib
+@@ -3339,9 +3339,32 @@ function wait_replacing #pool
+ 	done
+ }
+ 
++#
++# Wait for a pool to be scrubbed
++#
++# $1 pool name
++# $2 number of seconds to wait (optional)
++#
++# Returns true when pool has been scrubbed, or false if there's a timeout or if
++# no scrub was done.
++#
++function wait_scrubbed
++{
++	typeset pool=${1:-$TESTPOOL}
++	typeset iter=${2:-10}
++	for i in {1..$iter} ; do
++		if is_pool_scrubbed $pool ; then
++			return 0
++		fi
++		sleep 1
++	done
++	return 1
++}
++
+ #
+ # Setup custom environment for the ZED.
+ #
++# $@ Optional list of zedlets to run under zed.
+ function zed_setup
+ {
+ 	if ! is_linux; then
+@@ -3359,6 +3382,7 @@ function zed_setup
+ 	if [[ -e $VDEVID_CONF_ETC ]]; then
+ 		log_fail "Must not have $VDEVID_CONF_ETC file present on system"
+ 	fi
++	EXTRA_ZEDLETS=$@
+ 
+ 	# Create a symlink for /etc/zfs/vdev_id.conf file.
+ 	log_must ln -s $VDEVID_CONF $VDEVID_CONF_ETC
+@@ -3368,32 +3392,44 @@ function zed_setup
+ 	log_must cp ${ZEDLET_ETC_DIR}/zed.rc $ZEDLET_DIR
+ 	log_must cp ${ZEDLET_ETC_DIR}/zed-functions.sh $ZEDLET_DIR
+ 
++	# Scripts must only be user writable.
++	if [[ -n "$EXTRA_ZEDLETS" ]] ; then
++		saved_umask=$(umask)
++		log_must umask 0022
++		for i in $EXTRA_ZEDLETS ; do
++			log_must cp ${ZEDLET_LIBEXEC_DIR}/$i $ZEDLET_DIR
++		done
++		log_must umask $saved_umask
++	fi
++
+ 	# Customize the zed.rc file to enable the full debug log.
+ 	log_must sed -i '/\#ZED_DEBUG_LOG=.*/d' $ZEDLET_DIR/zed.rc
+ 	echo "ZED_DEBUG_LOG=$ZED_DEBUG_LOG" >>$ZEDLET_DIR/zed.rc
+ 
+-	# Scripts must only be user writable.
+-	saved_umask=$(umask)
+-	log_must umask 0022
+-	log_must cp ${ZEDLET_LIBEXEC_DIR}/all-syslog.sh $ZEDLET_DIR
+-	log_must cp ${ZEDLET_LIBEXEC_DIR}/all-debug.sh $ZEDLET_DIR
+-	log_must umask $saved_umask
+ }
+ 
+ #
+ # Cleanup custom ZED environment.
+ #
++# $@ Optional list of zedlets to remove from our test zed.d directory.
+ function zed_cleanup
+ {
+ 	if ! is_linux; then
+ 		return
+ 	fi
++	EXTRA_ZEDLETS=$@
+ 
+ 	log_must rm -f ${ZEDLET_DIR}/zed.rc
+ 	log_must rm -f ${ZEDLET_DIR}/zed-functions.sh
+ 	log_must rm -f ${ZEDLET_DIR}/all-syslog.sh
+ 	log_must rm -f ${ZEDLET_DIR}/all-debug.sh
+ 	log_must rm -f ${ZEDLET_DIR}/state
++
++	if [[ -n "$EXTRA_ZEDLETS" ]] ; then
++		for i in $EXTRA_ZEDLETS ; do
++			log_must rm -f ${ZEDLET_DIR}/$i
++		done
++	fi
+ 	log_must rm -f $ZED_LOG
+ 	log_must rm -f $ZED_DEBUG_LOG
+ 	log_must rm -f $VDEVID_CONF_ETC
+@@ -3425,7 +3461,7 @@ function zed_start
+ 	# run ZED in the background and redirect foreground logging
+ 	# output to $ZED_LOG.
+ 	log_must truncate -s 0 $ZED_DEBUG_LOG
+-	log_must eval "zed -vF -d $ZEDLET_DIR -p $ZEDLET_DIR/zed.pid" \
++	log_must eval "zed -vF -d $ZEDLET_DIR -p $ZEDLET_DIR/zed.pid -P $PATH" \
+ 	    "-s $ZEDLET_DIR/state 2>$ZED_LOG &"
+ 
+ 	return 0
+diff --git a/tests/zfs-tests/tests/functional/events/cleanup.ksh b/tests/zfs-tests/tests/functional/events/cleanup.ksh
+index bc536e260..4905342b7 100755
+--- a/tests/zfs-tests/tests/functional/events/cleanup.ksh
++++ b/tests/zfs-tests/tests/functional/events/cleanup.ksh
+@@ -26,6 +26,6 @@
+ 
+ . $STF_SUITE/include/libtest.shlib
+ 
+-zed_cleanup
++zed_cleanup all-debug.sh all-syslog.sh
+ 
+ default_cleanup
+diff --git a/tests/zfs-tests/tests/functional/events/setup.ksh b/tests/zfs-tests/tests/functional/events/setup.ksh
+index 7113c1f39..2f81d16b1 100755
+--- a/tests/zfs-tests/tests/functional/events/setup.ksh
++++ b/tests/zfs-tests/tests/functional/events/setup.ksh
+@@ -28,6 +28,6 @@
+ 
+ DISK=${DISKS%% *}
+ 
+-zed_setup
++zed_setup all-debug.sh all-syslog.sh
+ 
+ default_setup $DISK
+diff --git a/tests/zfs-tests/tests/functional/fault/cleanup.ksh b/tests/zfs-tests/tests/functional/fault/cleanup.ksh
+index f39f05d6f..d3de742b3 100755
+--- a/tests/zfs-tests/tests/functional/fault/cleanup.ksh
++++ b/tests/zfs-tests/tests/functional/fault/cleanup.ksh
+@@ -31,7 +31,7 @@ verify_runnable "global"
+ cleanup_devices $DISKS
+ 
+ zed_stop
+-zed_cleanup
++zed_cleanup resilver_finish-start-scrub.sh
+ 
+ SD=$(lsscsi | nawk '/scsi_debug/ {print $6; exit}')
+ SDDEVICE=$(echo $SD | nawk -F / '{print $3}')
+diff --git a/tests/zfs-tests/tests/functional/fault/scrub_after_resilver.ksh b/tests/zfs-tests/tests/functional/fault/scrub_after_resilver.ksh
+new file mode 100755
+index 000000000..558cb065f
+--- /dev/null
++++ b/tests/zfs-tests/tests/functional/fault/scrub_after_resilver.ksh
+@@ -0,0 +1,65 @@
++#!/bin/ksh -p
++#
++# This file and its contents are supplied under the terms of the
++# Common Development and Distribution License ("CDDL"), version 1.0.
++# You may only use this file in accordance with the terms of version
++# 1.0 of the CDDL.
++#
++# A full copy of the text of the CDDL should have accompanied this
++# source.  A copy of the CDDL is also available via the Internet at
++# http://www.illumos.org/license/CDDL.
++#
++
++#
++# Copyright (c) 2018 by Lawrence Livermore National Security, LLC.
++# All rights reserved.
++#
++
++. $STF_SUITE/include/libtest.shlib
++. $STF_SUITE/tests/functional/fault/fault.cfg
++
++#
++# DESCRIPTION:
++# Test the scrub after resilver zedlet
++#
++# STRATEGY:
++# 1. Create a mirrored pool
++# 2. Fault a disk
++# 3. Replace the disk, starting a resilver
++# 4. Verify that a scrub happens after the resilver finishes
++#
++
++log_assert "Testing the scrub after resilver zedlet"
++
++# Backup our zed.rc
++zedrc_backup="$(mktemp)"
++log_must cp $ZEDLET_DIR/zed.rc $zedrc_backup
++
++# Enable ZED_SCRUB_AFTER_RESILVER
++eval "sed -i 's/\#ZED_SCRUB_AFTER_RESILVER/ZED_SCRUB_AFTER_RESILVER/g' $ZEDLET_DIR/zed.rc"
++
++function cleanup
++{
++	# Restore our zed.rc
++	log_must mv $zedrc_backup $ZEDLET_DIR/zed.rc
++	default_cleanup_noexit
++}
++
++log_onexit cleanup
++
++verify_disk_count "$DISKS" 3
++default_mirror_setup_noexit $DISK1 $DISK2
++
++log_must zpool offline -f $TESTPOOL $DISK1
++
++# Write to our degraded pool so we have some data to resilver
++log_must mkfile 16M $TESTDIR/file1
++
++# Replace the failed disks, forcing a resilver
++log_must zpool replace $TESTPOOL $DISK1 $DISK3
++
++# Wait for the resilver to finish, and then the subsequent scrub to finish.
++# Waiting for the scrub has the effect of waiting for both.  Timeout after 10
++# seconds if nothing is happening.
++log_must wait_scrubbed $TESTPOOL 10
++log_pass "Successfully ran the scrub after resilver zedlet"
+diff --git a/tests/zfs-tests/tests/functional/fault/setup.ksh b/tests/zfs-tests/tests/functional/fault/setup.ksh
+index 3d54d4f21..484bc4587 100755
+--- a/tests/zfs-tests/tests/functional/fault/setup.ksh
++++ b/tests/zfs-tests/tests/functional/fault/setup.ksh
+@@ -28,7 +28,7 @@
+ 
+ verify_runnable "global"
+ 
+-zed_setup
++zed_setup resilver_finish-start-scrub.sh
+ zed_start
+ 
+ # Create a scsi_debug device to be used with auto-online (if using loop devices)
+-- 
+2.14.2
+

@@ -1,0 +1,275 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: John Eismeier <32205350+jeis2497052@users.noreply.github.com>
+Date: Wed, 28 Feb 2018 11:57:10 -0500
+Subject: [PATCH] Fix some typos
+MIME-Version: 1.0
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 8bit
+
+Reviewed-by: Giuseppe Di Natale <dinatale2@llnl.gov>
+Reviewed-by: Brian Behlendorf <behlendorf1@llnl.gov>
+Reviewed by: George Melikov <mail@gmelikov.ru>
+Signed-off-by: John Eismeier <john.eismeier@gmail.com>
+Closes #7237
+(cherry picked from commit 33bb1e82568a9734cc3f41d3e1d33003ebf0e123)
+Signed-off-by: Fabian Grünbichler <f.gruenbichler@proxmox.com>
+---
+ cmd/arcstat/arcstat.py                                           | 4 ++--
+ cmd/dbufstat/dbufstat.py                                         | 4 ++--
+ contrib/initramfs/scripts/zfs                                    | 2 +-
+ man/man8/zpool.8                                                 | 2 +-
+ tests/zfs-tests/tests/functional/migration/migration_001_pos.ksh | 4 ++--
+ tests/zfs-tests/tests/functional/migration/migration_002_pos.ksh | 4 ++--
+ tests/zfs-tests/tests/functional/migration/migration_003_pos.ksh | 4 ++--
+ tests/zfs-tests/tests/functional/migration/migration_004_pos.ksh | 4 ++--
+ tests/zfs-tests/tests/functional/migration/migration_005_pos.ksh | 4 ++--
+ tests/zfs-tests/tests/functional/migration/migration_006_pos.ksh | 4 ++--
+ tests/zfs-tests/tests/functional/migration/migration_007_pos.ksh | 4 ++--
+ tests/zfs-tests/tests/functional/migration/migration_008_pos.ksh | 4 ++--
+ tests/zfs-tests/tests/functional/migration/migration_009_pos.ksh | 4 ++--
+ tests/zfs-tests/tests/functional/migration/migration_010_pos.ksh | 4 ++--
+ tests/zfs-tests/tests/functional/migration/migration_011_pos.ksh | 4 ++--
+ tests/zfs-tests/tests/functional/migration/migration_012_pos.ksh | 4 ++--
+ 16 files changed, 30 insertions(+), 30 deletions(-)
+
+diff --git a/cmd/arcstat/arcstat.py b/cmd/arcstat/arcstat.py
+index aa54ee87a..85c83ccc4 100755
+--- a/cmd/arcstat/arcstat.py
++++ b/cmd/arcstat/arcstat.py
+@@ -280,7 +280,7 @@ def init():
+                 "outfile",
+                 "help",
+                 "verbose",
+-                "seperator",
++                "separator",
+                 "columns"
+             ]
+         )
+@@ -299,7 +299,7 @@ def init():
+             hflag = True
+         if opt in ('-v', '--verbose'):
+             vflag = True
+-        if opt in ('-s', '--seperator'):
++        if opt in ('-s', '--separator'):
+             sep = arg
+             i += 1
+         if opt in ('-f', '--columns'):
+diff --git a/cmd/dbufstat/dbufstat.py b/cmd/dbufstat/dbufstat.py
+index dda0a143f..42bb0c7c7 100755
+--- a/cmd/dbufstat/dbufstat.py
++++ b/cmd/dbufstat/dbufstat.py
+@@ -474,7 +474,7 @@ def main():
+                 "help",
+                 "infile",
+                 "outfile",
+-                "seperator",
++                "separator",
+                 "types",
+                 "verbose",
+                 "extended"
+@@ -499,7 +499,7 @@ def main():
+             ofile = arg
+         if opt in ('-r', '--raw'):
+             raw += 1
+-        if opt in ('-s', '--seperator'):
++        if opt in ('-s', '--separator'):
+             sep = arg
+         if opt in ('-t', '--types'):
+             tflag = True
+diff --git a/contrib/initramfs/scripts/zfs b/contrib/initramfs/scripts/zfs
+index 8770a2e8e..86329e764 100644
+--- a/contrib/initramfs/scripts/zfs
++++ b/contrib/initramfs/scripts/zfs
+@@ -478,7 +478,7 @@ destroy_fs()
+ 		echo "Message: $ZFS_STDERR"
+ 		echo "Error: $ZFS_ERROR"
+ 		echo ""
+-		echo "Failed to destroy '$fs'. Please make sure that '$fs' is not availible."
++		echo "Failed to destroy '$fs'. Please make sure that '$fs' is not available."
+ 		echo "Hint: Try:  zfs destroy -Rfn $fs"
+ 		echo "If this dryrun looks good, then remove the 'n' from '-Rfn' and try again."
+ 		/bin/sh
+diff --git a/man/man8/zpool.8 b/man/man8/zpool.8
+index 7c99f5868..6d7c2271c 100644
+--- a/man/man8/zpool.8
++++ b/man/man8/zpool.8
+@@ -733,7 +733,7 @@ man page.  In order to enable this property each host must set a unique hostid.
+ See
+ .Xr genhostid 1
+ .Xr zgenhostid 8
+-.Xr spl-module-paramters 5
++.Xr spl-module-parameters 5
+ for additional details.  The default value is
+ .Sy off .
+ .It Sy version Ns = Ns Ar version
+diff --git a/tests/zfs-tests/tests/functional/migration/migration_001_pos.ksh b/tests/zfs-tests/tests/functional/migration/migration_001_pos.ksh
+index 4d5fbb9ff..875d2f7c7 100755
+--- a/tests/zfs-tests/tests/functional/migration/migration_001_pos.ksh
++++ b/tests/zfs-tests/tests/functional/migration/migration_001_pos.ksh
+@@ -60,7 +60,7 @@ prepare $DNAME "tar cf $TESTDIR/tar$$.tar $BNAME"
+ (( $? != 0 )) && log_fail "Unable to create src archive"
+ 
+ migrate $TESTDIR $SUMA $SUMB "tar xf $TESTDIR/tar$$.tar"
+-(( $? != 0 )) && log_fail "Uable to successfully migrate test file from" \
++(( $? != 0 )) && log_fail "Unable to successfully migrate test file from" \
+     "ZFS fs to ZFS fs"
+ 
+-log_pass "Successully migrated test file from ZFS fs to ZFS fs".
++log_pass "Successfully migrated test file from ZFS fs to ZFS fs".
+diff --git a/tests/zfs-tests/tests/functional/migration/migration_002_pos.ksh b/tests/zfs-tests/tests/functional/migration/migration_002_pos.ksh
+index e0655248d..6b97e2a40 100755
+--- a/tests/zfs-tests/tests/functional/migration/migration_002_pos.ksh
++++ b/tests/zfs-tests/tests/functional/migration/migration_002_pos.ksh
+@@ -60,7 +60,7 @@ prepare $DNAME "tar cf $TESTDIR/tar$$.tar $BNAME"
+ (( $? != 0 )) && log_fail "Unable to create src archive"
+ 
+ migrate $NONZFS_TESTDIR $SUMA $SUMB "tar xf $TESTDIR/tar$$.tar"
+-(( $? != 0 )) && log_fail "Uable to successfully migrate test file from" \
++(( $? != 0 )) && log_fail "Unable to successfully migrate test file from" \
+     "ZFS fs to UFS fs"
+ 
+-log_pass "Successully migrated test file from ZFS fs to UFS fs".
++log_pass "Successfully migrated test file from ZFS fs to UFS fs".
+diff --git a/tests/zfs-tests/tests/functional/migration/migration_003_pos.ksh b/tests/zfs-tests/tests/functional/migration/migration_003_pos.ksh
+index 904a2b1a0..dd0baeaa9 100755
+--- a/tests/zfs-tests/tests/functional/migration/migration_003_pos.ksh
++++ b/tests/zfs-tests/tests/functional/migration/migration_003_pos.ksh
+@@ -60,7 +60,7 @@ prepare $DNAME "tar cf $NONZFS_TESTDIR/tar$$.tar $BNAME"
+ (( $? != 0 )) && log_fail "Unable to create src archive"
+ 
+ migrate $TESTDIR $SUMA $SUMB "tar xvf $NONZFS_TESTDIR/tar$$.tar"
+-(( $? != 0 )) && log_fail "Uable to successfully migrate test file from" \
++(( $? != 0 )) && log_fail "Unable to successfully migrate test file from" \
+     "UFS fs to ZFS fs"
+ 
+-log_pass "Successully migrated test file from UFS fs to ZFS fs".
++log_pass "Successfully migrated test file from UFS fs to ZFS fs".
+diff --git a/tests/zfs-tests/tests/functional/migration/migration_004_pos.ksh b/tests/zfs-tests/tests/functional/migration/migration_004_pos.ksh
+index 6d33dd5b3..00a6cc172 100755
+--- a/tests/zfs-tests/tests/functional/migration/migration_004_pos.ksh
++++ b/tests/zfs-tests/tests/functional/migration/migration_004_pos.ksh
+@@ -67,7 +67,7 @@ cd $cwd
+ (( $? != 0 )) && log_untested "Could not change directory to $cwd"
+ 
+ migrate_cpio $TESTDIR "$TESTDIR/cpio$$.cpio" $SUMA $SUMB
+-(( $? != 0 )) && log_fail "Uable to successfully migrate test file from" \
++(( $? != 0 )) && log_fail "Unable to successfully migrate test file from" \
+     "ZFS fs to ZFS fs"
+ 
+-log_pass "Successully migrated test file from ZFS fs to ZFS fs".
++log_pass "Successfully migrated test file from ZFS fs to ZFS fs".
+diff --git a/tests/zfs-tests/tests/functional/migration/migration_005_pos.ksh b/tests/zfs-tests/tests/functional/migration/migration_005_pos.ksh
+index a41b19b5f..4386596f7 100755
+--- a/tests/zfs-tests/tests/functional/migration/migration_005_pos.ksh
++++ b/tests/zfs-tests/tests/functional/migration/migration_005_pos.ksh
+@@ -67,7 +67,7 @@ cd $cwd
+ (( $? != 0 )) && log_untested "Could not change directory to $cwd"
+ 
+ migrate_cpio $NONZFS_TESTDIR "$TESTDIR/cpio$$.cpio" $SUMA $SUMB
+-(( $? != 0 )) && log_fail "Uable to successfully migrate test file from" \
++(( $? != 0 )) && log_fail "Unable to successfully migrate test file from" \
+     "ZFS fs to UFS fs"
+ 
+-log_pass "Successully migrated test file from ZFS fs to UFS fs".
++log_pass "Successfully migrated test file from ZFS fs to UFS fs".
+diff --git a/tests/zfs-tests/tests/functional/migration/migration_006_pos.ksh b/tests/zfs-tests/tests/functional/migration/migration_006_pos.ksh
+index 5b444421a..9b5c9166e 100755
+--- a/tests/zfs-tests/tests/functional/migration/migration_006_pos.ksh
++++ b/tests/zfs-tests/tests/functional/migration/migration_006_pos.ksh
+@@ -67,7 +67,7 @@ cd $cwd
+ (( $? != 0 )) && log_untested "Could not change directory to $cwd"
+ 
+ migrate_cpio $TESTDIR "$NONZFS_TESTDIR/cpio$$.cpio" $SUMA $SUMB
+-(( $? != 0 )) && log_fail "Uable to successfully migrate test file from" \
++(( $? != 0 )) && log_fail "Unable to successfully migrate test file from" \
+     "ZFS fs to ZFS fs"
+ 
+-log_pass "Successully migrated test file from UFS fs to ZFS fs".
++log_pass "Successfully migrated test file from UFS fs to ZFS fs".
+diff --git a/tests/zfs-tests/tests/functional/migration/migration_007_pos.ksh b/tests/zfs-tests/tests/functional/migration/migration_007_pos.ksh
+index c3197052c..0d136550f 100755
+--- a/tests/zfs-tests/tests/functional/migration/migration_007_pos.ksh
++++ b/tests/zfs-tests/tests/functional/migration/migration_007_pos.ksh
+@@ -60,7 +60,7 @@ prepare $DNAME "dd if=$BNAME obs=128k of=$TESTDIR/dd$$.dd"
+ (( $? != 0 )) && log_fail "Unable to create src archive"
+ 
+ migrate $TESTDIR $SUMA $SUMB "dd if=$TESTDIR/dd$$.dd obs=128k of=$BNAME"
+-(( $? != 0 )) && log_fail "Uable to successfully migrate test file from" \
++(( $? != 0 )) && log_fail "Unable to successfully migrate test file from" \
+     "ZFS fs to ZFS fs"
+ 
+-log_pass "Successully migrated test file from ZFS fs to ZFS fs".
++log_pass "Successfully migrated test file from ZFS fs to ZFS fs".
+diff --git a/tests/zfs-tests/tests/functional/migration/migration_008_pos.ksh b/tests/zfs-tests/tests/functional/migration/migration_008_pos.ksh
+index 2e51eef36..f62b1f33a 100755
+--- a/tests/zfs-tests/tests/functional/migration/migration_008_pos.ksh
++++ b/tests/zfs-tests/tests/functional/migration/migration_008_pos.ksh
+@@ -60,7 +60,7 @@ prepare $DNAME "dd if=$BNAME obs=128k of=$TESTDIR/dd$$.dd"
+ (( $? != 0 )) && log_fail "Unable to create src archive"
+ 
+ migrate $NONZFS_TESTDIR $SUMA $SUMB "dd if=$TESTDIR/dd$$.dd obs=128k of=$BNAME"
+-(( $? != 0 )) && log_fail "Uable to successfully migrate test file from" \
++(( $? != 0 )) && log_fail "Unable to successfully migrate test file from" \
+     "ZFS fs to ZFS fs"
+ 
+-log_pass "Successully migrated test file from ZFS fs to UFS fs".
++log_pass "Successfully migrated test file from ZFS fs to UFS fs".
+diff --git a/tests/zfs-tests/tests/functional/migration/migration_009_pos.ksh b/tests/zfs-tests/tests/functional/migration/migration_009_pos.ksh
+index 7749494e5..907be39eb 100755
+--- a/tests/zfs-tests/tests/functional/migration/migration_009_pos.ksh
++++ b/tests/zfs-tests/tests/functional/migration/migration_009_pos.ksh
+@@ -60,7 +60,7 @@ prepare $DNAME "dd if=$BNAME obs=128k of=$NONZFS_TESTDIR/dd$$.dd"
+ (( $? != 0 )) && log_fail "Unable to create src archive"
+ 
+ migrate $TESTDIR $SUMA $SUMB "dd if=$NONZFS_TESTDIR/dd$$.dd obs=128k of=$BNAME"
+-(( $? != 0 )) && log_fail "Uable to successfully migrate test file from" \
++(( $? != 0 )) && log_fail "Unable to successfully migrate test file from" \
+     "ZFS fs to ZFS fs"
+ 
+-log_pass "Successully migrated test file from UFS fs to ZFS fs".
++log_pass "Successfully migrated test file from UFS fs to ZFS fs".
+diff --git a/tests/zfs-tests/tests/functional/migration/migration_010_pos.ksh b/tests/zfs-tests/tests/functional/migration/migration_010_pos.ksh
+index a11ab72df..e80dd67cd 100755
+--- a/tests/zfs-tests/tests/functional/migration/migration_010_pos.ksh
++++ b/tests/zfs-tests/tests/functional/migration/migration_010_pos.ksh
+@@ -60,7 +60,7 @@ prepare $DNAME "cp $BNAME $TESTDIR/cp$$.cp"
+ (( $? != 0 )) && log_fail "Unable to create src archive"
+ 
+ migrate $TESTDIR $SUMA $SUMB "cp $TESTDIR/cp$$.cp $BNAME"
+-(( $? != 0 )) && log_fail "Uable to successfully migrate test file from" \
++(( $? != 0 )) && log_fail "Unable to successfully migrate test file from" \
+     "ZFS fs to ZFS fs"
+ 
+-log_pass "Successully migrated test file from ZFS fs to ZFS fs".
++log_pass "Successfully migrated test file from ZFS fs to ZFS fs".
+diff --git a/tests/zfs-tests/tests/functional/migration/migration_011_pos.ksh b/tests/zfs-tests/tests/functional/migration/migration_011_pos.ksh
+index 17e1c78f9..2d7ecb45e 100755
+--- a/tests/zfs-tests/tests/functional/migration/migration_011_pos.ksh
++++ b/tests/zfs-tests/tests/functional/migration/migration_011_pos.ksh
+@@ -60,7 +60,7 @@ prepare $DNAME "cp $BNAME $TESTDIR/cp$$.cp"
+ (( $? != 0 )) && log_fail "Unable to create src archive"
+ 
+ migrate $NONZFS_TESTDIR $SUMA $SUMB "cp $TESTDIR/cp$$.cp $BNAME"
+-(( $? != 0 )) && log_fail "Uable to successfully migrate test file from" \
++(( $? != 0 )) && log_fail "Unable to successfully migrate test file from" \
+     "ZFS fs to UFS fs"
+ 
+-log_pass "Successully migrated test file from ZFS fs to UFS fs".
++log_pass "Successfully migrated test file from ZFS fs to UFS fs".
+diff --git a/tests/zfs-tests/tests/functional/migration/migration_012_pos.ksh b/tests/zfs-tests/tests/functional/migration/migration_012_pos.ksh
+index 823dabeae..fd9c45491 100755
+--- a/tests/zfs-tests/tests/functional/migration/migration_012_pos.ksh
++++ b/tests/zfs-tests/tests/functional/migration/migration_012_pos.ksh
+@@ -60,7 +60,7 @@ prepare $DNAME "cp $BNAME $NONZFS_TESTDIR/cp$$.cp"
+ (( $? != 0 )) && log_fail "Unable to create src archive"
+ 
+ migrate $TESTDIR $SUMA $SUMB "cp $NONZFS_TESTDIR/cp$$.cp $BNAME"
+-(( $? != 0 )) && log_fail "Uable to successfully migrate test file from" \
++(( $? != 0 )) && log_fail "Unable to successfully migrate test file from" \
+     "UFS fs to ZFS fs"
+ 
+-log_pass "Successully migrated test file from UFS fs to ZFS fs".
++log_pass "Successfully migrated test file from UFS fs to ZFS fs".
+-- 
+2.14.2
+

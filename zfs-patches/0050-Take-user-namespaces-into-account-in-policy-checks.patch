@@ -1,0 +1,786 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Wolfgang Bumiller <Blub@users.noreply.github.com>
+Date: Thu, 8 Mar 2018 00:40:42 +0100
+Subject: [PATCH] Take user namespaces into account in policy checks
+MIME-Version: 1.0
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 8bit
+
+Change file related checks to use user namespaces and make
+sure involved uids/gids are mappable in the current
+namespace.
+
+Note that checks without file ownership information will
+still not take user namespaces into account, as some of
+these should be handled via 'zfs allow' (otherwise root in a
+user namespace could issue commands such as `zpool export`).
+
+This also adds an initial user namespace regression test
+for the setgid bit loss, with a user_ns_exec helper usable
+in further tests.
+
+Additionally, configure checks for the required user
+namespace related features are added for:
+  * ns_capable
+  * kuid/kgid_has_mapping()
+  * user_ns in cred_t
+
+Reviewed-by: Brian Behlendorf <behlendorf1@llnl.gov>
+Signed-off-by: Wolfgang Bumiller <w.bumiller@proxmox.com>
+Closes #6800
+Closes #7270
+(cherry picked from commit 3808006edfc46b18f0a40a2e9df54c6567bf52cc)
+Signed-off-by: Fabian Grünbichler <f.gruenbichler@proxmox.com>
+---
+ configure.ac                                       |   2 +
+ tests/zfs-tests/cmd/Makefile.am                    |   1 +
+ tests/zfs-tests/cmd/user_ns_exec/Makefile.am       |   6 +
+ tests/zfs-tests/tests/functional/Makefile.am       |   1 +
+ .../tests/functional/user_namespace/Makefile.am    |   7 +
+ module/zfs/policy.c                                |  66 +++++++-
+ tests/zfs-tests/cmd/user_ns_exec/user_ns_exec.c    | 179 +++++++++++++++++++++
+ config/kernel-userns-capabilities.m4               |  67 ++++++++
+ config/kernel.m4                                   |   1 +
+ tests/runfiles/linux.run                           |   4 +
+ tests/zfs-tests/cmd/user_ns_exec/.gitignore        |   1 +
+ tests/zfs-tests/include/commands.cfg               |   1 +
+ .../tests/functional/user_namespace/cleanup.ksh    |  25 +++
+ .../tests/functional/user_namespace/setup.ksh      |  32 ++++
+ .../functional/user_namespace/user_namespace.cfg   |  23 +++
+ .../user_namespace/user_namespace_001.ksh          |  89 ++++++++++
+ .../user_namespace/user_namespace_common.kshlib    |  23 +++
+ 17 files changed, 521 insertions(+), 7 deletions(-)
+ create mode 100644 tests/zfs-tests/cmd/user_ns_exec/Makefile.am
+ create mode 100644 tests/zfs-tests/tests/functional/user_namespace/Makefile.am
+ create mode 100644 tests/zfs-tests/cmd/user_ns_exec/user_ns_exec.c
+ create mode 100644 config/kernel-userns-capabilities.m4
+ create mode 100644 tests/zfs-tests/cmd/user_ns_exec/.gitignore
+ create mode 100755 tests/zfs-tests/tests/functional/user_namespace/cleanup.ksh
+ create mode 100755 tests/zfs-tests/tests/functional/user_namespace/setup.ksh
+ create mode 100644 tests/zfs-tests/tests/functional/user_namespace/user_namespace.cfg
+ create mode 100755 tests/zfs-tests/tests/functional/user_namespace/user_namespace_001.ksh
+ create mode 100644 tests/zfs-tests/tests/functional/user_namespace/user_namespace_common.kshlib
+
+diff --git a/configure.ac b/configure.ac
+index d71712e4c..77e5764fc 100644
+--- a/configure.ac
++++ b/configure.ac
+@@ -153,6 +153,7 @@ AC_CONFIG_FILES([
+ 	tests/zfs-tests/callbacks/Makefile
+ 	tests/zfs-tests/cmd/Makefile
+ 	tests/zfs-tests/cmd/chg_usr_exec/Makefile
++	tests/zfs-tests/cmd/user_ns_exec/Makefile
+ 	tests/zfs-tests/cmd/devname2devid/Makefile
+ 	tests/zfs-tests/cmd/dir_rd_update/Makefile
+ 	tests/zfs-tests/cmd/file_check/Makefile
+@@ -284,6 +285,7 @@ AC_CONFIG_FILES([
+ 	tests/zfs-tests/tests/functional/threadsappend/Makefile
+ 	tests/zfs-tests/tests/functional/tmpfile/Makefile
+ 	tests/zfs-tests/tests/functional/truncate/Makefile
++	tests/zfs-tests/tests/functional/user_namespace/Makefile
+ 	tests/zfs-tests/tests/functional/userquota/Makefile
+ 	tests/zfs-tests/tests/functional/upgrade/Makefile
+ 	tests/zfs-tests/tests/functional/vdev_zaps/Makefile
+diff --git a/tests/zfs-tests/cmd/Makefile.am b/tests/zfs-tests/cmd/Makefile.am
+index f55ff8ce2..1cce6947b 100644
+--- a/tests/zfs-tests/cmd/Makefile.am
++++ b/tests/zfs-tests/cmd/Makefile.am
+@@ -2,6 +2,7 @@ EXTRA_DIST = file_common.h
+ 
+ SUBDIRS = \
+ 	chg_usr_exec \
++	user_ns_exec \
+ 	devname2devid \
+ 	dir_rd_update \
+ 	file_check \
+diff --git a/tests/zfs-tests/cmd/user_ns_exec/Makefile.am b/tests/zfs-tests/cmd/user_ns_exec/Makefile.am
+new file mode 100644
+index 000000000..5b4bc9aaa
+--- /dev/null
++++ b/tests/zfs-tests/cmd/user_ns_exec/Makefile.am
+@@ -0,0 +1,6 @@
++include $(top_srcdir)/config/Rules.am
++
++pkgexecdir = $(datadir)/@PACKAGE@/zfs-tests/bin
++
++pkgexec_PROGRAMS = user_ns_exec
++user_ns_exec_SOURCES = user_ns_exec.c
+diff --git a/tests/zfs-tests/tests/functional/Makefile.am b/tests/zfs-tests/tests/functional/Makefile.am
+index d68f254ef..cd60324f3 100644
+--- a/tests/zfs-tests/tests/functional/Makefile.am
++++ b/tests/zfs-tests/tests/functional/Makefile.am
+@@ -58,6 +58,7 @@ SUBDIRS = \
+ 	tmpfile \
+ 	truncate \
+ 	upgrade \
++	user_namespace \
+ 	userquota \
+ 	vdev_zaps \
+ 	write_dirs \
+diff --git a/tests/zfs-tests/tests/functional/user_namespace/Makefile.am b/tests/zfs-tests/tests/functional/user_namespace/Makefile.am
+new file mode 100644
+index 000000000..0c0f6887a
+--- /dev/null
++++ b/tests/zfs-tests/tests/functional/user_namespace/Makefile.am
+@@ -0,0 +1,7 @@
++pkgdatadir = $(datadir)/@PACKAGE@/zfs-tests/tests/functional/user_namespace
++dist_pkgdata_SCRIPTS = \
++	setup.ksh \
++	cleanup.ksh \
++	user_namespace_common.kshlib \
++	user_namespace.cfg \
++	user_namespace_001.ksh
+diff --git a/module/zfs/policy.c b/module/zfs/policy.c
+index 03e8f748b..55c932747 100644
+--- a/module/zfs/policy.c
++++ b/module/zfs/policy.c
+@@ -42,19 +42,47 @@
+  * all other cases this function must fail and return the passed err.
+  */
+ static int
+-priv_policy(const cred_t *cr, int capability, boolean_t all, int err)
++priv_policy_ns(const cred_t *cr, int capability, boolean_t all, int err,
++    struct user_namespace *ns)
+ {
+ 	ASSERT3S(all, ==, B_FALSE);
+ 
+ 	if (cr != CRED() && (cr != kcred))
+ 		return (err);
+ 
++#if defined(CONFIG_USER_NS) && defined(HAVE_NS_CAPABLE)
++	if (!(ns ? ns_capable(ns, capability) : capable(capability)))
++#else
+ 	if (!capable(capability))
++#endif
+ 		return (err);
+ 
+ 	return (0);
+ }
+ 
++static int
++priv_policy(const cred_t *cr, int capability, boolean_t all, int err)
++{
++	return (priv_policy_ns(cr, capability, all, err, NULL));
++}
++
++static int
++priv_policy_user(const cred_t *cr, int capability, boolean_t all, int err)
++{
++	/*
++	 * All priv_policy_user checks are preceeded by kuid/kgid_has_mapping()
++	 * checks. If we cannot do them, we shouldn't be using ns_capable()
++	 * since we don't know whether the affected files are valid in our
++	 * namespace. Note that kuid_has_mapping() came after cred->user_ns, so
++	 * we shouldn't need to re-check for HAVE_CRED_USER_NS
++	 */
++#if defined(CONFIG_USER_NS) && defined(HAVE_KUID_HAS_MAPPING)
++	return (priv_policy_ns(cr, capability, all, err, cr->user_ns));
++#else
++	return (priv_policy_ns(cr, capability, all, err, NULL));
++#endif
++}
++
+ /*
+  * Checks for operations that are either client-only or are used by
+  * both clients and servers.
+@@ -102,10 +130,15 @@ secpolicy_vnode_any_access(const cred_t *cr, struct inode *ip, uid_t owner)
+ 	if (zpl_inode_owner_or_capable(ip))
+ 		return (0);
+ 
+-	if (priv_policy(cr, CAP_DAC_OVERRIDE, B_FALSE, EPERM) == 0)
++#if defined(CONFIG_USER_NS) && defined(HAVE_KUID_HAS_MAPPING)
++	if (!kuid_has_mapping(cr->user_ns, SUID_TO_KUID(owner)))
++		return (EPERM);
++#endif
++
++	if (priv_policy_user(cr, CAP_DAC_OVERRIDE, B_FALSE, EPERM) == 0)
+ 		return (0);
+ 
+-	if (priv_policy(cr, CAP_DAC_READ_SEARCH, B_FALSE, EPERM) == 0)
++	if (priv_policy_user(cr, CAP_DAC_READ_SEARCH, B_FALSE, EPERM) == 0)
+ 		return (0);
+ 
+ 	return (EPERM);
+@@ -120,7 +153,12 @@ secpolicy_vnode_chown(const cred_t *cr, uid_t owner)
+ 	if (crgetfsuid(cr) == owner)
+ 		return (0);
+ 
+-	return (priv_policy(cr, CAP_FOWNER, B_FALSE, EPERM));
++#if defined(CONFIG_USER_NS) && defined(HAVE_KUID_HAS_MAPPING)
++	if (!kuid_has_mapping(cr->user_ns, SUID_TO_KUID(owner)))
++		return (EPERM);
++#endif
++
++	return (priv_policy_user(cr, CAP_FOWNER, B_FALSE, EPERM));
+ }
+ 
+ /*
+@@ -152,7 +190,12 @@ secpolicy_vnode_setdac(const cred_t *cr, uid_t owner)
+ 	if (crgetfsuid(cr) == owner)
+ 		return (0);
+ 
+-	return (priv_policy(cr, CAP_FOWNER, B_FALSE, EPERM));
++#if defined(CONFIG_USER_NS) && defined(HAVE_KUID_HAS_MAPPING)
++	if (!kuid_has_mapping(cr->user_ns, SUID_TO_KUID(owner)))
++		return (EPERM);
++#endif
++
++	return (priv_policy_user(cr, CAP_FOWNER, B_FALSE, EPERM));
+ }
+ 
+ /*
+@@ -175,8 +218,12 @@ secpolicy_vnode_setid_retain(const cred_t *cr, boolean_t issuidroot)
+ int
+ secpolicy_vnode_setids_setgids(const cred_t *cr, gid_t gid)
+ {
++#if defined(CONFIG_USER_NS) && defined(HAVE_KUID_HAS_MAPPING)
++	if (!kgid_has_mapping(cr->user_ns, SGID_TO_KGID(gid)))
++		return (EPERM);
++#endif
+ 	if (crgetfsgid(cr) != gid && !groupmember(gid, cr))
+-		return (priv_policy(cr, CAP_FSETID, B_FALSE, EPERM));
++		return (priv_policy_user(cr, CAP_FSETID, B_FALSE, EPERM));
+ 
+ 	return (0);
+ }
+@@ -222,7 +269,12 @@ secpolicy_vnode_setid_modify(const cred_t *cr, uid_t owner)
+ 	if (crgetfsuid(cr) == owner)
+ 		return (0);
+ 
+-	return (priv_policy(cr, CAP_FSETID, B_FALSE, EPERM));
++#if defined(CONFIG_USER_NS) && defined(HAVE_KUID_HAS_MAPPING)
++	if (!kuid_has_mapping(cr->user_ns, SUID_TO_KUID(owner)))
++		return (EPERM);
++#endif
++
++	return (priv_policy_user(cr, CAP_FSETID, B_FALSE, EPERM));
+ }
+ 
+ /*
+diff --git a/tests/zfs-tests/cmd/user_ns_exec/user_ns_exec.c b/tests/zfs-tests/cmd/user_ns_exec/user_ns_exec.c
+new file mode 100644
+index 000000000..cd46738bd
+--- /dev/null
++++ b/tests/zfs-tests/cmd/user_ns_exec/user_ns_exec.c
+@@ -0,0 +1,179 @@
++/*
++ * CDDL HEADER START
++ *
++ * The contents of this file are subject to the terms of the
++ * Common Development and Distribution License (the "License").
++ * You may not use this file except in compliance with the License.
++ *
++ * You can obtain a copy of the license at usr/src/OPENSOLARIS.LICENSE
++ * or http://www.opensolaris.org/os/licensing.
++ * See the License for the specific language governing permissions
++ * and limitations under the License.
++ *
++ * When distributing Covered Code, include this CDDL HEADER in each
++ * file and include the License file at usr/src/OPENSOLARIS.LICENSE.
++ * If applicable, add the following below this CDDL HEADER, with the
++ * fields enclosed by brackets "[]" replaced with your own identifying
++ * information: Portions Copyright [yyyy] [name of copyright owner]
++ *
++ * CDDL HEADER END
++ */
++
++#include <stdio.h>
++#include <unistd.h>
++#include <string.h>
++#include <limits.h>
++#include <sys/types.h>
++#include <sys/types.h>
++#include <sys/socket.h>
++#include <sys/wait.h>
++#include <fcntl.h>
++#include <errno.h>
++#include <signal.h>
++#include <sched.h>
++
++#define	EXECSHELL	"/bin/sh"
++#define	UIDMAP		"0 100000 65536"
++
++static int
++child_main(int argc, char *argv[], int sync_pipe)
++{
++	char sync_buf;
++	char cmds[BUFSIZ] = { 0 };
++	char sep[] = " ";
++	int i, len;
++
++	if (unshare(CLONE_NEWUSER | CLONE_NEWNS) != 0) {
++		perror("unshare");
++		return (1);
++	}
++
++	/* tell parent we entered the new namespace */
++	if (write(sync_pipe, "1", 1) != 1) {
++		perror("write");
++		return (1);
++	}
++
++	/* wait for parent to setup the uid mapping */
++	if (read(sync_pipe, &sync_buf, 1) != 1) {
++		(void) fprintf(stderr, "user namespace setup failed\n");
++		return (1);
++	}
++
++	close(sync_pipe);
++
++	if (setuid(0) != 0) {
++		perror("setuid");
++		return (1);
++	}
++	if (setgid(0) != 0) {
++		perror("setgid");
++		return (1);
++	}
++
++	len = 0;
++	for (i = 1; i < argc; i++) {
++		(void) snprintf(cmds+len, sizeof (cmds)-len,
++		    "%s%s", argv[i], sep);
++		len += strlen(argv[i]) + strlen(sep);
++	}
++
++	if (execl(EXECSHELL, "sh",  "-c", cmds, (char *)NULL) != 0) {
++		perror("execl: " EXECSHELL);
++		return (1);
++	}
++
++	return (0);
++}
++
++static int
++set_idmap(pid_t pid, const char *file)
++{
++	int result = 0;
++	int mapfd;
++	char path[PATH_MAX];
++
++	(void) snprintf(path, sizeof (path), "/proc/%d/%s", (int)pid, file);
++
++	mapfd = open(path, O_WRONLY);
++	if (mapfd < 0) {
++		result = errno;
++		perror("open");
++		return (errno);
++	}
++
++	if (write(mapfd, UIDMAP, sizeof (UIDMAP)-1) != sizeof (UIDMAP)-1) {
++		perror("write");
++		result = (errno);
++	}
++
++	close(mapfd);
++
++	return (result);
++}
++
++int
++main(int argc, char *argv[])
++{
++	char sync_buf;
++	int result, wstatus;
++	int syncfd[2];
++	pid_t child;
++
++	if (argc < 2 || strlen(argv[1]) == 0) {
++		(void) printf("\tUsage: %s <commands> ...\n", argv[0]);
++		return (1);
++	}
++
++	if (socketpair(AF_UNIX, SOCK_STREAM, 0, syncfd) != 0) {
++		perror("socketpair");
++		return (1);
++	}
++
++	child = fork();
++	if (child == (pid_t)-1) {
++		perror("fork");
++		return (1);
++	}
++
++	if (child == 0) {
++		close(syncfd[0]);
++		return (child_main(argc, argv, syncfd[1]));
++	}
++
++	close(syncfd[1]);
++
++	result = 0;
++	/* wait for the child to have unshared its namespaces */
++	if (read(syncfd[0], &sync_buf, 1) != 1) {
++		perror("read");
++		kill(child, SIGKILL);
++		result = 1;
++		goto reap;
++	}
++
++	/* write uid mapping */
++	if (set_idmap(child, "uid_map") != 0 ||
++	    set_idmap(child, "gid_map") != 0) {
++		result = 1;
++		kill(child, SIGKILL);
++		goto reap;
++	}
++
++	/* tell the child to proceed */
++	if (write(syncfd[0], "1", 1) != 1) {
++		perror("write");
++		kill(child, SIGKILL);
++		result = 1;
++		goto reap;
++	}
++	close(syncfd[0]);
++
++reap:
++	while (waitpid(child, &wstatus, 0) != child)
++		kill(child, SIGKILL);
++	if (result == 0)
++		result = WEXITSTATUS(wstatus);
++
++	return (result);
++}
+diff --git a/config/kernel-userns-capabilities.m4 b/config/kernel-userns-capabilities.m4
+new file mode 100644
+index 000000000..fa3381978
+--- /dev/null
++++ b/config/kernel-userns-capabilities.m4
+@@ -0,0 +1,67 @@
++dnl #
++dnl # 2.6.38 API change
++dnl # ns_capable() was introduced
++dnl #
++AC_DEFUN([ZFS_AC_KERNEL_NS_CAPABLE], [
++	AC_MSG_CHECKING([whether ns_capable exists])
++	ZFS_LINUX_TRY_COMPILE([
++		#include <linux/capability.h>
++	],[
++		ns_capable((struct user_namespace *)NULL, CAP_SYS_ADMIN);
++	],[
++		AC_MSG_RESULT(yes)
++		AC_DEFINE(HAVE_NS_CAPABLE, 1,
++		    [ns_capable exists])
++	],[
++		AC_MSG_RESULT(no)
++	])
++])
++
++dnl #
++dnl # 2.6.39 API change
++dnl # struct user_namespace was added to struct cred_t as
++dnl # cred->user_ns member
++dnl # Note that current_user_ns() was added in 2.6.28.
++dnl #
++AC_DEFUN([ZFS_AC_KERNEL_CRED_USER_NS], [
++	AC_MSG_CHECKING([whether cred_t->user_ns exists])
++	ZFS_LINUX_TRY_COMPILE([
++		#include <linux/cred.h>
++	],[
++		struct cred cr;
++		cr.user_ns = (struct user_namespace *)NULL;
++	],[
++		AC_MSG_RESULT(yes)
++		AC_DEFINE(HAVE_CRED_USER_NS, 1,
++		    [cred_t->user_ns exists])
++	],[
++		AC_MSG_RESULT(no)
++	])
++])
++
++dnl #
++dnl # 3.4 API change
++dnl # kuid_has_mapping() and kgid_has_mapping() were added to distinguish
++dnl # between internal kernel uids/gids and user namespace uids/gids.
++dnl #
++AC_DEFUN([ZFS_AC_KERNEL_KUID_HAS_MAPPING], [
++	AC_MSG_CHECKING([whether kuid_has_mapping/kgid_has_mapping exist])
++	ZFS_LINUX_TRY_COMPILE([
++		#include <linux/uidgid.h>
++	],[
++		kuid_has_mapping((struct user_namespace *)NULL, KUIDT_INIT(0));
++		kgid_has_mapping((struct user_namespace *)NULL, KGIDT_INIT(0));
++	],[
++		AC_MSG_RESULT(yes)
++		AC_DEFINE(HAVE_KUID_HAS_MAPPING, 1,
++		    [kuid_has_mapping/kgid_has_mapping exist])
++	],[
++		AC_MSG_RESULT(no)
++	])
++])
++
++AC_DEFUN([ZFS_AC_KERNEL_USERNS_CAPABILITIES], [
++	ZFS_AC_KERNEL_NS_CAPABLE
++	ZFS_AC_KERNEL_CRED_USER_NS
++	ZFS_AC_KERNEL_KUID_HAS_MAPPING
++])
+diff --git a/config/kernel.m4 b/config/kernel.m4
+index 419ed1a2c..910d4ff25 100644
+--- a/config/kernel.m4
++++ b/config/kernel.m4
+@@ -126,6 +126,7 @@ AC_DEFUN([ZFS_AC_CONFIG_KERNEL], [
+ 	ZFS_AC_KERNEL_CURRENT_TIME
+ 	ZFS_AC_KERNEL_GLOBAL_PAGE_STATE
+ 	ZFS_AC_KERNEL_ACL_HAS_REFCOUNT
++	ZFS_AC_KERNEL_USERNS_CAPABILITIES
+ 
+ 	AS_IF([test "$LINUX_OBJ" != "$LINUX"], [
+ 		KERNELMAKE_PARAMS="$KERNELMAKE_PARAMS O=$LINUX_OBJ"
+diff --git a/tests/runfiles/linux.run b/tests/runfiles/linux.run
+index 89c923db1..25ae3fe5e 100644
+--- a/tests/runfiles/linux.run
++++ b/tests/runfiles/linux.run
+@@ -648,6 +648,10 @@ tags = ['functional', 'truncate']
+ tests = [ 'upgrade_userobj_001_pos' ]
+ tags = ['functional', 'upgrade']
+ 
++[tests/functional/user_namespace]
++tests = ['user_namespace_001']
++tags = ['functional', 'user_namespace']
++
+ [tests/functional/userquota]
+ tests = [
+     'userquota_001_pos', 'userquota_002_pos', 'userquota_003_pos',
+diff --git a/tests/zfs-tests/cmd/user_ns_exec/.gitignore b/tests/zfs-tests/cmd/user_ns_exec/.gitignore
+new file mode 100644
+index 000000000..655867a64
+--- /dev/null
++++ b/tests/zfs-tests/cmd/user_ns_exec/.gitignore
+@@ -0,0 +1 @@
++/user_ns_exec
+diff --git a/tests/zfs-tests/include/commands.cfg b/tests/zfs-tests/include/commands.cfg
+index 936e54c1a..0d768a3cf 100644
+--- a/tests/zfs-tests/include/commands.cfg
++++ b/tests/zfs-tests/include/commands.cfg
+@@ -164,4 +164,5 @@ export ZFSTEST_FILES='chg_usr_exec
+     rename_dir
+     rm_lnkcnt_zero_file
+     threadsappend
++    user_ns_exec
+     xattrtest'
+diff --git a/tests/zfs-tests/tests/functional/user_namespace/cleanup.ksh b/tests/zfs-tests/tests/functional/user_namespace/cleanup.ksh
+new file mode 100755
+index 000000000..61caf3910
+--- /dev/null
++++ b/tests/zfs-tests/tests/functional/user_namespace/cleanup.ksh
+@@ -0,0 +1,25 @@
++#!/bin/ksh -p
++#
++# CDDL HEADER START
++#
++# The contents of this file are subject to the terms of the
++# Common Development and Distribution License (the "License").
++# You may not use this file except in compliance with the License.
++#
++# You can obtain a copy of the license at usr/src/OPENSOLARIS.LICENSE
++# or http://www.opensolaris.org/os/licensing.
++# See the License for the specific language governing permissions
++# and limitations under the License.
++#
++# When distributing Covered Code, include this CDDL HEADER in each
++# file and include the License file at usr/src/OPENSOLARIS.LICENSE.
++# If applicable, add the following below this CDDL HEADER, with the
++# fields enclosed by brackets "[]" replaced with your own identifying
++# information: Portions Copyright [yyyy] [name of copyright owner]
++#
++# CDDL HEADER END
++#
++
++. $STF_SUITE/include/libtest.shlib
++
++default_cleanup
+diff --git a/tests/zfs-tests/tests/functional/user_namespace/setup.ksh b/tests/zfs-tests/tests/functional/user_namespace/setup.ksh
+new file mode 100755
+index 000000000..354cc9a6b
+--- /dev/null
++++ b/tests/zfs-tests/tests/functional/user_namespace/setup.ksh
+@@ -0,0 +1,32 @@
++#!/bin/ksh -p
++#
++# CDDL HEADER START
++#
++# The contents of this file are subject to the terms of the
++# Common Development and Distribution License (the "License").
++# You may not use this file except in compliance with the License.
++#
++# You can obtain a copy of the license at usr/src/OPENSOLARIS.LICENSE
++# or http://www.opensolaris.org/os/licensing.
++# See the License for the specific language governing permissions
++# and limitations under the License.
++#
++# When distributing Covered Code, include this CDDL HEADER in each
++# file and include the License file at usr/src/OPENSOLARIS.LICENSE.
++# If applicable, add the following below this CDDL HEADER, with the
++# fields enclosed by brackets "[]" replaced with your own identifying
++# information: Portions Copyright [yyyy] [name of copyright owner]
++#
++# CDDL HEADER END
++#
++
++. $STF_SUITE/include/libtest.shlib
++
++if ! [ -f /proc/self/uid_map ]; then
++	log_unsupported "The kernel doesn't support user namespaces."
++fi
++
++verify_runnable "both"
++
++DISK=${DISKS%% *}
++default_setup $DISK
+diff --git a/tests/zfs-tests/tests/functional/user_namespace/user_namespace.cfg b/tests/zfs-tests/tests/functional/user_namespace/user_namespace.cfg
+new file mode 100644
+index 000000000..9e55398e2
+--- /dev/null
++++ b/tests/zfs-tests/tests/functional/user_namespace/user_namespace.cfg
+@@ -0,0 +1,23 @@
++#
++# CDDL HEADER START
++#
++# The contents of this file are subject to the terms of the
++# Common Development and Distribution License (the "License").
++# You may not use this file except in compliance with the License.
++#
++# You can obtain a copy of the license at usr/src/OPENSOLARIS.LICENSE
++# or http://www.opensolaris.org/os/licensing.
++# See the License for the specific language governing permissions
++# and limitations under the License.
++#
++# When distributing Covered Code, include this CDDL HEADER in each
++# file and include the License file at usr/src/OPENSOLARIS.LICENSE.
++# If applicable, add the following below this CDDL HEADER, with the
++# fields enclosed by brackets "[]" replaced with your own identifying
++# information: Portions Copyright [yyyy] [name of copyright owner]
++#
++# CDDL HEADER END
++#
++
++export ROOT_UID=100000
++export OTHER_UID=101000
+diff --git a/tests/zfs-tests/tests/functional/user_namespace/user_namespace_001.ksh b/tests/zfs-tests/tests/functional/user_namespace/user_namespace_001.ksh
+new file mode 100755
+index 000000000..6be30ab4d
+--- /dev/null
++++ b/tests/zfs-tests/tests/functional/user_namespace/user_namespace_001.ksh
+@@ -0,0 +1,89 @@
++#!/bin/ksh -p
++#
++# CDDL HEADER START
++#
++# The contents of this file are subject to the terms of the
++# Common Development and Distribution License (the "License").
++# You may not use this file except in compliance with the License.
++#
++# You can obtain a copy of the license at usr/src/OPENSOLARIS.LICENSE
++# or http://www.opensolaris.org/os/licensing.
++# See the License for the specific language governing permissions
++# and limitations under the License.
++#
++# When distributing Covered Code, include this CDDL HEADER in each
++# file and include the License file at usr/src/OPENSOLARIS.LICENSE.
++# If applicable, add the following below this CDDL HEADER, with the
++# fields enclosed by brackets "[]" replaced with your own identifying
++# information: Portions Copyright [yyyy] [name of copyright owner]
++#
++# CDDL HEADER END
++#
++
++. $STF_SUITE/tests/functional/user_namespace/user_namespace_common.kshlib
++
++#
++#
++# DESCRIPTION:
++#       Regression test for secpolicy_vnode_setids_setgids
++#
++#
++# STRATEGY:
++#       1. Create files with various owners.
++#       2. Try to set setgid bit.
++#
++
++verify_runnable "both"
++
++# rroot: real root,
++# uroot: root within user namespace
++# uother: other user within user namespace
++set -A files rroot_rroot uroot_uroot uroot_other uother_uroot uother_uother
++
++function cleanup
++{
++	for i in ${files[*]}; do
++		log_must rm -f $TESTDIR/$i
++	done
++}
++
++log_onexit cleanup
++
++log_assert "Check root in user namespaces"
++
++TOUCH=$(readlink -e $(which touch))
++CHMOD=$(readlink -e $(which chmod))
++
++for i in ${files[*]}; do
++	log_must $TOUCH $TESTDIR/$i
++	log_must $CHMOD 0644 $TESTDIR/$i
++done
++
++log_must chown 0:0 $TESTDIR/rroot_rroot
++log_must chown $ROOT_UID:$ROOT_UID $TESTDIR/uroot_uroot
++log_must chown $ROOT_UID:$OTHER_UID $TESTDIR/uroot_other
++log_must chown $OTHER_UID:$ROOT_UID $TESTDIR/uother_uroot
++log_must chown $OTHER_UID:$OTHER_UID $TESTDIR/uother_uother
++
++log_mustnot user_ns_exec $CHMOD 02755 $TESTDIR/rroot_rroot
++log_mustnot test -g $TESTDIR/rroot_rroot
++
++log_must user_ns_exec $CHMOD 02755 $TESTDIR/uroot_uroot
++log_must test -g $TESTDIR/uroot_uroot
++
++log_must user_ns_exec $CHMOD 02755 $TESTDIR/uroot_other
++log_must test -g $TESTDIR/uroot_other
++
++log_must user_ns_exec $CHMOD 02755 $TESTDIR/uother_uroot
++log_must test -g $TESTDIR/uother_uroot
++
++log_must user_ns_exec $CHMOD 02755 $TESTDIR/uother_uother
++log_must test -g $TESTDIR/uother_uother
++
++log_mustnot user_ns_exec $TOUCH $TESTDIR/rroot_rroot
++log_must $CHMOD 0666 $TESTDIR/rroot_rroot
++for i in ${files[*]}; do
++	log_must user_ns_exec $TOUCH $TESTDIR/$i
++done
++
++log_pass "Check root in user namespaces"
+diff --git a/tests/zfs-tests/tests/functional/user_namespace/user_namespace_common.kshlib b/tests/zfs-tests/tests/functional/user_namespace/user_namespace_common.kshlib
+new file mode 100644
+index 000000000..8577294d0
+--- /dev/null
++++ b/tests/zfs-tests/tests/functional/user_namespace/user_namespace_common.kshlib
+@@ -0,0 +1,23 @@
++#
++# CDDL HEADER START
++#
++# The contents of this file are subject to the terms of the
++# Common Development and Distribution License (the "License").
++# You may not use this file except in compliance with the License.
++#
++# You can obtain a copy of the license at usr/src/OPENSOLARIS.LICENSE
++# or http://www.opensolaris.org/os/licensing.
++# See the License for the specific language governing permissions
++# and limitations under the License.
++#
++# When distributing Covered Code, include this CDDL HEADER in each
++# file and include the License file at usr/src/OPENSOLARIS.LICENSE.
++# If applicable, add the following below this CDDL HEADER, with the
++# fields enclosed by brackets "[]" replaced with your own identifying
++# information: Portions Copyright [yyyy] [name of copyright owner]
++#
++# CDDL HEADER END
++#
++
++. $STF_SUITE/include/libtest.shlib
++. $STF_SUITE/tests/functional/user_namespace/user_namespace.cfg
+-- 
+2.14.2
+

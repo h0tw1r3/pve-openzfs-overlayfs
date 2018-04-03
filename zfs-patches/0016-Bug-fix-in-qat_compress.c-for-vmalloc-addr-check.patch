@@ -1,0 +1,39 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: wli5 <weigang.li@intel.com>
+Date: Tue, 6 Feb 2018 02:26:27 +0800
+Subject: [PATCH] Bug fix in qat_compress.c for vmalloc addr check
+MIME-Version: 1.0
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 8bit
+
+Remove the unused vmalloc address check, and function mem_to_page
+will handle the non-vmalloc address when map it to a physical
+address.
+
+Reviewed-by: Brian Behlendorf <behlendorf1@llnl.gov>
+Signed-off-by: Weigang Li <weigang.li@intel.com>
+Closes #7125
+(cherry picked from commit 5f38142e7b3a8994afef60faa2e65d72e7993807)
+Signed-off-by: Fabian Grünbichler <f.gruenbichler@proxmox.com>
+---
+ module/zfs/qat_compress.c | 4 ----
+ 1 file changed, 4 deletions(-)
+
+diff --git a/module/zfs/qat_compress.c b/module/zfs/qat_compress.c
+index 4d17d7ac9..62655f56d 100644
+--- a/module/zfs/qat_compress.c
++++ b/module/zfs/qat_compress.c
+@@ -364,10 +364,6 @@ qat_compress(qat_compress_dir_t dir, char *src, int src_len,
+ 	Cpa32U dst_buffer_list_mem_size = sizeof (CpaBufferList) +
+ 	    (num_dst_buf * sizeof (CpaFlatBuffer));
+ 
+-	if (!is_vmalloc_addr(src) || !is_vmalloc_addr(src + src_len - 1) ||
+-	    !is_vmalloc_addr(dst) || !is_vmalloc_addr(dst + dst_len - 1))
+-		return (-1);
+-
+ 	if (PHYS_CONTIG_ALLOC(&in_pages,
+ 	    num_src_buf * sizeof (struct page *)) != CPA_STATUS_SUCCESS)
+ 		goto fail;
+-- 
+2.14.2
+
