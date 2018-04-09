@@ -1,3 +1,9 @@
+zfs-linux (0.7.7-pve2~bpo9) unstable; urgency=medium
+
+  * (temporarily) revert likely cause of #7401
+
+ -- Proxmox Support Team <support@proxmox.com>  Mon, 9 Apr 2018 09:49:27 +0200
+
 zfs-linux (0.7.7-pve1~bpo9) unstable; urgency=medium
 
   * update ZFS to 0.7.7
