@@ -261,7 +261,7 @@ index a1dd33704..8b0e476d5 100644
  ##
  # The syslog priority (e.g., specified as a "facility.level" pair).
 diff --git a/tests/runfiles/linux.run b/tests/runfiles/linux.run
-index ea2dbb282..e4a11a0fa 100644
+index 8be3e1c62..89c923db1 100644
 --- a/tests/runfiles/linux.run
 +++ b/tests/runfiles/linux.run
 @@ -421,7 +421,7 @@ tests = ['exec_001_pos', 'exec_002_neg']

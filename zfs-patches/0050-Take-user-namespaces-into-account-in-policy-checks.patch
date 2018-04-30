@@ -528,7 +528,7 @@ index 419ed1a2c..910d4ff25 100644
  	AS_IF([test "$LINUX_OBJ" != "$LINUX"], [
  		KERNELMAKE_PARAMS="$KERNELMAKE_PARAMS O=$LINUX_OBJ"
 diff --git a/tests/runfiles/linux.run b/tests/runfiles/linux.run
-index e4a11a0fa..4b2694202 100644
+index 89c923db1..25ae3fe5e 100644
 --- a/tests/runfiles/linux.run
 +++ b/tests/runfiles/linux.run
 @@ -648,6 +648,10 @@ tags = ['functional', 'truncate']
