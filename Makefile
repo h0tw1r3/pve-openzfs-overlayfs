@@ -13,11 +13,11 @@ SPLSRC=spl-debian
 ZFSDIR=zfs-build
 ZFSSRC=zfs-debian
 
-SPL_DEBS= 					\
+SPL_DEB = 					\
 spl_${SPLPKGVER}_amd64.deb
 
-ZFS_DEBS= 					\
-libnvpair1linux_${ZFSPKGVER}_amd64.deb		\
+ZFS_DEB1= libnvpair1linux_${ZFSPKGVER}_amd64.deb
+ZFS_DEB2= 					\
 libuutil1linux_${ZFSPKGVER}_amd64.deb		\
 libzfs2linux_${ZFSPKGVER}_amd64.deb		\
 libzfslinux-dev_${ZFSPKGVER}_amd64.deb		\
@@ -27,8 +27,9 @@ zfs-zed_${ZFSPKGVER}_amd64.deb			\
 zfs-initramfs_${ZFSPKGVER}_all.deb		\
 zfs-test_${ZFSPKGVER}_amd64.deb		\
 zfsutils-linux_${ZFSPKGVER}_amd64.deb
+ZFS_DEBS= $(ZFS_DEB1) $(ZFS_DEB2)
 
-DEBS=${SPL_DEBS} ${ZFS_DEBS}
+DEBS=${SPL_DEB} ${ZFS_DEBS}
 
 all: deb
 deb: ${DEBS}
@@ -43,7 +44,8 @@ submodule:
 	test -f "${SPLSRC}/debian/changelog" || git submodule update --init
 
 .PHONY: spl
-spl ${SPL_DEBS}: ${SPLSRC}
+spl: ${SPL_DEB}
+${SPL_DEB}: ${SPLSRC}
 	rm -rf ${SPLDIR}
 	mkdir ${SPLDIR}
 	cp -a ${SPLSRC}/* ${SPLDIR}/
@@ -55,7 +57,9 @@ spl ${SPL_DEBS}: ${SPLSRC}
 	cd ${SPLDIR}; dpkg-buildpackage -b -uc -us
 
 .PHONY: zfs
-zfs ${ZFS_DEBS} ${ZFS_TRANS_DEBS}: ${ZFSSRC}
+zfs: $(ZFS_DEBS)
+$(ZFS_DEB2): $(ZFS_DEB1)
+$(ZFS_DEB1): $(ZFSSRC)
 	rm -rf ${ZFSDIR}
 	mkdir ${ZFSDIR}
 	cp -a ${ZFSSRC}/* ${ZFSDIR}/
