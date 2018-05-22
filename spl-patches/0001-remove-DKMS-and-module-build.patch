@@ -8,16 +8,28 @@ Content-Transfer-Encoding: 8bit
 
 Signed-off-by: Fabian Grünbichler <f.gruenbichler@proxmox.com>
 ---
- debian/control.in | 30 ------------------------
  debian/control    |  1 -
- debian/rules      | 70 ++-----------------------------------------------------
- 3 files changed, 2 insertions(+), 99 deletions(-)
+ debian/control.in | 31 -------------------------
+ debian/rules      | 68 +------------------------------------------------------
+ 3 files changed, 1 insertion(+), 99 deletions(-)
 
+diff --git a/debian/control b/debian/control
+index 07db14a..01387e5 100644
+--- a/debian/control
++++ b/debian/control
+@@ -8,7 +8,6 @@ Build-Depends: autogen,
+                autotools-dev,
+                debhelper (>= 9),
+                dh-autoreconf,
+-               dkms (>> 2.2.0.2-1~),
+                libtool
+ Standards-Version: 4.1.2
+ Homepage: http://www.zfsonlinux.org/
 diff --git a/debian/control.in b/debian/control.in
-index 02d3182..5fd81aa 100644
+index 91242a1..5fd81aa 100644
 --- a/debian/control.in
 +++ b/debian/control.in
-@@ -8,46 +8,16 @@ Build-Depends: autogen,
+@@ -8,47 +8,16 @@ Build-Depends: autogen,
                 autotools-dev,
                 debhelper (>= 9),
                 dh-autoreconf,
@@ -36,8 +48,9 @@ index 02d3182..5fd81aa 100644
 -         libelf-dev,
 -         lsb-release,
 -         ${misc:Depends}
--Recommends: spl (>= ${source:Upstream-Version}),
+-Suggests: spl (>= ${source:Upstream-Version}),
 -         @LINUX_COMPAT@
+-Conflicts: spl (<< 0.7.9~)
 -Provides: spl-modules
 -Description: Solaris Porting Layer kernel modules for Linux
 - The Solaris Porting Layer (SPL) is a Linux kernel module which provides
@@ -64,20 +77,8 @@ index 02d3182..5fd81aa 100644
  Description: Solaris Porting Layer user-space utilities for Linux
   The Solaris Porting Layer (SPL) is a Linux kernel module which provides
   many of the Solaris kernel APIs. This shim layer makes it possible to
-diff --git a/debian/control b/debian/control
-index c3abf8d..455c34d 100644
---- a/debian/control
-+++ b/debian/control
-@@ -8,7 +8,6 @@ Build-Depends: autogen,
-                autotools-dev,
-                debhelper (>= 9),
-                dh-autoreconf,
--               dkms (>> 2.2.0.2-1~),
-                libtool
- Standards-Version: 4.1.2
- Homepage: http://www.zfsonlinux.org/
 diff --git a/debian/rules b/debian/rules
-index c7f2608..bca58f7 100755
+index 3a12abc..8dca8fd 100755
 --- a/debian/rules
 +++ b/debian/rules
 @@ -14,12 +14,8 @@ ifndef KVERS
@@ -93,7 +94,7 @@ index c7f2608..bca58f7 100755
 +	dh $@ --with autoreconf --parallel
  
  override_dh_auto_configure:
- 	sed "s/@LINUX_COMPAT@/linux-libc-dev \(< $(shell debian/get_next.sh)\)/" debian/control.in > debian/control
+ 	sed "s/@LINUX_COMPAT@/linux-libc-dev \(<< $(shell debian/get_next.sh)\)/" debian/control.in > debian/control
 @@ -45,69 +41,7 @@ override_dh_auto_install:
  	@# This creates the $(CURDIR)/$(NAME)-$(VERSION)/ tree.
  	$(MAKE) distdir
@@ -114,7 +115,7 @@ index c7f2608..bca58f7 100755
  override_dh_auto_clean:
  	dh_auto_clean
  	@if test -e META.orig; then mv META.orig META; fi
--	sed "s/@LINUX_COMPAT@/linux-libc-dev \(< $(shell debian/get_next.sh)\)/" debian/control.in > debian/control
+ 	sed "s/@LINUX_COMPAT@/linux-libc-dev \(<< $(shell debian/get_next.sh)\)/" debian/control.in > debian/control
 -
 -# ------------
 -
@@ -164,7 +165,6 @@ index c7f2608..bca58f7 100755
 -	dh_md5sums -p${pmodules}
 -
 -	dh_builddeb -p${pmodules}
-+	cp debian/control.in debian/control
 -- 
-2.14.2
+2.11.0
 

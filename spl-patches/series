@@ -1,14 +1,1 @@
 0001-remove-DKMS-and-module-build.patch
-0002-Allow-longer-SPA-names-in-stats.patch
-0003-Remove-vn_rename-and-vn_remove.patch
-0004-Remove-all-spin_is_locked-calls.patch
-0005-Add-cv_timedwait_io.patch
-0006-Fix-cstyle-warnings.patch
-0007-Split-spl-build.m4.patch
-0008-Fix-multiple-evaluations-of-VERIFY-and-ASSERT-on-fai.patch
-0009-Staticize-kstat_default_update.patch
-0010-Fix-function-name-typos.patch
-0011-Fix-more-cstyle-warnings.patch
-0012-Fix-spl-kmod-builds-when-using-rpm-4.14.patch
-0013-Tag-spl-0.7.7.patch
-0014-Tag-spl-0.7.8.patch
