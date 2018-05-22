@@ -8,14 +8,26 @@ Content-Transfer-Encoding: 8bit
 
 Signed-off-by: Fabian Grünbichler <f.gruenbichler@proxmox.com>
 ---
- debian/control.in    |  41 ++------------------
  debian/control       |   1 -
+ debian/control.in    |  40 ++-----------------
  debian/not-installed |   2 +
- debian/rules         | 105 +--------------------------------------------------
+ debian/rules         | 106 +--------------------------------------------------
  4 files changed, 7 insertions(+), 142 deletions(-)
 
+diff --git a/debian/control b/debian/control
+index 9e4f8fa7..42fbec35 100644
+--- a/debian/control
++++ b/debian/control
+@@ -9,7 +9,6 @@ Build-Depends: autotools-dev,
+                debhelper (>= 10.2),
+                dh-autoreconf,
+                dh-python,
+-               dkms (>> 2.1.1.2-5),
+                libattr1-dev,
+                libblkid-dev,
+                libselinux1-dev,
 diff --git a/debian/control.in b/debian/control.in
-index aef8cac2e..3cc15a05b 100644
+index e193f017..2cb2f614 100644
 --- a/debian/control.in
 +++ b/debian/control.in
 @@ -9,7 +9,6 @@ Build-Depends: autotools-dev,
@@ -26,7 +38,7 @@ index aef8cac2e..3cc15a05b 100644
                 libattr1-dev,
                 libblkid-dev,
                 libselinux1-dev,
-@@ -86,27 +85,10 @@ Description: OpenZFS pool library for Linux
+@@ -86,26 +85,10 @@ Description: OpenZFS pool library for Linux
   .
   This zpool library provides support for managing zpools.
  
@@ -35,8 +47,7 @@ index aef8cac2e..3cc15a05b 100644
 -Pre-Depends: spl-dkms (<<${source:Upstream-Version}.),
 -             spl-dkms (>= ${source:Upstream-Version})
 -Depends: dkms (>> 2.1.1.2-5), lsb-release, ${misc:Depends}
--Recommends: zfs-zed, zfsutils-linux (>= ${binary:Version}),
--              @LINUX_COMPAT@
+-Recommends: zfs-zed, zfsutils-linux (>= ${binary:Version}), @LINUX_COMPAT@
 -Provides: zfs-modules
 -Description: OpenZFS filesystem kernel modules for Linux
 - The Z file system is a pooled filesystem designed for maximum data
@@ -54,7 +65,7 @@ index aef8cac2e..3cc15a05b 100644
           zfsutils-linux (>= ${binary:Version}),
           ${misc:Depends}
  Description: OpenZFS root filesystem capabilities for Linux - initramfs
-@@ -117,29 +99,14 @@ Description: OpenZFS root filesystem capabilities for Linux - initramfs
+@@ -116,29 +99,14 @@ Description: OpenZFS root filesystem capabilities for Linux - initramfs
   This package adds OpenZFS to the system initramfs with a hook
   for the initramfs-tools infrastructure.
  
@@ -83,10 +94,10 @@ index aef8cac2e..3cc15a05b 100644
            samba-common-bin (>= 3.0.23),
 -          zfs-initramfs | zfs-dracut
 +          zfs-initramfs
- Conflicts: zfs, zfs-fuse, zutils
+ Conflicts: zfs, zfs-fuse
  Provides: zfsutils
  Description: command-line tools to manage OpenZFS filesystems
-@@ -153,8 +120,7 @@ Description: command-line tools to manage OpenZFS filesystems
+@@ -152,8 +120,7 @@ Description: command-line tools to manage OpenZFS filesystems
  Package: zfs-zed
  Section: contrib/admin
  Architecture: linux-any
@@ -96,7 +107,7 @@ index aef8cac2e..3cc15a05b 100644
           ${misc:Depends},
           ${shlibs:Depends}
  Description: OpenZFS Event Daemon
-@@ -177,7 +143,6 @@ Depends: acl,
+@@ -176,7 +143,6 @@ Depends: acl,
           python,
           sudo,
           sysstat,
@@ -104,30 +115,18 @@ index aef8cac2e..3cc15a05b 100644
           zfsutils-linux (>=${binary:Version}),
           ${misc:Depends},
           ${shlibs:Depends}
-diff --git a/debian/control b/debian/control
-index 3cf6fb649..51cfe6a64 100644
---- a/debian/control
-+++ b/debian/control
-@@ -9,7 +9,6 @@ Build-Depends: autotools-dev,
-                debhelper (>= 10.2),
-                dh-autoreconf,
-                dh-python,
--               dkms (>> 2.1.1.2-5),
-                libattr1-dev,
-                libblkid-dev,
-                libselinux1-dev,
 diff --git a/debian/not-installed b/debian/not-installed
-index f54fe7310..c3929d90e 100644
+index a008985c..c60b0016 100644
 --- a/debian/not-installed
 +++ b/debian/not-installed
-@@ -5,3 +5,5 @@ etc/zfs/vdev_id.conf.alias.example
+@@ -6,3 +6,5 @@ etc/zfs/vdev_id.conf.alias.example
  etc/zfs/vdev_id.conf.multipath.example
  etc/zfs/vdev_id.conf.sas_direct.example
  etc/zfs/vdev_id.conf.sas_switch.example
 +usr/lib/dracut
 +usr/share/zfs/enum-extract.pl
 diff --git a/debian/rules b/debian/rules
-index cc47a74a1..a5c37c81d 100755
+index e2c5a25f..86b5994d 100755
 --- a/debian/rules
 +++ b/debian/rules
 @@ -5,9 +5,6 @@ include /usr/share/dpkg/default.mk
@@ -163,8 +162,8 @@ index cc47a74a1..a5c37c81d 100755
 +	dh $@ --with autoreconf,python3,systemd --parallel
  
  override_dh_auto_configure:
- 	sed "s/@LINUX_COMPAT@/linux-libc-dev \(< $(shell debian/get_next.sh)\)/" debian/control.in > debian/control
-@@ -73,36 +65,6 @@ override_dh_auto_install:
+ 	sed "s/@LINUX_COMPAT@/linux-libc-dev \(<< $(shell debian/get_next.sh)\)/" debian/control.in > debian/control
+@@ -74,37 +66,6 @@ override_dh_auto_install:
  	$(INSTALL) -d '$(CURDIR)/debian/tmp/usr/sbin/'
  	mv '$(CURDIR)/debian/tmp/sbin/zed' '$(CURDIR)/debian/tmp/usr/sbin/zed'
  
@@ -175,7 +174,8 @@ index cc47a74a1..a5c37c81d 100755
 -
 -	@# Install the DKMS source.
 -	@# We only want the files needed to build the modules
--	mkdir -p '$(CURDIR)/debian/tmp/usr/src/$(NAME)-$(DEB_VERSION_UPSTREAM)'
+-	mkdir -p '$(CURDIR)/debian/tmp/usr/src/$(NAME)-$(DEB_VERSION_UPSTREAM)/scripts'
+-	cp '$(CURDIR)/scripts/enum-extract.pl' '$(CURDIR)/debian/tmp/usr/src/$(NAME)-$(DEB_VERSION_UPSTREAM)/scripts'
 -	$(foreach file,$(DKMSFILES),mv '$(CURDIR)/$(NAME)-$(DEB_VERSION_UPSTREAM)/$(file)' '$(CURDIR)/debian/tmp/usr/src/$(NAME)-$(DEB_VERSION_UPSTREAM)' || exit 1;)
 -	@# Hellish awk line:
 -	@#  * Deletes from configure.ac the parts not needed for building the kernel module
@@ -201,7 +201,7 @@ index cc47a74a1..a5c37c81d 100755
  	mkdir -p $(CURDIR)/debian/tmp/usr/lib
  	for i in `ls $(CURDIR)/debian/tmp/lib/*.so`; do \
  		ln -s /lib/`readlink $${i}` $(CURDIR)/debian/tmp/usr/lib/`basename $${i}`; \
-@@ -112,9 +74,6 @@ override_dh_auto_install:
+@@ -114,9 +75,6 @@ override_dh_auto_install:
  	chmod a-x $(CURDIR)/debian/tmp/etc/zfs/zfs-functions
  	chmod a-x $(CURDIR)/debian/tmp/etc/default/zfs
  
@@ -211,7 +211,7 @@ index cc47a74a1..a5c37c81d 100755
  override_dh_makeshlibs:
  	dh_makeshlibs -a -V
  ifeq ($(BUILD_UDEB), true)
-@@ -152,65 +111,5 @@ override_dh_install:
+@@ -154,65 +112,5 @@ override_dh_install:
  
  # ------------
  
@@ -278,5 +278,5 @@ index cc47a74a1..a5c37c81d 100755
  debian-copyright:
  	cme update dpkg-copyright -file debian/copyright.cme
 -- 
-2.14.2
+2.11.0
 

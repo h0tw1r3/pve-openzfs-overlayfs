@@ -12,18 +12,18 @@ Signed-off-by: Fabian Grünbichler <f.gruenbichler@proxmox.com>
  1 file changed, 1 insertion(+), 1 deletion(-)
 
 diff --git a/etc/systemd/system/zfs-import-scan.service.in b/etc/systemd/system/zfs-import-scan.service.in
-index 227f5b74f..cc428b0d0 100644
+index abc8e8e6..8fe2c107 100644
 --- a/etc/systemd/system/zfs-import-scan.service.in
 +++ b/etc/systemd/system/zfs-import-scan.service.in
 @@ -12,7 +12,7 @@ ConditionPathExists=!@sysconfdir@/zfs/zpool.cache
  Type=oneshot
  RemainAfterExit=yes
- ExecStartPre=/sbin/modprobe zfs
+ ExecStartPre=-/sbin/modprobe zfs
 -ExecStart=@sbindir@/zpool import -aN -o cachefile=none
 +ExecStart=@sbindir@/zpool import -aN -d /dev/disk/by-id -o cachefile=none
  
  [Install]
  WantedBy=zfs-import.target
 -- 
-2.14.2
+2.11.0
 
