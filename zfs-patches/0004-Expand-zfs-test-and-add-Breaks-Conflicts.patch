@@ -1,0 +1,102 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Antonio Russo <antonio.e.russo@gmail.com>
+Date: Fri, 18 May 2018 18:04:51 -0400
+Subject: [PATCH] Expand zfs-test and add Breaks/Conflicts
+
+---
+ debian/control                | 4 ++--
+ debian/control.in             | 4 ++--
+ debian/tests/control          | 2 +-
+ debian/zfs-test.install       | 6 +++++-
+ debian/zfsutils-linux.install | 5 +----
+ 5 files changed, 11 insertions(+), 10 deletions(-)
+
+diff --git a/debian/control b/debian/control
+index 9e4f8fa7..8d85529c 100644
+--- a/debian/control
++++ b/debian/control
+@@ -180,8 +180,8 @@ Depends: acl,
+          zfsutils-linux (>=${binary:Version}),
+          ${misc:Depends},
+          ${shlibs:Depends}
+-Breaks: zfsutils-linux (<= 0.6.5.11-1)
+-Replaces: zfsutils-linux (<= 0.6.5.11-1)
++Breaks: zfsutils-linux (<= 0.7.9-2)
++Replaces: zfsutils-linux (<= 0.7.9-2)
+ Conflicts: zutils
+ Description: OpenZFS test infrastructure an support scripts
+  The Z file system is a pooled filesystem designed for maximum data
+diff --git a/debian/control.in b/debian/control.in
+index e193f017..9970875e 100644
+--- a/debian/control.in
++++ b/debian/control.in
+@@ -180,8 +180,8 @@ Depends: acl,
+          zfsutils-linux (>=${binary:Version}),
+          ${misc:Depends},
+          ${shlibs:Depends}
+-Breaks: zfsutils-linux (<= 0.6.5.11-1)
+-Replaces: zfsutils-linux (<= 0.6.5.11-1)
++Breaks: zfsutils-linux (<= 0.7.9-2)
++Replaces: zfsutils-linux (<= 0.7.9-2)
+ Conflicts: zutils
+ Description: OpenZFS test infrastructure an support scripts
+  The Z file system is a pooled filesystem designed for maximum data
+diff --git a/debian/tests/control b/debian/tests/control
+index 3d704bac..d03b365b 100644
+--- a/debian/tests/control
++++ b/debian/tests/control
+@@ -1,3 +1,3 @@
+ Tests: kernel-smoke-test
+ Restrictions: needs-root
+-Depends: zfsutils-linux, zfs-zed, zfs-initramfs, zfs-dkms
++Depends: zfsutils-linux, zfs-zed, zfs-initramfs, zfs-dkms, zfs-test
+diff --git a/debian/zfs-test.install b/debian/zfs-test.install
+index 225d51fc..ec850df8 100644
+--- a/debian/zfs-test.install
++++ b/debian/zfs-test.install
+@@ -1,8 +1,12 @@
++sbin/zinject
++sbin/zpios
+ sbin/ztest
+ usr/bin/raidz_test
+-usr/share/man/man1/ztest.1
+ usr/share/man/man1/raidz_test.1
+ usr/share/man/man1/test-runner.1
++usr/share/man/man1/zpios.1
++usr/share/man/man1/ztest.1
++usr/share/man/man8/zinject.8
+ usr/share/zfs/common.sh
+ usr/share/zfs/common.sh
+ usr/share/zfs/common.sh
+diff --git a/debian/zfsutils-linux.install b/debian/zfsutils-linux.install
+index 238e00a2..18016822 100644
+--- a/debian/zfsutils-linux.install
++++ b/debian/zfsutils-linux.install
+@@ -15,8 +15,6 @@ sbin/mount.zfs
+ sbin/zdb
+ sbin/zfs
+ sbin/zhack
+-sbin/zinject
+-sbin/zpios
+ sbin/zpool
+ sbin/zstreamdump
+ usr/bin/zgenhostid
+@@ -25,7 +23,7 @@ usr/lib/zfs-linux/zpool.d/
+ usr/sbin/arc_summary
+ usr/sbin/arcstat
+ usr/sbin/dbufstat
+-usr/share/man/man1/
++usr/share/man/man1/zhack.1
+ usr/share/man/man5/
+ usr/share/man/man8/fsck.zfs.8
+ usr/share/man/man8/mount.zfs.8
+@@ -33,6 +31,5 @@ usr/share/man/man8/vdev_id.8
+ usr/share/man/man8/zdb.8
+ usr/share/man/man8/zfs.8
+ usr/share/man/man8/zgenhostid.8
+-usr/share/man/man8/zinject.8
+ usr/share/man/man8/zpool.8
+ usr/share/man/man8/zstreamdump.8
+-- 
+2.11.0
+

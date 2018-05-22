@@ -1,3 +1,4 @@
 0001-remove-DKMS-modules-and-dracut-build.patch
 0002-import-with-d-dev-disk-by-id-in-scan-service.patch
 0003-always-load-ZFS-module-on-boot.patch
+0004-Expand-zfs-test-and-add-Breaks-Conflicts.patch
