@@ -1,3 +1,9 @@
+zfs-linux (0.7.9-pve2~bpo9) unstable; urgency=medium
+
+  * Cherry-pick fix for zpl_mount deadlock
+
+ -- Proxmox Support Team <support@proxmox.com>  Fri, 12 Jul 2018 12:37:50 +0200
+
 zfs-linux (0.7.9-pve1~bpo9) unstable; urgency=medium
 
   * update ZFS to 0.7.9
