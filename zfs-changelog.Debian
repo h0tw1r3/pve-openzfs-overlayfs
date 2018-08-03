@@ -1,3 +1,9 @@
+zfs-linux (0.7.9-pve3~bpo9) unstable; urgency=medium
+
+  *  Cherry-pick fix for deadlock umount/snapentry_expire
+
+ -- Proxmox Support Team <support@proxmox.com>  Fri, 03 Aug 2018 11:41:11 +0200
+
 zfs-linux (0.7.9-pve2~bpo9) unstable; urgency=medium
 
   * Cherry-pick fix for zpl_mount deadlock
