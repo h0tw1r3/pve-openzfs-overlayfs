@@ -2,3 +2,4 @@
 0002-import-with-d-dev-disk-by-id-in-scan-service.patch
 0003-always-load-ZFS-module-on-boot.patch
 0004-Fix-zpl_mount-deadlock.patch
+0005-Fix-deadlock-between-zfs-umount-snapentry_expire.patch
