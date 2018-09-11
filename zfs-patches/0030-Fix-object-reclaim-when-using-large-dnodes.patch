@@ -1,0 +1,134 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Tom Caputi <tcaputi@datto.com>
+Date: Tue, 17 Apr 2018 14:13:57 -0400
+Subject: [PATCH] Fix object reclaim when using large dnodes
+
+Currently, when the receive_object() code wants to reclaim an
+object, it always assumes that the dnode is the legacy 512 bytes,
+even when the incoming bonus buffer exceeds this length. This
+causes a buffer overflow if --enable-debug is not provided and
+triggers an ASSERT if it is. This patch resolves this issue and
+adds an ASSERT to ensure this can't happen again.
+
+Reviewed-by: Brian Behlendorf <behlendorf1@llnl.gov>
+Signed-off-by: Tom Caputi <tcaputi@datto.com>
+Closes #7097
+Closes #7433
+
+Signed-off-by: Stoiko Ivanov <s.ivanov@proxmox.com>
+---
+ module/zfs/dmu_object.c                             |  2 +-
+ module/zfs/dmu_send.c                               |  5 +++--
+ module/zfs/dnode.c                                  |  3 +--
+ .../functional/rsend/send_realloc_dnode_size.ksh    | 21 +++++++++++++++++----
+ 4 files changed, 22 insertions(+), 9 deletions(-)
+ mode change 100644 => 100755 tests/zfs-tests/tests/functional/rsend/send_realloc_dnode_size.ksh
+
+diff --git a/module/zfs/dmu_object.c b/module/zfs/dmu_object.c
+index f53da407..1fc71d10 100644
+--- a/module/zfs/dmu_object.c
++++ b/module/zfs/dmu_object.c
+@@ -249,7 +249,7 @@ dmu_object_reclaim(objset_t *os, uint64_t object, dmu_object_type_t ot,
+     int blocksize, dmu_object_type_t bonustype, int bonuslen, dmu_tx_t *tx)
+ {
+ 	return (dmu_object_reclaim_dnsize(os, object, ot, blocksize, bonustype,
+-	    bonuslen, 0, tx));
++	    bonuslen, DNODE_MIN_SIZE, tx));
+ }
+ 
+ int
+diff --git a/module/zfs/dmu_send.c b/module/zfs/dmu_send.c
+index 148b5ff8..1de0f316 100644
+--- a/module/zfs/dmu_send.c
++++ b/module/zfs/dmu_send.c
+@@ -2244,9 +2244,10 @@ receive_object(struct receive_writer_arg *rwa, struct drr_object *drro,
+ 	    drro->drr_bonustype != doi.doi_bonus_type ||
+ 	    drro->drr_bonuslen != doi.doi_bonus_size) {
+ 		/* currently allocated, but with different properties */
+-		err = dmu_object_reclaim(rwa->os, drro->drr_object,
++		err = dmu_object_reclaim_dnsize(rwa->os, drro->drr_object,
+ 		    drro->drr_type, drro->drr_blksz,
+-		    drro->drr_bonustype, drro->drr_bonuslen, tx);
++		    drro->drr_bonustype, drro->drr_bonuslen,
++		    drro->drr_dn_slots << DNODE_SHIFT, tx);
+ 	}
+ 	if (err != 0) {
+ 		dmu_tx_commit(tx);
+diff --git a/module/zfs/dnode.c b/module/zfs/dnode.c
+index df6a4872..d465b545 100644
+--- a/module/zfs/dnode.c
++++ b/module/zfs/dnode.c
+@@ -662,8 +662,7 @@ dnode_reallocate(dnode_t *dn, dmu_object_type_t ot, int blocksize,
+ 	ASSERT(DMU_OT_IS_VALID(bonustype));
+ 	ASSERT3U(bonuslen, <=,
+ 	    DN_BONUS_SIZE(spa_maxdnodesize(dmu_objset_spa(dn->dn_objset))));
+-
+-	dn_slots = dn_slots > 0 ? dn_slots : DNODE_MIN_SLOTS;
++	ASSERT3U(bonuslen, <=, DN_BONUS_SIZE(dn_slots << DNODE_SHIFT));
+ 
+ 	dnode_free_interior_slots(dn);
+ 	DNODE_STAT_BUMP(dnode_reallocate);
+diff --git a/tests/zfs-tests/tests/functional/rsend/send_realloc_dnode_size.ksh b/tests/zfs-tests/tests/functional/rsend/send_realloc_dnode_size.ksh
+old mode 100644
+new mode 100755
+index 20676394..12a72fa0
+--- a/tests/zfs-tests/tests/functional/rsend/send_realloc_dnode_size.ksh
++++ b/tests/zfs-tests/tests/functional/rsend/send_realloc_dnode_size.ksh
+@@ -13,6 +13,7 @@
+ 
+ #
+ # Copyright (c) 2017 by Lawrence Livermore National Security, LLC.
++# Copyright (c) 2018 Datto Inc.
+ #
+ 
+ . $STF_SUITE/include/libtest.shlib
+@@ -31,8 +32,10 @@
+ # 3. Remove objects, set dnodesize=2k, and remount dataset so new objects
+ #    overlap with recently recycled and formerly "normal" dnode slots get
+ #    assigned to new objects
+-# 4. Generate initial and incremental streams
+-# 5. Verify initial and incremental streams can be received
++# 4. Create an empty file and add xattrs to it to exercise reclaiming a
++#    dnode that requires more than 1 slot for its bonus buffer (Zol #7433)
++# 5. Generate initial and incremental streams
++# 6. Verify initial and incremental streams can be received
+ #
+ 
+ verify_runnable "both"
+@@ -44,6 +47,7 @@ function cleanup
+ 	rm -f $BACKDIR/fs-dn-legacy
+ 	rm -f $BACKDIR/fs-dn-1k
+ 	rm -f $BACKDIR/fs-dn-2k
++	rm -f $BACKDIR/fs-attr
+ 
+ 	if datasetexists $POOL/fs ; then
+ 		log_must zfs destroy -rR $POOL/fs
+@@ -82,17 +86,26 @@ log_must zfs unmount $POOL/fs
+ log_must zfs set dnodesize=2k $POOL/fs
+ log_must zfs mount $POOL/fs
+ 
++log_must touch /$POOL/fs/attrs
+ mk_files 200 262144 0 $POOL/fs
+ log_must zfs snapshot $POOL/fs@c
+ 
+-# 4. Generate initial and incremental streams
++# 4. Create an empty file and add xattrs to it to exercise reclaiming a
++#    dnode that requires more than 1 slot for its bonus buffer (Zol #7433)
++log_must zfs set compression=on xattr=sa $POOL/fs
++log_must eval "python -c 'print \"a\" * 512' | attr -s bigval /$POOL/fs/attrs"
++log_must zfs snapshot $POOL/fs@d
++
++# 5. Generate initial and incremental streams
+ log_must eval "zfs send $POOL/fs@a > $BACKDIR/fs-dn-1k"
+ log_must eval "zfs send -i $POOL/fs@a $POOL/fs@b > $BACKDIR/fs-dn-legacy"
+ log_must eval "zfs send -i $POOL/fs@b $POOL/fs@c > $BACKDIR/fs-dn-2k"
++log_must eval "zfs send -i $POOL/fs@c $POOL/fs@d > $BACKDIR/fs-attr"
+ 
+-# 5. Verify initial and incremental streams can be received
++# 6. Verify initial and incremental streams can be received
+ log_must eval "zfs recv $POOL/newfs < $BACKDIR/fs-dn-1k"
+ log_must eval "zfs recv $POOL/newfs < $BACKDIR/fs-dn-legacy"
+ log_must eval "zfs recv $POOL/newfs < $BACKDIR/fs-dn-2k"
++log_must eval "zfs recv $POOL/newfs < $BACKDIR/fs-attr"
+ 
+ log_pass "Verify incremental receive handles objects with changed dnode size"

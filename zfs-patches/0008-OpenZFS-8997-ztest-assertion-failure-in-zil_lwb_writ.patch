@@ -1,0 +1,368 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Prakash Surya <prakash.surya@delphix.com>
+Date: Mon, 8 Jan 2018 13:45:53 -0800
+Subject: [PATCH] OpenZFS 8997 - ztest assertion failure in zil_lwb_write_issue
+
+PROBLEM
+=======
+
+When `dmu_tx_assign` is called from `zil_lwb_write_issue`, it's possible
+for either `ERESTART` or `EIO` to be returned.
+
+If `ERESTART` is returned, this will cause an assertion to fail directly
+in `zil_lwb_write_issue`, where the code assumes the return value is
+`EIO` if `dmu_tx_assign` returns a non-zero value. This can occur if the
+SPA is suspended when `dmu_tx_assign` is called, and most often occurs
+when running `zloop`.
+
+If `EIO` is returned, this can cause assertions to fail elsewhere in the
+ZIL code. For example, `zil_commit_waiter_timeout` contains the
+following logic:
+
+    lwb_t *nlwb = zil_lwb_write_issue(zilog, lwb);
+    ASSERT3S(lwb->lwb_state, !=, LWB_STATE_OPENED);
+
+In this case, if `dmu_tx_assign` returned `EIO` from within
+`zil_lwb_write_issue`, the `lwb` variable passed in will not be issued
+to disk. Thus, it's `lwb_state` field will remain `LWB_STATE_OPENED` and
+this assertion will fail. `zil_commit_waiter_timeout` assumes that after
+it calls `zil_lwb_write_issue`, the `lwb` will be issued to disk, and
+doesn't handle the case where this is not true; i.e. it doesn't handle
+the case where `dmu_tx_assign` returns `EIO`.
+
+SOLUTION
+========
+
+This change modifies the `dmu_tx_assign` function such that `txg_how` is
+a bitmask, rather than of the `txg_how_t` enum type. Now, the previous
+`TXG_WAITED` semantics can be used via `TXG_NOTHROTTLE`, along with
+specifying either `TXG_NOWAIT` or `TXG_WAIT` semantics.
+
+Previously, when `TXG_WAITED` was specified, `TXG_NOWAIT` semantics was
+automatically invoked. This was not ideal when using `TXG_WAITED` within
+`zil_lwb_write_issued`, leading the problem described above. Rather, we
+want to achieve the semantics of `TXG_WAIT`, while also preventing the
+`tx` from being penalized via the dirty delay throttling.
+
+With this change, `zil_lwb_write_issued` can acheive the semtantics that
+it requires by passing in the value `TXG_WAIT | TXG_NOTHROTTLE` to
+`dmu_tx_assign`.
+
+Further, consumers of `dmu_tx_assign` wishing to achieve the old
+`TXG_WAITED` semantics can pass in the value `TXG_NOWAIT | TXG_NOTHROTTLE`.
+
+Authored by: Prakash Surya <prakash.surya@delphix.com>
+Approved by: Robert Mustacchi <rm@joyent.com>
+Reviewed by: Matt Ahrens <mahrens@delphix.com>
+Reviewed by: Andriy Gapon <avg@FreeBSD.org>
+Ported-by: Brian Behlendorf <behlendorf1@llnl.gov>
+
+Porting Notes:
+- Additionally updated `zfs_tmpfile` to use `TXG_NOTHROTTLE`
+
+OpenZFS-issue: https://www.illumos.org/issues/8997
+OpenZFS-commit: https://github.com/openzfs/openzfs/commit/19ea6cb0f9
+Closes #7084
+
+Signed-off-by: Stoiko Ivanov <s.ivanov@proxmox.com>
+---
+ include/sys/dmu.h      | 15 +++++++------
+ include/sys/dmu_tx.h   |  8 +++----
+ module/zfs/dmu_tx.c    | 57 ++++++++++++++++++++++++++------------------------
+ module/zfs/zfs_vnops.c | 21 ++++++++++---------
+ module/zfs/zil.c       | 10 ++++++++-
+ 5 files changed, 63 insertions(+), 48 deletions(-)
+
+diff --git a/include/sys/dmu.h b/include/sys/dmu.h
+index 755a9056..5b355afb 100644
+--- a/include/sys/dmu.h
++++ b/include/sys/dmu.h
+@@ -227,11 +227,14 @@ typedef enum dmu_object_type {
+ 	DMU_OTN_ZAP_METADATA = DMU_OT(DMU_BSWAP_ZAP, B_TRUE),
+ } dmu_object_type_t;
+ 
+-typedef enum txg_how {
+-	TXG_WAIT = 1,
+-	TXG_NOWAIT,
+-	TXG_WAITED,
+-} txg_how_t;
++/*
++ * These flags are intended to be used to specify the "txg_how"
++ * parameter when calling the dmu_tx_assign() function. See the comment
++ * above dmu_tx_assign() for more details on the meaning of these flags.
++ */
++#define	TXG_NOWAIT	(0ULL)
++#define	TXG_WAIT	(1ULL<<0)
++#define	TXG_NOTHROTTLE	(1ULL<<1)
+ 
+ void byteswap_uint64_array(void *buf, size_t size);
+ void byteswap_uint32_array(void *buf, size_t size);
+@@ -694,7 +697,7 @@ void dmu_tx_hold_spill(dmu_tx_t *tx, uint64_t object);
+ void dmu_tx_hold_sa(dmu_tx_t *tx, struct sa_handle *hdl, boolean_t may_grow);
+ void dmu_tx_hold_sa_create(dmu_tx_t *tx, int total_size);
+ void dmu_tx_abort(dmu_tx_t *tx);
+-int dmu_tx_assign(dmu_tx_t *tx, enum txg_how txg_how);
++int dmu_tx_assign(dmu_tx_t *tx, uint64_t txg_how);
+ void dmu_tx_wait(dmu_tx_t *tx);
+ void dmu_tx_commit(dmu_tx_t *tx);
+ void dmu_tx_mark_netfree(dmu_tx_t *tx);
+diff --git a/include/sys/dmu_tx.h b/include/sys/dmu_tx.h
+index d82a7931..74b7e111 100644
+--- a/include/sys/dmu_tx.h
++++ b/include/sys/dmu_tx.h
+@@ -67,9 +67,6 @@ struct dmu_tx {
+ 	/* placeholder for syncing context, doesn't need specific holds */
+ 	boolean_t tx_anyobj;
+ 
+-	/* has this transaction already been delayed? */
+-	boolean_t tx_waited;
+-
+ 	/* transaction is marked as being a "net free" of space */
+ 	boolean_t tx_netfree;
+ 
+@@ -79,6 +76,9 @@ struct dmu_tx {
+ 	/* need to wait for sufficient dirty space */
+ 	boolean_t tx_wait_dirty;
+ 
++	/* has this transaction already been delayed? */
++	boolean_t tx_dirty_delayed;
++
+ 	int tx_err;
+ };
+ 
+@@ -138,7 +138,7 @@ extern dmu_tx_stats_t dmu_tx_stats;
+  * These routines are defined in dmu.h, and are called by the user.
+  */
+ dmu_tx_t *dmu_tx_create(objset_t *dd);
+-int dmu_tx_assign(dmu_tx_t *tx, txg_how_t txg_how);
++int dmu_tx_assign(dmu_tx_t *tx, uint64_t txg_how);
+ void dmu_tx_commit(dmu_tx_t *tx);
+ void dmu_tx_abort(dmu_tx_t *tx);
+ uint64_t dmu_tx_get_txg(dmu_tx_t *tx);
+diff --git a/module/zfs/dmu_tx.c b/module/zfs/dmu_tx.c
+index c3cc03a6..6ebff267 100644
+--- a/module/zfs/dmu_tx.c
++++ b/module/zfs/dmu_tx.c
+@@ -854,7 +854,7 @@ dmu_tx_delay(dmu_tx_t *tx, uint64_t dirty)
+  * decreasing performance.
+  */
+ static int
+-dmu_tx_try_assign(dmu_tx_t *tx, txg_how_t txg_how)
++dmu_tx_try_assign(dmu_tx_t *tx, uint64_t txg_how)
+ {
+ 	spa_t *spa = tx->tx_pool->dp_spa;
+ 
+@@ -878,13 +878,13 @@ dmu_tx_try_assign(dmu_tx_t *tx, txg_how_t txg_how)
+ 		 * of the failuremode setting.
+ 		 */
+ 		if (spa_get_failmode(spa) == ZIO_FAILURE_MODE_CONTINUE &&
+-		    txg_how != TXG_WAIT)
++		    !(txg_how & TXG_WAIT))
+ 			return (SET_ERROR(EIO));
+ 
+ 		return (SET_ERROR(ERESTART));
+ 	}
+ 
+-	if (!tx->tx_waited &&
++	if (!tx->tx_dirty_delayed &&
+ 	    dsl_pool_need_dirty_delay(tx->tx_pool)) {
+ 		tx->tx_wait_dirty = B_TRUE;
+ 		DMU_TX_STAT_BUMP(dmu_tx_dirty_delay);
+@@ -976,41 +976,44 @@ dmu_tx_unassign(dmu_tx_t *tx)
+ }
+ 
+ /*
+- * Assign tx to a transaction group.  txg_how can be one of:
++ * Assign tx to a transaction group; txg_how is a bitmask:
+  *
+- * (1)	TXG_WAIT.  If the current open txg is full, waits until there's
+- *	a new one.  This should be used when you're not holding locks.
+- *	It will only fail if we're truly out of space (or over quota).
++ * If TXG_WAIT is set and the currently open txg is full, this function
++ * will wait until there's a new txg. This should be used when no locks
++ * are being held. With this bit set, this function will only fail if
++ * we're truly out of space (or over quota).
+  *
+- * (2)	TXG_NOWAIT.  If we can't assign into the current open txg without
+- *	blocking, returns immediately with ERESTART.  This should be used
+- *	whenever you're holding locks.  On an ERESTART error, the caller
+- *	should drop locks, do a dmu_tx_wait(tx), and try again.
++ * If TXG_WAIT is *not* set and we can't assign into the currently open
++ * txg without blocking, this function will return immediately with
++ * ERESTART. This should be used whenever locks are being held.  On an
++ * ERESTART error, the caller should drop all locks, call dmu_tx_wait(),
++ * and try again.
+  *
+- * (3)	TXG_WAITED.  Like TXG_NOWAIT, but indicates that dmu_tx_wait()
+- *	has already been called on behalf of this operation (though
+- *	most likely on a different tx).
++ * If TXG_NOTHROTTLE is set, this indicates that this tx should not be
++ * delayed due on the ZFS Write Throttle (see comments in dsl_pool.c for
++ * details on the throttle). This is used by the VFS operations, after
++ * they have already called dmu_tx_wait() (though most likely on a
++ * different tx).
+  */
+ int
+-dmu_tx_assign(dmu_tx_t *tx, txg_how_t txg_how)
++dmu_tx_assign(dmu_tx_t *tx, uint64_t txg_how)
+ {
+ 	int err;
+ 
+ 	ASSERT(tx->tx_txg == 0);
+-	ASSERT(txg_how == TXG_WAIT || txg_how == TXG_NOWAIT ||
+-	    txg_how == TXG_WAITED);
++	ASSERT0(txg_how & ~(TXG_WAIT | TXG_NOTHROTTLE));
+ 	ASSERT(!dsl_pool_sync_context(tx->tx_pool));
+ 
+-	if (txg_how == TXG_WAITED)
+-		tx->tx_waited = B_TRUE;
+-
+ 	/* If we might wait, we must not hold the config lock. */
+-	ASSERT(txg_how != TXG_WAIT || !dsl_pool_config_held(tx->tx_pool));
++	IMPLY((txg_how & TXG_WAIT), !dsl_pool_config_held(tx->tx_pool));
++
++	if ((txg_how & TXG_NOTHROTTLE))
++		tx->tx_dirty_delayed = B_TRUE;
+ 
+ 	while ((err = dmu_tx_try_assign(tx, txg_how)) != 0) {
+ 		dmu_tx_unassign(tx);
+ 
+-		if (err != ERESTART || txg_how != TXG_WAIT)
++		if (err != ERESTART || !(txg_how & TXG_WAIT))
+ 			return (err);
+ 
+ 		dmu_tx_wait(tx);
+@@ -1054,12 +1057,12 @@ dmu_tx_wait(dmu_tx_t *tx)
+ 		tx->tx_wait_dirty = B_FALSE;
+ 
+ 		/*
+-		 * Note: setting tx_waited only has effect if the caller
+-		 * used TX_WAIT.  Otherwise they are going to destroy
+-		 * this tx and try again.  The common case, zfs_write(),
+-		 * uses TX_WAIT.
++		 * Note: setting tx_dirty_delayed only has effect if the
++		 * caller used TX_WAIT.  Otherwise they are going to
++		 * destroy this tx and try again.  The common case,
++		 * zfs_write(), uses TX_WAIT.
+ 		 */
+-		tx->tx_waited = B_TRUE;
++		tx->tx_dirty_delayed = B_TRUE;
+ 	} else if (spa_suspended(spa) || tx->tx_lasttried_txg == 0) {
+ 		/*
+ 		 * If the pool is suspended we need to wait until it
+diff --git a/module/zfs/zfs_vnops.c b/module/zfs/zfs_vnops.c
+index 34ea751c..4805f897 100644
+--- a/module/zfs/zfs_vnops.c
++++ b/module/zfs/zfs_vnops.c
+@@ -129,7 +129,7 @@
+  *
+  *	If dmu_tx_assign() returns ERESTART and zfsvfs->z_assign is TXG_NOWAIT,
+  *	then drop all locks, call dmu_tx_wait(), and try again.  On subsequent
+- *	calls to dmu_tx_assign(), pass TXG_WAITED rather than TXG_NOWAIT,
++ *	calls to dmu_tx_assign(), pass TXG_NOTHROTTLE in addition to TXG_NOWAIT,
+  *	to indicate that this operation has already called dmu_tx_wait().
+  *	This will ensure that we don't retry forever, waiting a short bit
+  *	each time.
+@@ -154,7 +154,7 @@
+  *	rw_enter(...);			// grab any other locks you need
+  *	tx = dmu_tx_create(...);	// get DMU tx
+  *	dmu_tx_hold_*();		// hold each object you might modify
+- *	error = dmu_tx_assign(tx, waited ? TXG_WAITED : TXG_NOWAIT);
++ *	error = dmu_tx_assign(tx, (waited ? TXG_NOTHROTTLE : 0) | TXG_NOWAIT);
+  *	if (error) {
+  *		rw_exit(...);		// drop locks
+  *		zfs_dirent_unlock(dl);	// unlock directory entry
+@@ -1427,7 +1427,8 @@ top:
+ 			dmu_tx_hold_write(tx, DMU_NEW_OBJECT,
+ 			    0, acl_ids.z_aclp->z_acl_bytes);
+ 		}
+-		error = dmu_tx_assign(tx, waited ? TXG_WAITED : TXG_NOWAIT);
++		error = dmu_tx_assign(tx,
++		    (waited ? TXG_NOTHROTTLE : 0) | TXG_NOWAIT);
+ 		if (error) {
+ 			zfs_dirent_unlock(dl);
+ 			if (error == ERESTART) {
+@@ -1602,7 +1603,7 @@ top:
+ 		dmu_tx_hold_write(tx, DMU_NEW_OBJECT,
+ 		    0, acl_ids.z_aclp->z_acl_bytes);
+ 	}
+-	error = dmu_tx_assign(tx, waited ? TXG_WAITED : TXG_NOWAIT);
++	error = dmu_tx_assign(tx, (waited ? TXG_NOTHROTTLE : 0) | TXG_NOWAIT);
+ 	if (error) {
+ 		if (error == ERESTART) {
+ 			waited = B_TRUE;
+@@ -1775,7 +1776,7 @@ top:
+ 	 */
+ 	dmu_tx_mark_netfree(tx);
+ 
+-	error = dmu_tx_assign(tx, waited ? TXG_WAITED : TXG_NOWAIT);
++	error = dmu_tx_assign(tx, (waited ? TXG_NOTHROTTLE : 0) | TXG_NOWAIT);
+ 	if (error) {
+ 		zfs_dirent_unlock(dl);
+ 		if (error == ERESTART) {
+@@ -2017,7 +2018,7 @@ top:
+ 	dmu_tx_hold_sa_create(tx, acl_ids.z_aclp->z_acl_bytes +
+ 	    ZFS_SA_BASE_ATTR_SIZE);
+ 
+-	error = dmu_tx_assign(tx, waited ? TXG_WAITED : TXG_NOWAIT);
++	error = dmu_tx_assign(tx, (waited ? TXG_NOTHROTTLE : 0) | TXG_NOWAIT);
+ 	if (error) {
+ 		zfs_dirent_unlock(dl);
+ 		if (error == ERESTART) {
+@@ -2156,7 +2157,7 @@ top:
+ 	zfs_sa_upgrade_txholds(tx, zp);
+ 	zfs_sa_upgrade_txholds(tx, dzp);
+ 	dmu_tx_mark_netfree(tx);
+-	error = dmu_tx_assign(tx, waited ? TXG_WAITED : TXG_NOWAIT);
++	error = dmu_tx_assign(tx, (waited ? TXG_NOTHROTTLE : 0) | TXG_NOWAIT);
+ 	if (error) {
+ 		rw_exit(&zp->z_parent_lock);
+ 		rw_exit(&zp->z_name_lock);
+@@ -3623,7 +3624,7 @@ top:
+ 
+ 	zfs_sa_upgrade_txholds(tx, szp);
+ 	dmu_tx_hold_zap(tx, zfsvfs->z_unlinkedobj, FALSE, NULL);
+-	error = dmu_tx_assign(tx, waited ? TXG_WAITED : TXG_NOWAIT);
++	error = dmu_tx_assign(tx, (waited ? TXG_NOTHROTTLE : 0) | TXG_NOWAIT);
+ 	if (error) {
+ 		if (zl != NULL)
+ 			zfs_rename_unlock(&zl);
+@@ -3815,7 +3816,7 @@ top:
+ 	}
+ 	if (fuid_dirtied)
+ 		zfs_fuid_txhold(zfsvfs, tx);
+-	error = dmu_tx_assign(tx, waited ? TXG_WAITED : TXG_NOWAIT);
++	error = dmu_tx_assign(tx, (waited ? TXG_NOTHROTTLE : 0) | TXG_NOWAIT);
+ 	if (error) {
+ 		zfs_dirent_unlock(dl);
+ 		if (error == ERESTART) {
+@@ -4041,7 +4042,7 @@ top:
+ 
+ 	zfs_sa_upgrade_txholds(tx, szp);
+ 	zfs_sa_upgrade_txholds(tx, dzp);
+-	error = dmu_tx_assign(tx, waited ? TXG_WAITED : TXG_NOWAIT);
++	error = dmu_tx_assign(tx, (waited ? TXG_NOTHROTTLE : 0) | TXG_NOWAIT);
+ 	if (error) {
+ 		zfs_dirent_unlock(dl);
+ 		if (error == ERESTART) {
+diff --git a/module/zfs/zil.c b/module/zfs/zil.c
+index 645b1d4d..a2bbdcb9 100644
+--- a/module/zfs/zil.c
++++ b/module/zfs/zil.c
+@@ -1009,7 +1009,15 @@ zil_lwb_write_start(zilog_t *zilog, lwb_t *lwb)
+ 	 * to clean up in the event of allocation failure or I/O failure.
+ 	 */
+ 	tx = dmu_tx_create(zilog->zl_os);
+-	VERIFY(dmu_tx_assign(tx, TXG_WAIT) == 0);
++
++	/*
++	 * Since we are not going to create any new dirty data, and we
++	 * can even help with clearing the existing dirty data, we
++	 * should not be subject to the dirty data based delays. We
++	 * use TXG_NOTHROTTLE to bypass the delay mechanism.
++	 */
++	VERIFY0(dmu_tx_assign(tx, TXG_WAIT | TXG_NOTHROTTLE));
++
+ 	dsl_dataset_dirty(dmu_objset_ds(zilog->zl_os), tx);
+ 	txg = dmu_tx_get_txg(tx);
+ 

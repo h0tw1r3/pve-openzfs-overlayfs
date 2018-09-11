@@ -1,0 +1,61 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Joao Carlos Mendes Luis <dioni21@users.noreply.github.com>
+Date: Sun, 26 Aug 2018 16:55:44 -0300
+Subject: [PATCH] Fedora 28: Fix misc bounds check compiler warnings
+
+Fix a bunch of truncation compiler warnings that show up
+on Fedora 28 (GCC 8.0.1).
+
+Reviewed-by: Giuseppe Di Natale <guss80@gmail.com>
+Reviewed-by: George Melikov <mail@gmelikov.ru>
+Reviewed-by: Brian Behlendorf <behlendorf1@llnl.gov>
+Issue #7368
+Closes #7826
+Closes #7830
+
+Signed-off-by: Stoiko Ivanov <s.ivanov@proxmox.com>
+---
+ lib/libshare/smb.c                             | 2 +-
+ module/icp/core/kcf_mech_tabs.c                | 2 +-
+ tests/zfs-tests/tests/functional/ctime/ctime.c | 2 +-
+ 3 files changed, 3 insertions(+), 3 deletions(-)
+
+diff --git a/lib/libshare/smb.c b/lib/libshare/smb.c
+index 76145bd9..91d4decb 100644
+--- a/lib/libshare/smb.c
++++ b/lib/libshare/smb.c
+@@ -218,7 +218,7 @@ smb_enable_share_one(const char *sharename, const char *sharepath)
+ 	int rc;
+ 
+ 	/* Support ZFS share name regexp '[[:alnum:]_-.: ]' */
+-	strncpy(name, sharename, sizeof (name));
++	strlcpy(name, sharename, sizeof (name));
+ 	name [sizeof (name)-1] = '\0';
+ 
+ 	pos = name;
+diff --git a/module/icp/core/kcf_mech_tabs.c b/module/icp/core/kcf_mech_tabs.c
+index 723bfdb6..741dae7a 100644
+--- a/module/icp/core/kcf_mech_tabs.c
++++ b/module/icp/core/kcf_mech_tabs.c
+@@ -321,7 +321,7 @@ kcf_create_mech_entry(kcf_ops_class_t class, char *mechname)
+ 		mutex_enter(&(me_tab[i].me_mutex));
+ 		if (me_tab[i].me_name[0] == 0) {
+ 			/* Found an empty spot */
+-			(void) strncpy(me_tab[i].me_name, mechname,
++			(void) strlcpy(me_tab[i].me_name, mechname,
+ 			    CRYPTO_MAX_MECH_NAME);
+ 			me_tab[i].me_name[CRYPTO_MAX_MECH_NAME-1] = '\0';
+ 			me_tab[i].me_mechid = KCF_MECHID(class, i);
+diff --git a/tests/zfs-tests/tests/functional/ctime/ctime.c b/tests/zfs-tests/tests/functional/ctime/ctime.c
+index ba8af15f..1cd18323 100644
+--- a/tests/zfs-tests/tests/functional/ctime/ctime.c
++++ b/tests/zfs-tests/tests/functional/ctime/ctime.c
+@@ -155,7 +155,7 @@ do_link(const char *pfile)
+ 		return (-1);
+ 	}
+ 
+-	strncpy(pfile_copy, pfile, sizeof (pfile_copy));
++	strncpy(pfile_copy, pfile, sizeof (pfile_copy)-1);
+ 	pfile_copy[sizeof (pfile_copy) - 1] = '\0';
+ 	/*
+ 	 * Figure out source file directory name, and create

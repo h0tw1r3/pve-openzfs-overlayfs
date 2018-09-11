@@ -1,0 +1,34 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Olaf Faaland <faaland1@llnl.gov>
+Date: Fri, 6 Apr 2018 13:29:11 -0700
+Subject: [PATCH] Fix divide-by-zero in mmp_delay_update()
+
+vdev_count_leaves() in the denominator may return 0, caught by Coverity.
+Introduced by
+
+* 533ea04 Update mmp_delay on sync or skipped, failed write
+
+Reviewed-by: Brian Behlendorf <behlendorf1@llnl.gov>
+Reviewed-by: Giuseppe Di Natale <dinatale2@llnl.gov>
+Reviewed-by: George Melikov <mail@gmelikov.ru>
+Signed-off-by: Olaf Faaland <faaland1@llnl.gov>
+Closes #7391
+
+Signed-off-by: Stoiko Ivanov <s.ivanov@proxmox.com>
+---
+ module/zfs/mmp.c | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+
+diff --git a/module/zfs/mmp.c b/module/zfs/mmp.c
+index 1ae5f31f..3b74a6b6 100644
+--- a/module/zfs/mmp.c
++++ b/module/zfs/mmp.c
+@@ -327,7 +327,7 @@ mmp_delay_update(spa_t *spa, boolean_t write_completed)
+ 	 */
+ 	if (delay < mts->mmp_delay) {
+ 		hrtime_t min_delay = MSEC2NSEC(zfs_multihost_interval) /
+-		    vdev_count_leaves(spa);
++		    MAX(1, vdev_count_leaves(spa));
+ 		mts->mmp_delay = MAX(((delay + mts->mmp_delay * 127) / 128),
+ 		    min_delay);
+ 	}

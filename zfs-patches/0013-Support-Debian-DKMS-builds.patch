@@ -1,0 +1,52 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Antonio Russo <antonio.e.russo@gmail.com>
+Date: Sat, 26 May 2018 13:56:24 -0400
+Subject: [PATCH] Support Debian DKMS builds
+
+scripts/dkms.mkconf calls configure with
+`--with-linux=${kernel_source_dir}`, but Debian puts it kernel source at
+`/lib/modules/<version>/source`. This patch adds the same logic to the
+DKMS file produced by `scripts/dkms.mkconf` that Debian has shipped in
+its official ZFS packaging: at DKMS build time, it checks if the system
+is a Debian system, and adjusts the path accordingly.
+
+Reviewed-by: Brian Behlendorf <behlendorf1@llnl.gov>
+Reviewed-by: George Melikov <mail@gmelikov.ru>
+Signed-off-by: Antonio Russo <antonio.e.russo@gmail.com>
+Closes #7358
+Closes #7540
+Closes #7554
+
+Signed-off-by: Stoiko Ivanov <s.ivanov@proxmox.com>
+---
+ scripts/dkms.mkconf | 17 ++++++++++++++++-
+ 1 file changed, 16 insertions(+), 1 deletion(-)
+
+diff --git a/scripts/dkms.mkconf b/scripts/dkms.mkconf
+index 880510ab..88c28938 100755
+--- a/scripts/dkms.mkconf
++++ b/scripts/dkms.mkconf
+@@ -25,7 +25,22 @@ PACKAGE_CONFIG="${pkgcfg}"
+ PRE_BUILD="configure
+   --prefix=/usr
+   --with-config=kernel
+-  --with-linux=\${kernel_source_dir}
++  --with-linux=\$(
++    case \`lsb_release -is\` in
++      (Debian|Devuan)
++        if [[ -e \${kernel_source_dir/%build/source} ]]
++        then
++          echo \${kernel_source_dir/%build/source}
++        else
++          # A kpkg exception for Proxmox 2.0
++          echo \${kernel_source_dir}
++        fi
++      ;;
++      (*)
++        echo \${kernel_source_dir}
++      ;;
++    esac
++  )
+   --with-linux-obj=\${kernel_source_dir}
+   --with-spl=\${source_tree}/spl-\${PACKAGE_VERSION}
+   --with-spl-obj=\${dkms_tree}/spl/\${PACKAGE_VERSION}/\${kernelver}/\${arch}

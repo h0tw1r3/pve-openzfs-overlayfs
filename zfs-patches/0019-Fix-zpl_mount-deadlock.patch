@@ -48,7 +48,6 @@ Closes #7659
 Closes #7691
 Closes #7693
 
-(Cherry-picked from ac09630d8b0bf6c92084a30fdaefd03fd0adbdc1)
 Signed-off-by: Stoiko Ivanov <s.ivanov@proxmox.com>
 ---
  include/sys/zfs_vfsops.h |  1 +

@@ -1,0 +1,686 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Tony Hutter <hutter2@llnl.gov>
+Date: Wed, 6 Jun 2018 09:33:54 -0700
+Subject: [PATCH] Add pool state /proc entry, "SUSPENDED" pools
+
+1. Add a proc entry to display the pool's state:
+
+$ cat /proc/spl/kstat/zfs/tank/state
+ONLINE
+
+This is done without using the spa config locks, so it will
+never hang.
+
+2. Fix 'zpool status' and 'zpool list -o health' output to print
+"SUSPENDED" instead of "ONLINE" for suspended pools.
+
+Reviewed-by: Olaf Faaland <faaland1@llnl.gov>
+Reviewed-by: Brian Behlendorf <behlendorf1@llnl.gov>
+Reviewed by: Richard Elling <Richard.Elling@RichardElling.com>
+Signed-off-by: Tony Hutter <hutter2@llnl.gov>
+Closes #7331
+Closes #7563
+
+Signed-off-by: Stoiko Ivanov <s.ivanov@proxmox.com>
+---
+ cmd/zpool/zpool_main.c                             |   3 +-
+ configure.ac                                       |   1 +
+ include/libzfs.h                                   |   2 +
+ include/sys/spa.h                                  |   3 +
+ lib/libspl/include/sys/kstat.h                     |   2 +
+ lib/libzfs/libzfs_pool.c                           |  46 +++++--
+ lib/libzfs/libzfs_status.c                         |  12 +-
+ module/zfs/spa_misc.c                              |  40 ++++++
+ module/zfs/spa_stats.c                             |  62 +++++++++
+ tests/runfiles/linux.run                           |   4 +
+ tests/zfs-tests/include/libtest.shlib              |  38 ++++++
+ tests/zfs-tests/tests/functional/Makefile.am       |   1 +
+ tests/zfs-tests/tests/functional/kstat/Makefile.am |   5 +
+ tests/zfs-tests/tests/functional/kstat/cleanup.ksh |  28 ++++
+ tests/zfs-tests/tests/functional/kstat/setup.ksh   |  34 +++++
+ tests/zfs-tests/tests/functional/kstat/state.ksh   | 144 +++++++++++++++++++++
+ 16 files changed, 406 insertions(+), 19 deletions(-)
+ create mode 100644 tests/zfs-tests/tests/functional/kstat/Makefile.am
+ create mode 100755 tests/zfs-tests/tests/functional/kstat/cleanup.ksh
+ create mode 100755 tests/zfs-tests/tests/functional/kstat/setup.ksh
+ create mode 100755 tests/zfs-tests/tests/functional/kstat/state.ksh
+
+diff --git a/cmd/zpool/zpool_main.c b/cmd/zpool/zpool_main.c
+index b0756938..97697011 100644
+--- a/cmd/zpool/zpool_main.c
++++ b/cmd/zpool/zpool_main.c
+@@ -6226,7 +6226,8 @@ status_callback(zpool_handle_t *zhp, void *data)
+ 	    &nvroot) == 0);
+ 	verify(nvlist_lookup_uint64_array(nvroot, ZPOOL_CONFIG_VDEV_STATS,
+ 	    (uint64_t **)&vs, &c) == 0);
+-	health = zpool_state_to_name(vs->vs_state, vs->vs_aux);
++
++	health = zpool_get_state_str(zhp);
+ 
+ 	(void) printf(gettext("  pool: %s\n"), zpool_get_name(zhp));
+ 	(void) printf(gettext(" state: %s\n"), health);
+diff --git a/configure.ac b/configure.ac
+index 3f4925c3..42cfc1a3 100644
+--- a/configure.ac
++++ b/configure.ac
+@@ -253,6 +253,7 @@ AC_CONFIG_FILES([
+ 	tests/zfs-tests/tests/functional/history/Makefile
+ 	tests/zfs-tests/tests/functional/inheritance/Makefile
+ 	tests/zfs-tests/tests/functional/inuse/Makefile
++	tests/zfs-tests/tests/functional/kstat/Makefile
+ 	tests/zfs-tests/tests/functional/large_files/Makefile
+ 	tests/zfs-tests/tests/functional/largest_pool/Makefile
+ 	tests/zfs-tests/tests/functional/link_count/Makefile
+diff --git a/include/libzfs.h b/include/libzfs.h
+index 945bd5b8..fea2fee4 100644
+--- a/include/libzfs.h
++++ b/include/libzfs.h
+@@ -296,6 +296,8 @@ int zfs_dev_is_whole_disk(char *dev_name);
+ char *zfs_get_underlying_path(char *dev_name);
+ char *zfs_get_enclosure_sysfs_path(char *dev_name);
+ 
++const char *zpool_get_state_str(zpool_handle_t *);
++
+ /*
+  * Functions to manage pool properties
+  */
+diff --git a/include/sys/spa.h b/include/sys/spa.h
+index 3b268419..810999c9 100644
+--- a/include/sys/spa.h
++++ b/include/sys/spa.h
+@@ -730,6 +730,7 @@ typedef struct spa_stats {
+ 	spa_stats_history_t	tx_assign_histogram;
+ 	spa_stats_history_t	io_history;
+ 	spa_stats_history_t	mmp_history;
++	spa_stats_history_t	state;		/* pool state */
+ } spa_stats_t;
+ 
+ typedef enum txg_state {
+@@ -889,6 +890,8 @@ extern void spa_history_log_internal_ds(struct dsl_dataset *ds, const char *op,
+ extern void spa_history_log_internal_dd(dsl_dir_t *dd, const char *operation,
+     dmu_tx_t *tx, const char *fmt, ...);
+ 
++extern const char *spa_state_to_name(spa_t *spa);
++
+ /* error handling */
+ struct zbookmark_phys;
+ extern void spa_log_error(spa_t *spa, zio_t *zio);
+diff --git a/lib/libspl/include/sys/kstat.h b/lib/libspl/include/sys/kstat.h
+index fcd3ed98..84c3d7ca 100644
+--- a/lib/libspl/include/sys/kstat.h
++++ b/lib/libspl/include/sys/kstat.h
+@@ -304,6 +304,8 @@ typedef struct kstat32 {
+ #define	KSTAT_FLAG_PERSISTENT		0x08
+ #define	KSTAT_FLAG_DORMANT		0x10
+ #define	KSTAT_FLAG_INVALID		0x20
++#define	KSTAT_FLAG_LONGSTRINGS		0x40
++#define	KSTAT_FLAG_NO_HEADERS		0x80
+ 
+ /*
+  * Dynamic update support
+diff --git a/lib/libzfs/libzfs_pool.c b/lib/libzfs/libzfs_pool.c
+index 53bc5034..315ba954 100644
+--- a/lib/libzfs/libzfs_pool.c
++++ b/lib/libzfs/libzfs_pool.c
+@@ -240,6 +240,38 @@ zpool_pool_state_to_name(pool_state_t state)
+ }
+ 
+ /*
++ * Given a pool handle, return the pool health string ("ONLINE", "DEGRADED",
++ * "SUSPENDED", etc).
++ */
++const char *
++zpool_get_state_str(zpool_handle_t *zhp)
++{
++	zpool_errata_t errata;
++	zpool_status_t status;
++	nvlist_t *nvroot;
++	vdev_stat_t *vs;
++	uint_t vsc;
++	const char *str;
++
++	status = zpool_get_status(zhp, NULL, &errata);
++
++	if (zpool_get_state(zhp) == POOL_STATE_UNAVAIL) {
++		str = gettext("FAULTED");
++	} else if (status == ZPOOL_STATUS_IO_FAILURE_WAIT ||
++	    status == ZPOOL_STATUS_IO_FAILURE_MMP) {
++		str = gettext("SUSPENDED");
++	} else {
++		verify(nvlist_lookup_nvlist(zpool_get_config(zhp, NULL),
++		    ZPOOL_CONFIG_VDEV_TREE, &nvroot) == 0);
++		verify(nvlist_lookup_uint64_array(nvroot,
++		    ZPOOL_CONFIG_VDEV_STATS, (uint64_t **)&vs, &vsc)
++		    == 0);
++		str = zpool_state_to_name(vs->vs_state, vs->vs_aux);
++	}
++	return (str);
++}
++
++/*
+  * Get a zpool property value for 'prop' and return the value in
+  * a pre-allocated buffer.
+  */
+@@ -250,9 +282,6 @@ zpool_get_prop(zpool_handle_t *zhp, zpool_prop_t prop, char *buf,
+ 	uint64_t intval;
+ 	const char *strval;
+ 	zprop_source_t src = ZPROP_SRC_NONE;
+-	nvlist_t *nvroot;
+-	vdev_stat_t *vs;
+-	uint_t vsc;
+ 
+ 	if (zpool_get_state(zhp) == POOL_STATE_UNAVAIL) {
+ 		switch (prop) {
+@@ -261,7 +290,7 @@ zpool_get_prop(zpool_handle_t *zhp, zpool_prop_t prop, char *buf,
+ 			break;
+ 
+ 		case ZPOOL_PROP_HEALTH:
+-			(void) strlcpy(buf, "FAULTED", len);
++			(void) strlcpy(buf, zpool_get_state_str(zhp), len);
+ 			break;
+ 
+ 		case ZPOOL_PROP_GUID:
+@@ -362,14 +391,7 @@ zpool_get_prop(zpool_handle_t *zhp, zpool_prop_t prop, char *buf,
+ 			break;
+ 
+ 		case ZPOOL_PROP_HEALTH:
+-			verify(nvlist_lookup_nvlist(zpool_get_config(zhp, NULL),
+-			    ZPOOL_CONFIG_VDEV_TREE, &nvroot) == 0);
+-			verify(nvlist_lookup_uint64_array(nvroot,
+-			    ZPOOL_CONFIG_VDEV_STATS, (uint64_t **)&vs, &vsc)
+-			    == 0);
+-
+-			(void) strlcpy(buf, zpool_state_to_name(intval,
+-			    vs->vs_aux), len);
++			(void) strlcpy(buf, zpool_get_state_str(zhp), len);
+ 			break;
+ 		case ZPOOL_PROP_VERSION:
+ 			if (intval >= SPA_VERSION_FEATURES) {
+diff --git a/lib/libzfs/libzfs_status.c b/lib/libzfs/libzfs_status.c
+index 6cdcd382..5e423f3a 100644
+--- a/lib/libzfs/libzfs_status.c
++++ b/lib/libzfs/libzfs_status.c
+@@ -403,12 +403,12 @@ zpool_status_t
+ zpool_get_status(zpool_handle_t *zhp, char **msgid, zpool_errata_t *errata)
+ {
+ 	zpool_status_t ret = check_status(zhp->zpool_config, B_FALSE, errata);
+-
+-	if (ret >= NMSGID)
+-		*msgid = NULL;
+-	else
+-		*msgid = zfs_msgid_table[ret];
+-
++	if (msgid != NULL) {
++		if (ret >= NMSGID)
++			*msgid = NULL;
++		else
++			*msgid = zfs_msgid_table[ret];
++	}
+ 	return (ret);
+ }
+ 
+diff --git a/module/zfs/spa_misc.c b/module/zfs/spa_misc.c
+index e92c3948..cc1c641d 100644
+--- a/module/zfs/spa_misc.c
++++ b/module/zfs/spa_misc.c
+@@ -2100,6 +2100,45 @@ spa_get_hostid(void)
+ 	return (myhostid);
+ }
+ 
++/*
++ * Return the pool state string ("ONLINE", "DEGRADED", "SUSPENDED", etc).
++ */
++const char *
++spa_state_to_name(spa_t *spa)
++{
++	vdev_state_t state = spa->spa_root_vdev->vdev_state;
++	vdev_aux_t aux = spa->spa_root_vdev->vdev_stat.vs_aux;
++
++	if (spa_suspended(spa) &&
++	    (spa_get_failmode(spa) != ZIO_FAILURE_MODE_CONTINUE))
++		return ("SUSPENDED");
++
++	switch (state) {
++	case VDEV_STATE_CLOSED:
++	case VDEV_STATE_OFFLINE:
++		return ("OFFLINE");
++	case VDEV_STATE_REMOVED:
++		return ("REMOVED");
++	case VDEV_STATE_CANT_OPEN:
++		if (aux == VDEV_AUX_CORRUPT_DATA || aux == VDEV_AUX_BAD_LOG)
++			return ("FAULTED");
++		else if (aux == VDEV_AUX_SPLIT_POOL)
++			return ("SPLIT");
++		else
++			return ("UNAVAIL");
++	case VDEV_STATE_FAULTED:
++		return ("FAULTED");
++	case VDEV_STATE_DEGRADED:
++		return ("DEGRADED");
++	case VDEV_STATE_HEALTHY:
++		return ("ONLINE");
++	default:
++		break;
++	}
++
++	return ("UNKNOWN");
++}
++
+ #if defined(_KERNEL) && defined(HAVE_SPL)
+ /* Namespace manipulation */
+ EXPORT_SYMBOL(spa_lookup);
+@@ -2178,6 +2217,7 @@ EXPORT_SYMBOL(spa_is_root);
+ EXPORT_SYMBOL(spa_writeable);
+ EXPORT_SYMBOL(spa_mode);
+ EXPORT_SYMBOL(spa_namespace_lock);
++EXPORT_SYMBOL(spa_state_to_name);
+ 
+ /* BEGIN CSTYLED */
+ module_param(zfs_flags, uint, 0644);
+diff --git a/module/zfs/spa_stats.c b/module/zfs/spa_stats.c
+index 8950d9c5..ca3d0be7 100644
+--- a/module/zfs/spa_stats.c
++++ b/module/zfs/spa_stats.c
+@@ -22,6 +22,8 @@
+ #include <sys/zfs_context.h>
+ #include <sys/spa_impl.h>
+ #include <sys/vdev_impl.h>
++#include <sys/spa.h>
++#include <zfs_comutil.h>
+ 
+ /*
+  * Keeps stats on last N reads per spa_t, disabled by default.
+@@ -992,6 +994,64 @@ spa_mmp_history_add(spa_t *spa, uint64_t txg, uint64_t timestamp,
+ 	return ((void *)smh);
+ }
+ 
++static void *
++spa_state_addr(kstat_t *ksp, loff_t n)
++{
++	return (ksp->ks_private);	/* return the spa_t */
++}
++
++static int
++spa_state_data(char *buf, size_t size, void *data)
++{
++	spa_t *spa = (spa_t *)data;
++	(void) snprintf(buf, size, "%s\n", spa_state_to_name(spa));
++	return (0);
++}
++
++/*
++ * Return the state of the pool in /proc/spl/kstat/zfs/<pool>/state.
++ *
++ * This is a lock-less read of the pool's state (unlike using 'zpool', which
++ * can potentially block for seconds).  Because it doesn't block, it can useful
++ * as a pool heartbeat value.
++ */
++static void
++spa_state_init(spa_t *spa)
++{
++	spa_stats_history_t *ssh = &spa->spa_stats.state;
++	char *name;
++	kstat_t *ksp;
++
++	mutex_init(&ssh->lock, NULL, MUTEX_DEFAULT, NULL);
++
++	name = kmem_asprintf("zfs/%s", spa_name(spa));
++	ksp = kstat_create(name, 0, "state", "misc",
++	    KSTAT_TYPE_RAW, 0, KSTAT_FLAG_VIRTUAL);
++
++	ssh->kstat = ksp;
++	if (ksp) {
++		ksp->ks_lock = &ssh->lock;
++		ksp->ks_data = NULL;
++		ksp->ks_private = spa;
++		ksp->ks_flags |= KSTAT_FLAG_NO_HEADERS;
++		kstat_set_raw_ops(ksp, NULL, spa_state_data, spa_state_addr);
++		kstat_install(ksp);
++	}
++
++	strfree(name);
++}
++
++static void
++spa_health_destroy(spa_t *spa)
++{
++	spa_stats_history_t *ssh = &spa->spa_stats.state;
++	kstat_t *ksp = ssh->kstat;
++	if (ksp)
++		kstat_delete(ksp);
++
++	mutex_destroy(&ssh->lock);
++}
++
+ void
+ spa_stats_init(spa_t *spa)
+ {
+@@ -1000,11 +1060,13 @@ spa_stats_init(spa_t *spa)
+ 	spa_tx_assign_init(spa);
+ 	spa_io_history_init(spa);
+ 	spa_mmp_history_init(spa);
++	spa_state_init(spa);
+ }
+ 
+ void
+ spa_stats_destroy(spa_t *spa)
+ {
++	spa_health_destroy(spa);
+ 	spa_tx_assign_destroy(spa);
+ 	spa_txg_history_destroy(spa);
+ 	spa_read_history_destroy(spa);
+diff --git a/tests/runfiles/linux.run b/tests/runfiles/linux.run
+index 379c9f73..69e9eb26 100644
+--- a/tests/runfiles/linux.run
++++ b/tests/runfiles/linux.run
+@@ -467,6 +467,10 @@ tests = ['inuse_001_pos', 'inuse_003_pos', 'inuse_004_pos',
+ post =
+ tags = ['functional', 'inuse']
+ 
++[tests/functional/kstat]
++tests = ['state']
++tags = ['functional', 'kstat']
++
+ [tests/functional/large_files]
+ tests = ['large_files_001_pos', 'large_files_002_pos']
+ tags = ['functional', 'large_files']
+diff --git a/tests/zfs-tests/include/libtest.shlib b/tests/zfs-tests/include/libtest.shlib
+index 13c85912..86dae6ea 100644
+--- a/tests/zfs-tests/include/libtest.shlib
++++ b/tests/zfs-tests/include/libtest.shlib
+@@ -26,6 +26,7 @@
+ # Copyright 2016 Nexenta Systems, Inc.
+ # Copyright (c) 2017 Lawrence Livermore National Security, LLC.
+ # Copyright (c) 2017 Datto Inc.
++# Copyright (c) 2017 Open-E, Inc. All Rights Reserved.
+ #
+ 
+ . ${STF_TOOLS}/include/logapi.shlib
+@@ -3718,3 +3719,40 @@ function get_pool_devices #testpool #devdir
+ 	fi
+ 	echo $out
+ }
++
++#
++# Get scsi_debug device name.
++# Returns basename of scsi_debug device (for example "sdb").
++#
++function get_debug_device
++{
++	for i in {1..10} ; do
++		val=$(lsscsi | nawk '/scsi_debug/ {print $6; exit}' | cut -d / -f3)
++
++		# lsscsi can take time to settle
++		if [ "$val" != "-" ] ; then
++			break
++		fi
++		sleep 1
++	done
++	echo "$val"
++}
++
++#
++# Returns SCSI host number for the given disk
++#
++function get_scsi_host #disk
++{
++	typeset disk=$1
++	ls /sys/block/${disk}/device/scsi_device | cut -d : -f 1
++}
++
++#
++# Simulate disk removal
++#
++function remove_disk #disk
++{
++	typeset disk=$1
++	on_off_disk $disk "offline"
++	block_device_wait
++}
+diff --git a/tests/zfs-tests/tests/functional/Makefile.am b/tests/zfs-tests/tests/functional/Makefile.am
+index ea52205a..bbbf3ba0 100644
+--- a/tests/zfs-tests/tests/functional/Makefile.am
++++ b/tests/zfs-tests/tests/functional/Makefile.am
+@@ -24,6 +24,7 @@ SUBDIRS = \
+ 	history \
+ 	inheritance \
+ 	inuse \
++	kstat \
+ 	large_files \
+ 	largest_pool \
+ 	libzfs \
+diff --git a/tests/zfs-tests/tests/functional/kstat/Makefile.am b/tests/zfs-tests/tests/functional/kstat/Makefile.am
+new file mode 100644
+index 00000000..8ad83ec3
+--- /dev/null
++++ b/tests/zfs-tests/tests/functional/kstat/Makefile.am
+@@ -0,0 +1,5 @@
++pkgdatadir = $(datadir)/@PACKAGE@/zfs-tests/tests/functional/kstat
++dist_pkgdata_SCRIPTS = \
++	setup.ksh \
++	cleanup.ksh \
++	state.ksh
+diff --git a/tests/zfs-tests/tests/functional/kstat/cleanup.ksh b/tests/zfs-tests/tests/functional/kstat/cleanup.ksh
+new file mode 100755
+index 00000000..8a212ce3
+--- /dev/null
++++ b/tests/zfs-tests/tests/functional/kstat/cleanup.ksh
+@@ -0,0 +1,28 @@
++#!/bin/ksh -p
++#
++# CDDL HEADER START
++#
++# The contents of this file are subject to the terms of the
++# Common Development and Distribution License (the "License").
++# You may not use this file except in compliance with the License.
++#
++# You can obtain a copy of the license at usr/src/OPENSOLARIS.LICENSE
++# or http://www.opensolaris.org/os/licensing.
++# See the License for the specific language governing permissions
++# and limitations under the License.
++#
++# When distributing Covered Code, include this CDDL HEADER in each
++# file and include the License file at usr/src/OPENSOLARIS.LICENSE.
++# If applicable, add the following below this CDDL HEADER, with the
++# fields enclosed by brackets "[]" replaced with your own identifying
++# information: Portions Copyright [yyyy] [name of copyright owner]
++#
++# CDDL HEADER END
++#
++#
++# Copyright (c) 2018 by Lawrence Livermore National Security, LLC.
++#
++
++. $STF_SUITE/include/libtest.shlib
++
++default_cleanup
+diff --git a/tests/zfs-tests/tests/functional/kstat/setup.ksh b/tests/zfs-tests/tests/functional/kstat/setup.ksh
+new file mode 100755
+index 00000000..57717a09
+--- /dev/null
++++ b/tests/zfs-tests/tests/functional/kstat/setup.ksh
+@@ -0,0 +1,34 @@
++#!/bin/ksh -p
++#
++# CDDL HEADER START
++#
++# The contents of this file are subject to the terms of the
++# Common Development and Distribution License (the "License").
++# You may not use this file except in compliance with the License.
++#
++# You can obtain a copy of the license at usr/src/OPENSOLARIS.LICENSE
++# or http://www.opensolaris.org/os/licensing.
++# See the License for the specific language governing permissions
++# and limitations under the License.
++#
++# When distributing Covered Code, include this CDDL HEADER in each
++# file and include the License file at usr/src/OPENSOLARIS.LICENSE.
++# If applicable, add the following below this CDDL HEADER, with the
++# fields enclosed by brackets "[]" replaced with your own identifying
++# information: Portions Copyright [yyyy] [name of copyright owner]
++#
++# CDDL HEADER END
++#
++#
++# Copyright (c) 2018 by Lawrence Livermore National Security, LLC.
++#
++
++. $STF_SUITE/include/libtest.shlib
++
++if ! is_linux ; then
++	log_unsupported "/proc/spl/kstat/<pool>/health only supported on Linux"
++fi
++
++default_mirror_setup $DISKS
++
++log_pass
+diff --git a/tests/zfs-tests/tests/functional/kstat/state.ksh b/tests/zfs-tests/tests/functional/kstat/state.ksh
+new file mode 100755
+index 00000000..bf0b6e31
+--- /dev/null
++++ b/tests/zfs-tests/tests/functional/kstat/state.ksh
+@@ -0,0 +1,144 @@
++#!/bin/ksh -p
++#
++# CDDL HEADER START
++#
++# The contents of this file are subject to the terms of the
++# Common Development and Distribution License (the "License").
++# You may not use this file except in compliance with the License.
++#
++# You can obtain a copy of the license at usr/src/OPENSOLARIS.LICENSE
++# or http://www.opensolaris.org/os/licensing.
++# See the License for the specific language governing permissions
++# and limitations under the License.
++#
++# When distributing Covered Code, include this CDDL HEADER in each
++# file and include the License file at usr/src/OPENSOLARIS.LICENSE.
++# If applicable, add the following below this CDDL HEADER, with the
++# fields enclosed by brackets "[]" replaced with your own identifying
++# information: Portions Copyright [yyyy] [name of copyright owner]
++#
++# CDDL HEADER END
++
++#
++# Copyright (c) 2018 by Lawrence Livermore National Security, LLC.
++#
++
++#
++# DESCRIPTION:
++# Test /proc/spl/kstat/zfs/<pool>/state kstat
++#
++# STRATEGY:
++# 1. Create a mirrored pool
++# 2. Check that pool is ONLINE
++# 3. Fault one disk
++# 4. Check that pool is DEGRADED
++# 5. Create a new pool with a single scsi_debug disk
++# 6. Remove the disk
++# 7. Check that pool is SUSPENDED
++# 8. Add the disk back in
++# 9. Clear errors and destroy the pools
++
++. $STF_SUITE/include/libtest.shlib
++
++verify_runnable "both"
++
++function cleanup
++{
++	# Destroy the scsi_debug pool
++	if [ -n "$TESTPOOL2" ] ; then
++		if  [ -n "$host" ] ; then
++			# Re-enable the disk
++			scan_scsi_hosts $host
++
++			# Device may have changed names after being inserted
++			SDISK=$(get_debug_device)
++			log_must ln $DEV_RDSKDIR/$SDISK $REALDISK
++		fi
++
++		# Restore our working pool image
++		if [ -n "$BACKUP" ] ; then
++			gunzip -c $BACKUP > $REALDISK
++			log_must rm -f $BACKUP
++		fi
++
++		# Our disk is back.  Now we can clear errors and destroy the
++		# pool cleanly.
++		log_must zpool clear $TESTPOOL2
++
++		# Now that the disk is back and errors cleared, wait for our
++		# hung 'zpool scrub' to finish.
++		wait
++
++		destroy_pool $TESTPOOL2
++		log_must rm $REALDISK
++		unload_scsi_debug
++	fi
++}
++
++# Check that our pool state values match what's expected
++#
++# $1: pool name
++# $2: expected state ("ONLINE", "DEGRADED", "SUSPENDED", etc)
++function check_all
++{
++	pool=$1
++	expected=$2
++
++	state1=$(zpool status $pool | awk '/state: /{print $2}');
++	state2=$(zpool list -H -o health $pool)
++	state3=$(cat /proc/spl/kstat/zfs/$pool/state)
++	log_note "Checking $expected = $state1 = $state2 = $state3"
++	if [[ "$expected" == "$state1" &&  "$expected" == "$state2" && \
++	    "$expected" == "$state3" ]] ; then
++		true
++	else
++		false
++	fi
++}
++
++log_onexit cleanup
++
++log_assert "Testing /proc/spl/kstat/zfs/<pool>/state kstat"
++
++# Test that the initial pool is healthy
++check_all $TESTPOOL "ONLINE"
++
++# Fault one of the disks, and check that pool is degraded
++DISK1=$(echo "$DISKS" | awk '{print $2}')
++zpool offline -tf $TESTPOOL $DISK1
++check_all $TESTPOOL "DEGRADED"
++
++# Create a new pool out of a scsi_debug disk
++TESTPOOL2=testpool2
++MINVDEVSIZE_MB=$((MINVDEVSIZE / 1048576))
++load_scsi_debug $MINVDEVSIZE_MB 1 1 1 '512b'
++
++SDISK=$(get_debug_device)
++host=$(get_scsi_host $SDISK)
++
++# Use $REALDISK instead of $SDISK in our pool because $SDISK can change names
++# as we remove/add the disk (i.e. /dev/sdf -> /dev/sdg).
++REALDISK=/dev/kstat-state-realdisk
++log_must [ ! -e $REALDISK ]
++ln $DEV_RDSKDIR/$SDISK $REALDISK
++
++log_must zpool create $TESTPOOL2 $REALDISK
++
++# Backup the contents of the disk image
++BACKUP=/tmp/kstat-state-realdisk.gz
++log_must [ ! -e $BACKUP ]
++gzip -c $REALDISK > $BACKUP
++
++# Yank out the disk from under the pool
++log_must rm $REALDISK
++remove_disk $SDISK
++
++# Run a 'zpool scrub' in the background to suspend the pool.  We run it in the
++# background since the command will hang when the pool gets suspended.  The
++# command will resume and exit after we restore the missing disk later on.
++zpool scrub $TESTPOOL2 &
++sleep 1		# Give the scrub some time to run before we check if it fails
++
++log_must check_all $TESTPOOL2 "SUSPENDED"
++
++log_pass "/proc/spl/kstat/zfs/<pool>/state test successful"

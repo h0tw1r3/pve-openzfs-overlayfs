@@ -1,0 +1,54 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: =?UTF-8?q?Troels=20N=C3=B8rgaard?= <tnn@tradeshift.com>
+Date: Sat, 7 Jul 2018 01:15:19 +0200
+Subject: [PATCH] Default ashift for Amazon EC2 NVMe devices
+MIME-Version: 1.0
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 8bit
+
+Add a default 4 KiB ashift for Amazon EC2 NVMe devices on instances with
+NVMe ephemeral devices, such as the types c5d, f1, i3 and m5d.
+As per the official documentation [1] a 4096 byte blocksize should be
+used to match the underlying hardware.
+
+The string was identified via:
+
+$ sudo sginfo -M /dev/nvme0n1
+INQUIRY response (cmd: 0x12)
+----------------------------
+Device Type                        0
+Vendor:                    NVMe
+Product:                   Amazon EC2 NVMe
+Revision level:
+
+$ lsblk -io KNAME,TYPE,SIZE,MODEL
+KNAME   TYPE    SIZE MODEL
+nvme0n1 disk  442.4G Amazon EC2 NVMe Instance Storage
+
+[1] https://docs.aws.amazon.com/AWSEC2/latest/UserGuide/
+    storage-optimized-instances.html
+    Retrived 2018-07-03
+
+Reviewed-by: George Melikov <mail@gmelikov.ru>
+Reviewed-by: Giuseppe Di Natale <guss80@gmail.com>
+Reviewed-by: Brian Behlendorf <behlendorf1@llnl.gov>
+Signed-off-by: Troels Nørgaard <tnn@tradeshift.com>
+Closes #7676
+
+Signed-off-by: Stoiko Ivanov <s.ivanov@proxmox.com>
+---
+ cmd/zpool/zpool_vdev.c | 1 +
+ 1 file changed, 1 insertion(+)
+
+diff --git a/cmd/zpool/zpool_vdev.c b/cmd/zpool/zpool_vdev.c
+index fd6bd9e7..69ff7ff6 100644
+--- a/cmd/zpool/zpool_vdev.c
++++ b/cmd/zpool/zpool_vdev.c
+@@ -191,6 +191,7 @@ static vdev_disk_db_entry_t vdev_disk_database[] = {
+ 	{"ATA     INTEL SSDSC2BP24", 4096},
+ 	{"ATA     INTEL SSDSC2BP48", 4096},
+ 	{"NA      SmrtStorSDLKAE9W", 4096},
++	{"NVMe    Amazon EC2 NVMe ", 4096},
+ 	/* Imported from Open Solaris */
+ 	{"ATA     MARVELL SD88SA02", 4096},
+ 	/* Advanced format Hard drives */

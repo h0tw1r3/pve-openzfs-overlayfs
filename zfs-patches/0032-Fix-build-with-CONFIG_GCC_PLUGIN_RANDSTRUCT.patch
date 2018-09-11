@@ -1,0 +1,42 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Georgy Yakovlev <ya@sysdump.net>
+Date: Thu, 10 May 2018 23:00:18 -0700
+Subject: [PATCH] Fix build with CONFIG_GCC_PLUGIN_RANDSTRUCT
+MIME-Version: 1.0
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 8bit
+
+fs/zfs/zfs/metaslab.c:1055:2: error: positional initialization of field
+in ‘struct’ declared with ‘designated_init’ attribute
+[-Werror=designated-init]
+  metaslab_rt_remove,
+
+Signed-off-by: Georgy Yakovlev <ya@sysdump.net>
+Reviewed-by: Giuseppe Di Natale <dinatale2@llnl.gov>
+Closes: #7069
+Signed-off-by: Stoiko Ivanov <s.ivanov@proxmox.com>
+---
+ module/zfs/metaslab.c | 10 +++++-----
+ 1 file changed, 5 insertions(+), 5 deletions(-)
+
+diff --git a/module/zfs/metaslab.c b/module/zfs/metaslab.c
+index 5e413c06..ee24850d 100644
+--- a/module/zfs/metaslab.c
++++ b/module/zfs/metaslab.c
+@@ -1049,11 +1049,11 @@ metaslab_rt_vacate(range_tree_t *rt, void *arg)
+ }
+ 
+ static range_tree_ops_t metaslab_rt_ops = {
+-	metaslab_rt_create,
+-	metaslab_rt_destroy,
+-	metaslab_rt_add,
+-	metaslab_rt_remove,
+-	metaslab_rt_vacate
++	.rtop_create = metaslab_rt_create,
++	.rtop_destroy = metaslab_rt_destroy,
++	.rtop_add = metaslab_rt_add,
++	.rtop_remove = metaslab_rt_remove,
++	.rtop_vacate = metaslab_rt_vacate
+ };
+ 
+ /*

@@ -1,0 +1,123 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Brian Behlendorf <behlendorf1@llnl.gov>
+Date: Wed, 11 Jul 2018 13:10:40 -0700
+Subject: [PATCH] Fix kernel unaligned access on sparc64
+
+Update the SA_COPY_DATA macro to check if architecture supports
+efficient unaligned memory accesses at compile time.  Otherwise
+fallback to using the sa_copy_data() function.
+
+The kernel provided CONFIG_HAVE_EFFICIENT_UNALIGNED_ACCESS is
+used to determine availability in kernel space.  In user space
+the x86_64, x86, powerpc, and sometimes arm architectures will
+define the HAVE_EFFICIENT_UNALIGNED_ACCESS macro.
+
+Signed-off-by: Brian Behlendorf <behlendorf1@llnl.gov>
+Closes #7642
+Closes #7684
+
+Signed-off-by: Stoiko Ivanov <s.ivanov@proxmox.com>
+---
+ lib/libspl/include/sys/isa_defs.h |  7 +++++++
+ module/icp/algs/modes/ccm.c       |  2 +-
+ module/zfs/sa.c                   | 35 ++++++++++++++++++++---------------
+ 3 files changed, 28 insertions(+), 16 deletions(-)
+
+diff --git a/lib/libspl/include/sys/isa_defs.h b/lib/libspl/include/sys/isa_defs.h
+index a5bea039..7a90e077 100644
+--- a/lib/libspl/include/sys/isa_defs.h
++++ b/lib/libspl/include/sys/isa_defs.h
+@@ -55,6 +55,7 @@ extern "C" {
+ #endif
+ 
+ #define	_SUNOS_VTOC_16
++#define	HAVE_EFFICIENT_UNALIGNED_ACCESS
+ 
+ /* i386 arch specific defines */
+ #elif defined(__i386) || defined(__i386__)
+@@ -76,6 +77,7 @@ extern "C" {
+ #endif
+ 
+ #define	_SUNOS_VTOC_16
++#define	HAVE_EFFICIENT_UNALIGNED_ACCESS
+ 
+ /* powerpc arch specific defines */
+ #elif defined(__powerpc) || defined(__powerpc__) || defined(__powerpc64__)
+@@ -99,6 +101,7 @@ extern "C" {
+ #endif
+ 
+ #define	_SUNOS_VTOC_16
++#define	HAVE_EFFICIENT_UNALIGNED_ACCESS
+ 
+ /* arm arch specific defines */
+ #elif defined(__arm) || defined(__arm__) || defined(__aarch64__)
+@@ -129,6 +132,10 @@ extern "C" {
+ 
+ #define	_SUNOS_VTOC_16
+ 
++#if defined(__ARM_FEATURE_UNALIGNED)
++#define	HAVE_EFFICIENT_UNALIGNED_ACCESS
++#endif
++
+ /* sparc arch specific defines */
+ #elif defined(__sparc) || defined(__sparc__)
+ 
+diff --git a/module/icp/algs/modes/ccm.c b/module/icp/algs/modes/ccm.c
+index 22aeb0a6..fb41194f 100644
+--- a/module/icp/algs/modes/ccm.c
++++ b/module/icp/algs/modes/ccm.c
+@@ -28,7 +28,7 @@
+ #include <sys/crypto/common.h>
+ #include <sys/crypto/impl.h>
+ 
+-#if defined(__i386) || defined(__amd64)
++#ifdef HAVE_EFFICIENT_UNALIGNED_ACCESS
+ #include <sys/byteorder.h>
+ #define	UNALIGNED_POINTERS_PERMITTED
+ #endif
+diff --git a/module/zfs/sa.c b/module/zfs/sa.c
+index 8046dbde..1fb1a8b5 100644
+--- a/module/zfs/sa.c
++++ b/module/zfs/sa.c
+@@ -147,21 +147,26 @@ arc_byteswap_func_t sa_bswap_table[] = {
+ 	zfs_acl_byteswap,
+ };
+ 
+-#define	SA_COPY_DATA(f, s, t, l) \
+-	{ \
+-		if (f == NULL) { \
+-			if (l == 8) { \
+-				*(uint64_t *)t = *(uint64_t *)s; \
+-			} else if (l == 16) { \
+-				*(uint64_t *)t = *(uint64_t *)s; \
+-				*(uint64_t *)((uintptr_t)t + 8) = \
+-				    *(uint64_t *)((uintptr_t)s + 8); \
+-			} else { \
+-				bcopy(s, t, l); \
+-			} \
+-		} else \
+-			sa_copy_data(f, s, t, l); \
+-	}
++#ifdef HAVE_EFFICIENT_UNALIGNED_ACCESS
++#define	SA_COPY_DATA(f, s, t, l)				\
++do {								\
++	if (f == NULL) {					\
++		if (l == 8) {					\
++			*(uint64_t *)t = *(uint64_t *)s;	\
++		} else if (l == 16) {				\
++			*(uint64_t *)t = *(uint64_t *)s;	\
++			*(uint64_t *)((uintptr_t)t + 8) =	\
++			    *(uint64_t *)((uintptr_t)s + 8);	\
++		} else {					\
++			bcopy(s, t, l);				\
++		}						\
++	} else {						\
++		sa_copy_data(f, s, t, l);			\
++	}							\
++} while (0)
++#else
++#define	SA_COPY_DATA(f, s, t, l)	sa_copy_data(f, s, t, l)
++#endif
+ 
+ /*
+  * This table is fixed and cannot be changed.  Its purpose is to

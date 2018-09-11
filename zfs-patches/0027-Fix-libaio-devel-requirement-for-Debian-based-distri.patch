@@ -1,0 +1,36 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: LOLi <loli10K@users.noreply.github.com>
+Date: Sun, 26 Aug 2018 21:43:27 +0200
+Subject: [PATCH] Fix libaio-devel requirement for Debian-based distributions
+
+BuildRequires tags for "-devel" packages in the RPM spec file do not
+work when building on Debian-based distributions.
+
+Fix this issue by making this requirement conditional to RPM-based
+distributions.
+
+Reviewed-by: George Melikov <mail@gmelikov.ru>
+Reviewed-by: Brian Behlendorf <behlendorf1@llnl.gov>
+Signed-off-by: loli10K <ezomori.nozomu@gmail.com>
+Closes #7829
+Closes #7831
+
+Signed-off-by: Stoiko Ivanov <s.ivanov@proxmox.com>
+---
+ rpm/generic/zfs.spec.in | 2 ++
+ 1 file changed, 2 insertions(+)
+
+diff --git a/rpm/generic/zfs.spec.in b/rpm/generic/zfs.spec.in
+index 16c5780b..22565725 100644
+--- a/rpm/generic/zfs.spec.in
++++ b/rpm/generic/zfs.spec.in
+@@ -197,7 +197,9 @@ Requires:       sudo
+ Requires:       sysstat
+ Requires:       rng-tools
+ Requires:       libaio
++%if 0%{?rhel}%{?fedora}%{?suse_version}
+ BuildRequires:  libaio-devel
++%endif
+ AutoReqProv:    no
+ 
+ %description test
