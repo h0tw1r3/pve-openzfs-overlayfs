@@ -1,1 +1,5 @@
 0001-remove-DKMS-and-module-build.patch
+0002-Linux-4.18-compat-inode-timespec-timespec64.patch
+0003-Add-pool-state-proc-entry-SUSPENDED-pools-SPL.patch
+0004-Add-rwsem_tryupgrade-for-4.9.20-rt16-kernel-SPL.patch
+0005-Tag-spl-0.7.10.patch

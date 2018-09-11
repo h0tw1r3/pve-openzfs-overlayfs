@@ -1,0 +1,69 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Tony Hutter <hutter2@llnl.gov>
+Date: Wed, 15 Aug 2018 09:39:55 -0700
+Subject: [PATCH] Add pool state /proc entry, "SUSPENDED" pools (SPL)
+
+(This is the SPL backported code from f0ed6c744)
+
+1. Add a proc entry to display the pool's state:
+
+$ cat /proc/spl/kstat/zfs/tank/state
+ONLINE
+
+This is done without using the spa config locks, so it will
+never hang.
+
+2. Fix 'zpool status' and 'zpool list -o health' output to print
+"SUSPENDED" instead of "ONLINE" for suspended pools.
+
+Reviewed-by: Olaf Faaland <faaland1@llnl.gov>
+Reviewed-by: Brian Behlendorf <behlendorf1@llnl.gov>
+Reviewed by: Richard Elling <Richard.Elling@RichardElling.com>
+Signed-off-by: Tony Hutter <hutter2@llnl.gov>
+Closes #7331
+Closes #7563
+
+Signed-off-by: Stoiko Ivanov <s.ivanov@proxmox.com>
+---
+ include/sys/kstat.h    | 2 +-
+ module/spl/spl-kstat.c | 4 ++--
+ 2 files changed, 3 insertions(+), 3 deletions(-)
+
+diff --git a/include/sys/kstat.h b/include/sys/kstat.h
+index 2018019..b8aa7ed 100644
+--- a/include/sys/kstat.h
++++ b/include/sys/kstat.h
+@@ -72,7 +72,7 @@
+ #define	KSTAT_FLAG_UNSUPPORTED	\
+ 	(KSTAT_FLAG_VAR_SIZE | KSTAT_FLAG_WRITABLE | \
+ 	KSTAT_FLAG_PERSISTENT | KSTAT_FLAG_DORMANT)
+-
++#define	KSTAT_FLAG_NO_HEADERS	0x80
+ 
+ #define	KS_MAGIC		0x9d9d9d9d
+ 
+diff --git a/module/spl/spl-kstat.c b/module/spl/spl-kstat.c
+index 6970fcc..f9b9015 100644
+--- a/module/spl/spl-kstat.c
++++ b/module/spl/spl-kstat.c
+@@ -388,7 +388,8 @@ kstat_seq_start(struct seq_file *f, loff_t *pos)
+ 
+ 	ksp->ks_snaptime = gethrtime();
+ 
+-	if (!n && kstat_seq_show_headers(f))
++	if (!(ksp->ks_flags & KSTAT_FLAG_NO_HEADERS) && !n &&
++	    kstat_seq_show_headers(f))
+ 		return (NULL);
+ 
+ 	if (n >= ksp->ks_ndata)
+@@ -538,7 +539,6 @@ __kstat_create(const char *ks_module, int ks_instance, const char *ks_name,
+ 	ASSERT(ks_module);
+ 	ASSERT(ks_instance == 0);
+ 	ASSERT(ks_name);
+-	ASSERT(!(ks_flags & KSTAT_FLAG_UNSUPPORTED));
+ 
+ 	if ((ks_type == KSTAT_TYPE_INTR) || (ks_type == KSTAT_TYPE_IO))
+ 		ASSERT(ks_ndata == 1);
+-- 
+2.11.0
+

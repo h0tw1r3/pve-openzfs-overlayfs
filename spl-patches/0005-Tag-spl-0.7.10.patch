@@ -1,0 +1,59 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Tony Hutter <hutter2@llnl.gov>
+Date: Wed, 5 Sep 2018 10:36:46 -0700
+Subject: [PATCH] Tag spl-0.7.10
+
+META file and changelog updated.
+
+Signed-off-by: Tony Hutter <hutter2@llnl.gov>
+Signed-off-by: Stoiko Ivanov <s.ivanov@proxmox.com>
+---
+ META                         | 2 +-
+ rpm/generic/spl-kmod.spec.in | 3 +++
+ rpm/generic/spl.spec.in      | 3 +++
+ 3 files changed, 7 insertions(+), 1 deletion(-)
+
+diff --git a/META b/META
+index 95c9368..7818d34 100644
+--- a/META
++++ b/META
+@@ -1,7 +1,7 @@
+ Meta:         1
+ Name:         spl
+ Branch:       1.0
+-Version:      0.7.9
++Version:      0.7.10
+ Release:      1
+ Release-Tags: relext
+ License:      GPL
+diff --git a/rpm/generic/spl-kmod.spec.in b/rpm/generic/spl-kmod.spec.in
+index 9cd2225..f31e31e 100644
+--- a/rpm/generic/spl-kmod.spec.in
++++ b/rpm/generic/spl-kmod.spec.in
+@@ -167,6 +167,9 @@ chmod u+x ${RPM_BUILD_ROOT}%{kmodinstdir_prefix}/*/extra/*/*/*
+ rm -rf $RPM_BUILD_ROOT
+ 
+ %changelog
++* Wed Sep 05 2018 Tony Hutter <hutter2@llnl.gov> - 0.7.10-1
++- Released 0.7.10-1, detailed release notes are available at:
++- https://github.com/zfsonlinux/zfs/releases/tag/zfs-0.7.10
+ * Tue May 08 2018 Tony Hutter <hutter2@llnl.gov> - 0.7.9-1
+ - Released 0.7.9-1, detailed release notes are available at:
+ - https://github.com/zfsonlinux/zfs/releases/tag/zfs-0.7.9
+diff --git a/rpm/generic/spl.spec.in b/rpm/generic/spl.spec.in
+index 39c6411..7e9ee12 100644
+--- a/rpm/generic/spl.spec.in
++++ b/rpm/generic/spl.spec.in
+@@ -44,6 +44,9 @@ make install DESTDIR=%{?buildroot}
+ %{_mandir}/man5/*
+ 
+ %changelog
++* Wed Sep 05 2018 Tony Hutter <hutter2@llnl.gov> - 0.7.10-1
++- Released 0.7.10-1, detailed release notes are available at:
++- https://github.com/zfsonlinux/zfs/releases/tag/zfs-0.7.10
+ * Tue May 08 2018 Tony Hutter <hutter2@llnl.gov> - 0.7.9-1
+ - Released 0.7.9-1, detailed release notes are available at:
+ - https://github.com/zfsonlinux/zfs/releases/tag/zfs-0.7.9
+-- 
+2.11.0
+

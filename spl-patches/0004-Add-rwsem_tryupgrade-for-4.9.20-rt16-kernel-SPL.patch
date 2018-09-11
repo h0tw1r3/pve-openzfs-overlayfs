@@ -1,0 +1,136 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Tony Hutter <hutter2@llnl.gov>
+Date: Wed, 15 Aug 2018 11:58:54 -0700
+Subject: [PATCH] Add rwsem_tryupgrade for 4.9.20-rt16 kernel (SPL)
+
+(This is the SPL backported code from 11d0525cb)
+
+The RT rwsem implementation was changed to allow multiple readers
+as of the 4.9.20-rt16 patch set.  This results in a build failure
+because the existing implementation was forced to directly access
+the rwsem structure which has changed.
+
+While this could be accommodated by adding additional compatibility
+code.  This patch resolves the build issue by simply assuming the
+rwsem can never be upgraded.  This functionality is a performance
+optimization and all callers must already handle this case.
+
+Converting the last remaining use of __SPIN_LOCK_UNLOCKED to
+spin_lock_init() was additionally required to get a clean build.
+
+Signed-off-by: Brian Behlendorf <behlendorf1@llnl.gov>
+Closes #7589
+
+Signed-off-by: Stoiko Ivanov <s.ivanov@proxmox.com>
+---
+ include/sys/isa_defs.h  |  8 ++++++++
+ include/sys/rwlock.h    | 10 +++++-----
+ module/spl/spl-rwlock.c | 19 ++++++++++++++-----
+ module/spl/spl-vnode.c  |  2 ++
+ 4 files changed, 29 insertions(+), 10 deletions(-)
+
+diff --git a/include/sys/isa_defs.h b/include/sys/isa_defs.h
+index 5559782..13dcb35 100644
+--- a/include/sys/isa_defs.h
++++ b/include/sys/isa_defs.h
+@@ -210,6 +210,14 @@
+ 
+ #include <sys/byteorder.h>
+ 
++/*
++ * CONFIG_HAVE_EFFICIENT_UNALIGNED_ACCESS will be defined by the Linux
++ * kernel for architectures which support efficient unaligned access.
++ */
++#if defined(CONFIG_HAVE_EFFICIENT_UNALIGNED_ACCESS)
++#define        HAVE_EFFICIENT_UNALIGNED_ACCESS
++#endif
++
+ #if defined(__LITTLE_ENDIAN) && !defined(_LITTLE_ENDIAN)
+ #define	_LITTLE_ENDIAN __LITTLE_ENDIAN
+ #endif
+diff --git a/include/sys/rwlock.h b/include/sys/rwlock.h
+index 325dfc4..2699229 100644
+--- a/include/sys/rwlock.h
++++ b/include/sys/rwlock.h
+@@ -135,7 +135,7 @@ RW_LOCK_HELD(krwlock_t *rwp)
+ }
+ 
+ /*
+- * The following functions must be a #define	and not static inline.
++ * The following functions must be a #define and not static inline.
+  * This ensures that the native linux semaphore functions (down/up)
+  * will be correctly located in the users code which is important
+  * for the built in kernel lock analysis tools
+@@ -151,10 +151,10 @@ RW_LOCK_HELD(krwlock_t *rwp)
+ 	spl_rw_set_type(rwp, type);					\
+ })
+ 
+-#define	rw_destroy(rwp)							\
+-({									\
+-	VERIFY(!RW_LOCK_HELD(rwp));					\
+-})
++/*
++ * The Linux rwsem implementation does not require a matching destroy.
++ */
++#define	rw_destroy(rwp)		((void) 0)
+ 
+ #define	rw_tryenter(rwp, rw)						\
+ ({									\
+diff --git a/module/spl/spl-rwlock.c b/module/spl/spl-rwlock.c
+index bf7ee2f..ac28c91 100644
+--- a/module/spl/spl-rwlock.c
++++ b/module/spl/spl-rwlock.c
+@@ -34,16 +34,24 @@
+ static int
+ __rwsem_tryupgrade(struct rw_semaphore *rwsem)
+ {
+-
++#if defined(READER_BIAS) && defined(WRITER_BIAS)
++	/*
++	 * After the 4.9.20-rt16 kernel the realtime patch series lifted the
++	 * single reader restriction.  While this could be accommodated by
++	 * adding additional compatibility code assume the rwsem can never
++	 * be upgraded.  All caller must already cleanly handle this case.
++	 */
++	return (0);
++#else
+ 	ASSERT((struct task_struct *)
+ 	    ((unsigned long)rwsem->lock.owner & ~RT_MUTEX_OWNER_MASKALL) ==
+ 	    current);
+ 
+ 	/*
+-	 * Under the realtime patch series, rwsem is implemented as a
+-	 * single mutex held by readers and writers alike. However,
+-	 * this implementation would prevent a thread from taking a
+-	 * read lock twice, as the mutex would already be locked on
++	 * Prior to 4.9.20-rt16 kernel the realtime patch series, rwsem is
++	 * implemented as a single mutex held by readers and writers alike.
++	 * However, this implementation would prevent a thread from taking
++	 * a read lock twice, as the mutex would already be locked on
+ 	 * the second attempt. Therefore the implementation allows a
+ 	 * single thread to take a rwsem as read lock multiple times
+ 	 * tracking that nesting as read_depth counter.
+@@ -59,6 +67,7 @@ __rwsem_tryupgrade(struct rw_semaphore *rwsem)
+ 		return (1);
+ 	}
+ 	return (0);
++#endif
+ }
+ #elif defined(CONFIG_RWSEM_GENERIC_SPINLOCK)
+ static int
+diff --git a/module/spl/spl-vnode.c b/module/spl/spl-vnode.c
+index 74ae8fe..cd0015f 100644
+--- a/module/spl/spl-vnode.c
++++ b/module/spl/spl-vnode.c
+@@ -670,6 +670,8 @@ vn_file_cache_destructor(void *buf, void *cdrarg)
+ int
+ spl_vn_init(void)
+ {
++	spin_lock_init(&vn_file_lock);
++
+ 	vn_cache = kmem_cache_create("spl_vn_cache",
+ 	    sizeof (struct vnode), 64, vn_cache_constructor,
+ 	    vn_cache_destructor, NULL, NULL, NULL, 0);
+-- 
+2.11.0
+
