@@ -1,3 +1,9 @@
+zfs-linux (0.7.11-pve1~bpo1) unstable; urgency=medium
+
+  * update ZFS to 0.7.11
+
+ -- Proxmox Support Team <support@proxmox.com>  Mon, 10 Sep 2018 15:47:31 +0200
+
 zfs-linux (0.7.9-pve3~bpo9) unstable; urgency=medium
 
   *  Cherry-pick fix for deadlock umount/snapentry_expire
