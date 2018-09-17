@@ -1,0 +1,363 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Tony Hutter <hutter2@llnl.gov>
+Date: Thu, 13 Sep 2018 10:11:42 -0700
+Subject: [PATCH] Revert "zpool reopen should detect expanded devices"
+
+This reverts commit 2a16d4cfaf791ba2a6f61b29d1e3f2e7b675f913.
+
+The commit was causing a "attempt to access beyond the end
+of device" error:
+
+list.zfsonlinux.org/pipermail/zfs-discuss/2018-September/032217.html
+
+Signed-off-by: Thomas Lamprecht <t.lamprecht@proxmox.com>
+---
+ include/sys/vdev_disk.h                            | 12 -----
+ lib/libefi/rdwr_efi.c                              | 20 +-------
+ lib/libzfs/libzfs_pool.c                           | 14 +++++-
+ module/zfs/vdev.c                                  |  3 +-
+ module/zfs/vdev_disk.c                             | 44 ++++--------------
+ .../cli_root/zpool_expand/zpool_expand_002_pos.ksh | 54 +++++++---------------
+ 6 files changed, 41 insertions(+), 106 deletions(-)
+
+diff --git a/include/sys/vdev_disk.h b/include/sys/vdev_disk.h
+index b8a32b316..15570b105 100644
+--- a/include/sys/vdev_disk.h
++++ b/include/sys/vdev_disk.h
+@@ -23,23 +23,11 @@
+  * Produced at Lawrence Livermore National Laboratory (cf, DISCLAIMER).
+  * Written by Brian Behlendorf <behlendorf1@llnl.gov>.
+  * LLNL-CODE-403049.
+- * Copyright (c) 2018 by Delphix. All rights reserved.
+  */
+ 
+ #ifndef _SYS_VDEV_DISK_H
+ #define	_SYS_VDEV_DISK_H
+ 
+-/*
+- * Don't start the slice at the default block of 34; many storage
+- * devices will use a stripe width of 128k, other vendors prefer a 1m
+- * alignment.  It is best to play it safe and ensure a 1m alignment
+- * given 512B blocks.  When the block size is larger by a power of 2
+- * we will still be 1m aligned.  Some devices are sensitive to the
+- * partition ending alignment as well.
+- */
+-#define	NEW_START_BLOCK		2048
+-#define	PARTITION_END_ALIGNMENT	2048
+-
+ #ifdef _KERNEL
+ #include <sys/vdev.h>
+ 
+diff --git a/lib/libefi/rdwr_efi.c b/lib/libefi/rdwr_efi.c
+index 19cb17e5a..7935047eb 100644
+--- a/lib/libefi/rdwr_efi.c
++++ b/lib/libefi/rdwr_efi.c
+@@ -22,7 +22,6 @@
+ /*
+  * Copyright (c) 2002, 2010, Oracle and/or its affiliates. All rights reserved.
+  * Copyright 2012 Nexenta Systems, Inc.  All rights reserved.
+- * Copyright (c) 2018 by Delphix. All rights reserved.
+  */
+ 
+ #include <stdio.h>
+@@ -1154,7 +1153,7 @@ efi_use_whole_disk(int fd)
+ 
+ 	/*
+ 	 * Find the last physically non-zero partition.
+-	 * This should be the reserved partition.
++	 * This is the reserved partition.
+ 	 */
+ 	for (i = 0; i < efi_label->efi_nparts; i ++) {
+ 		if (resv_start < efi_label->efi_parts[i].p_start) {
+@@ -1164,23 +1163,6 @@ efi_use_whole_disk(int fd)
+ 	}
+ 
+ 	/*
+-	 * Verify that we've found the reserved partition by checking
+-	 * that it looks the way it did when we created it in zpool_label_disk.
+-	 * If we've found the incorrect partition, then we know that this
+-	 * device was reformatted and no longer is soley used by ZFS.
+-	 */
+-	if ((efi_label->efi_parts[resv_index].p_size != EFI_MIN_RESV_SIZE) ||
+-	    (efi_label->efi_parts[resv_index].p_tag != V_RESERVED) ||
+-	    (resv_index != 8)) {
+-		if (efi_debug) {
+-			(void) fprintf(stderr,
+-			    "efi_use_whole_disk: wholedisk not available\n");
+-		}
+-		efi_free(efi_label);
+-		return (VT_ENOSPC);
+-	}
+-
+-	/*
+ 	 * Find the last physically non-zero partition before that.
+ 	 * This is the data partition.
+ 	 */
+diff --git a/lib/libzfs/libzfs_pool.c b/lib/libzfs/libzfs_pool.c
+index 315ba954c..76228d573 100644
+--- a/lib/libzfs/libzfs_pool.c
++++ b/lib/libzfs/libzfs_pool.c
+@@ -22,7 +22,7 @@
+ /*
+  * Copyright 2015 Nexenta Systems, Inc.  All rights reserved.
+  * Copyright (c) 2005, 2010, Oracle and/or its affiliates. All rights reserved.
+- * Copyright (c) 2011, 2018 by Delphix. All rights reserved.
++ * Copyright (c) 2011, 2014 by Delphix. All rights reserved.
+  * Copyright 2016 Igor Kozhukhov <ikozhukhov@gmail.com>
+  * Copyright (c) 2017 Datto Inc.
+  */
+@@ -42,7 +42,6 @@
+ #include <sys/efi_partition.h>
+ #include <sys/vtoc.h>
+ #include <sys/zfs_ioctl.h>
+-#include <sys/vdev_disk.h>
+ #include <dlfcn.h>
+ 
+ #include "zfs_namecheck.h"
+@@ -936,6 +935,17 @@ zpool_prop_get_feature(zpool_handle_t *zhp, const char *propname, char *buf,
+ }
+ 
+ /*
++ * Don't start the slice at the default block of 34; many storage
++ * devices will use a stripe width of 128k, other vendors prefer a 1m
++ * alignment.  It is best to play it safe and ensure a 1m alignment
++ * given 512B blocks.  When the block size is larger by a power of 2
++ * we will still be 1m aligned.  Some devices are sensitive to the
++ * partition ending alignment as well.
++ */
++#define	NEW_START_BLOCK		2048
++#define	PARTITION_END_ALIGNMENT	2048
++
++/*
+  * Validate the given pool name, optionally putting an extended error message in
+  * 'buf'.
+  */
+diff --git a/module/zfs/vdev.c b/module/zfs/vdev.c
+index b643bd354..acac2a973 100644
+--- a/module/zfs/vdev.c
++++ b/module/zfs/vdev.c
+@@ -21,7 +21,7 @@
+ 
+ /*
+  * Copyright (c) 2005, 2010, Oracle and/or its affiliates. All rights reserved.
+- * Copyright (c) 2011, 2018 by Delphix. All rights reserved.
++ * Copyright (c) 2011, 2015 by Delphix. All rights reserved.
+  * Copyright 2017 Nexenta Systems, Inc.
+  * Copyright (c) 2014 Integros [integros.com]
+  * Copyright 2016 Toomas Soome <tsoome@me.com>
+@@ -3039,6 +3039,7 @@ vdev_get_stats_ex(vdev_t *vd, vdev_stat_t *vs, vdev_stat_ex_t *vsx)
+ 			    vd->vdev_max_asize - vd->vdev_asize,
+ 			    1ULL << tvd->vdev_ms_shift);
+ 		}
++		vs->vs_esize = vd->vdev_max_asize - vd->vdev_asize;
+ 		if (vd->vdev_aux == NULL && vd == vd->vdev_top &&
+ 		    !vd->vdev_ishole) {
+ 			vs->vs_fragmentation = vd->vdev_mg->mg_fragmentation;
+diff --git a/module/zfs/vdev_disk.c b/module/zfs/vdev_disk.c
+index c5708cb2b..46fc120fb 100644
+--- a/module/zfs/vdev_disk.c
++++ b/module/zfs/vdev_disk.c
+@@ -23,7 +23,7 @@
+  * Produced at Lawrence Livermore National Laboratory (cf, DISCLAIMER).
+  * Rewritten for Linux by Brian Behlendorf <behlendorf1@llnl.gov>.
+  * LLNL-CODE-403049.
+- * Copyright (c) 2012, 2018 by Delphix. All rights reserved.
++ * Copyright (c) 2012, 2015 by Delphix. All rights reserved.
+  */
+ 
+ #include <sys/zfs_context.h>
+@@ -35,14 +35,10 @@
+ #include <sys/zio.h>
+ #include <sys/sunldi.h>
+ #include <linux/mod_compat.h>
+-#include <linux/msdos_fs.h>
+ 
+ char *zfs_vdev_scheduler = VDEV_SCHEDULER;
+ static void *zfs_vdev_holder = VDEV_HOLDER;
+ 
+-/* size of the "reserved" partition, in blocks */
+-#define	EFI_MIN_RESV_SIZE	(16 * 1024)
+-
+ /*
+  * Virtual device vector for disks.
+  */
+@@ -86,39 +82,17 @@ vdev_bdev_mode(int smode)
+ }
+ #endif /* HAVE_OPEN_BDEV_EXCLUSIVE */
+ 
+-/* The capacity (in bytes) of a bdev that is available to be used by a vdev */
+ static uint64_t
+-bdev_capacity(struct block_device *bdev, boolean_t wholedisk)
++bdev_capacity(struct block_device *bdev)
+ {
+ 	struct hd_struct *part = bdev->bd_part;
+-	uint64_t sectors = get_capacity(bdev->bd_disk);
+-	/* If there are no paritions, return the entire device capacity */
+-	if (part == NULL)
+-		return (sectors << SECTOR_BITS);
+ 
+-	/*
+-	 * If there are partitions, decide if we are using a `wholedisk`
+-	 * layout (composed of part1 and part9) or just a single partition.
+-	 */
+-	if (wholedisk) {
+-		/* Verify the expected device layout */
+-		ASSERT3P(bdev, !=, bdev->bd_contains);
+-		/*
+-		 * Sectors used by the EFI partition (part9) as well as
+-		 * partion alignment.
+-		 */
+-		uint64_t used = EFI_MIN_RESV_SIZE + NEW_START_BLOCK +
+-		    PARTITION_END_ALIGNMENT;
++	/* The partition capacity referenced by the block device */
++	if (part)
++		return (part->nr_sects << 9);
+ 
+-		/* Space available to the vdev, i.e. the size of part1 */
+-		if (sectors <= used)
+-			return (0);
+-		uint64_t available = sectors - used;
+-		return (available << SECTOR_BITS);
+-	} else {
+-		/* The partition capacity referenced by the block device */
+-		return (part->nr_sects << SECTOR_BITS);
+-	}
++	/* Otherwise assume the full device capacity */
++	return (get_capacity(bdev->bd_disk) << 9);
+ }
+ 
+ static void
+@@ -352,7 +326,9 @@ skip_open:
+ 	v->vdev_nonrot = blk_queue_nonrot(bdev_get_queue(vd->vd_bdev));
+ 
+ 	/* Physical volume size in bytes */
+-	*psize = bdev_capacity(vd->vd_bdev, v->vdev_wholedisk);
++	*psize = bdev_capacity(vd->vd_bdev);
++
++	/* TODO: report possible expansion size */
+ 	*max_psize = *psize;
+ 
+ 	/* Based on the minimum sector size set the block size */
+diff --git a/tests/zfs-tests/tests/functional/cli_root/zpool_expand/zpool_expand_002_pos.ksh b/tests/zfs-tests/tests/functional/cli_root/zpool_expand/zpool_expand_002_pos.ksh
+index 66b6969db..d578ae602 100755
+--- a/tests/zfs-tests/tests/functional/cli_root/zpool_expand/zpool_expand_002_pos.ksh
++++ b/tests/zfs-tests/tests/functional/cli_root/zpool_expand/zpool_expand_002_pos.ksh
+@@ -26,7 +26,7 @@
+ #
+ 
+ #
+-# Copyright (c) 2012, 2018 by Delphix. All rights reserved.
++# Copyright (c) 2012, 2016 by Delphix. All rights reserved.
+ # Copyright (c) 2017 Lawrence Livermore National Security, LLC.
+ #
+ 
+@@ -43,9 +43,8 @@
+ # 1) Create 3 files
+ # 2) Create a pool backed by the files
+ # 3) Expand the files' size with truncate
+-# 4) Use zpool reopen to check the expandsize
+-# 5) Use zpool online -e to online the vdevs
+-# 6) Check that the pool size was expanded
++# 4) Use zpool online -e to online the vdevs
++# 5) Check that the pool size was expanded
+ #
+ 
+ verify_runnable "global"
+@@ -65,8 +64,8 @@ log_onexit cleanup
+ 
+ log_assert "zpool can expand after zpool online -e zvol vdevs on LUN expansion"
+ 
++
+ for type in " " mirror raidz raidz2; do
+-	# Initialize the file devices and the pool
+ 	for i in 1 2 3; do
+ 		log_must truncate -s $org_size ${TEMPFILE}.$i
+ 	done
+@@ -81,35 +80,13 @@ for type in " " mirror raidz raidz2; do
+ 		    "$autoexp"
+ 	fi
+ 	typeset prev_size=$(get_pool_prop size $TESTPOOL1)
+-	typeset zfs_prev_size=$(get_prop avail $TESTPOOL1)
++	typeset zfs_prev_size=$(zfs get -p avail $TESTPOOL1 | tail -1 | \
++	    awk '{print $3}')
+ 
+-	# Increase the size of the file devices
+ 	for i in 1 2 3; do
+ 		log_must truncate -s $exp_size ${TEMPFILE}.$i
+ 	done
+ 
+-	# Reopen the pool and check that the `expandsize` property is set
+-	log_must zpool reopen $TESTPOOL1
+-	typeset zpool_expandsize=$(get_pool_prop expandsize $TESTPOOL1)
+-
+-	if [[ $type == "mirror" ]]; then
+-		typeset expected_zpool_expandsize=$(($exp_size-$org_size))
+-	else
+-		typeset expected_zpool_expandsize=$((3*($exp_size-$org_size)))
+-	fi
+-
+-	if [[ "$zpool_expandsize" = "-" ]]; then
+-		log_fail "pool $TESTPOOL1 did not detect any " \
+-		    "expandsize after reopen"
+-	fi
+-
+-	if [[ $zpool_expandsize -ne $expected_zpool_expandsize ]]; then
+-		log_fail "pool $TESTPOOL1 did not detect correct " \
+-		    "expandsize after reopen: found $zpool_expandsize," \
+-		    "expected $expected_zpool_expandsize"
+-	fi
+-
+-	# Online the devices to add the new space to the pool
+ 	for i in 1 2 3; do
+ 		log_must zpool online -e $TESTPOOL1 ${TEMPFILE}.$i
+ 	done
+@@ -119,7 +96,8 @@ for type in " " mirror raidz raidz2; do
+ 	sync
+ 
+ 	typeset expand_size=$(get_pool_prop size $TESTPOOL1)
+-	typeset zfs_expand_size=$(get_prop avail $TESTPOOL1)
++	typeset zfs_expand_size=$(zfs get -p avail $TESTPOOL1 | tail -1 | \
++	    awk '{print $3}')
+ 	log_note "$TESTPOOL1 $type has previous size: $prev_size and " \
+ 	    "expanded size: $expand_size"
+ 
+@@ -134,8 +112,8 @@ for type in " " mirror raidz raidz2; do
+ 			    grep "(+${expansion_size}" | wc -l)
+ 
+ 			if [[ $size_addition -ne $i ]]; then
+-				log_fail "pool $TESTPOOL1 did not expand " \
+-				    "after LUN expansion and zpool online -e"
++				log_fail "pool $TESTPOOL1 is not autoexpand " \
++				    "after LUN expansion"
+ 			fi
+ 		elif [[ $type == "mirror" ]]; then
+ 			typeset expansion_size=$(($exp_size-$org_size))
+@@ -145,8 +123,8 @@ for type in " " mirror raidz raidz2; do
+ 			    grep "(+${expansion_size})" >/dev/null 2>&1
+ 
+ 			if [[ $? -ne 0 ]]; then
+-				log_fail "pool $TESTPOOL1 did not expand " \
+-				    "after LUN expansion and zpool online -e"
++				log_fail "pool $TESTPOOL1 is not autoexpand " \
++				    "after LUN expansion"
+ 			fi
+ 		else
+ 			typeset expansion_size=$((3*($exp_size-$org_size)))
+@@ -156,13 +134,13 @@ for type in " " mirror raidz raidz2; do
+ 			    grep "(+${expansion_size})" >/dev/null 2>&1
+ 
+ 			if [[ $? -ne 0 ]] ; then
+-				log_fail "pool $TESTPOOL1 did not expand " \
+-				    "after LUN expansion and zpool online -e"
++				log_fail "pool $TESTPOOL1 is not autoexpand " \
++				    "after LUN expansion"
+ 			fi
+ 		fi
+ 	else
+-		log_fail "pool $TESTPOOL1 did not expand after LUN expansion " \
+-		    "and zpool online -e"
++		log_fail "pool $TESTPOOL1 is not autoexpanded after LUN " \
++		    "expansion"
+ 	fi
+ 	log_must zpool destroy $TESTPOOL1
+ done

@@ -32,3 +32,6 @@
 0032-Fix-build-with-CONFIG_GCC_PLUGIN_RANDSTRUCT.patch
 0033-Correctly-handle-errors-from-kern_path.patch
 0034-Tag-zfs-0.7.10.patch
+0035-Revert-zpool-reopen-should-detect-expanded-devices.patch
+0036-tx_waited-tx_dirty_delayed-in-trace_dmu.h.patch
+0037-Tag-zfs-0.7.11.patch
