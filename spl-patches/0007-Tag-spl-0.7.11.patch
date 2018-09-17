@@ -1,0 +1,56 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Tony Hutter <hutter2@llnl.gov>
+Date: Thu, 13 Sep 2018 10:13:33 -0700
+Subject: [PATCH] Tag spl-0.7.11
+
+META file and changelog updated.
+
+Signed-off-by: Tony Hutter <hutter2@llnl.gov>
+Signed-off-by: Thomas Lamprecht <t.lamprecht@proxmox.com>
+---
+ META                         | 2 +-
+ rpm/generic/spl-kmod.spec.in | 3 +++
+ rpm/generic/spl.spec.in      | 3 +++
+ 3 files changed, 7 insertions(+), 1 deletion(-)
+
+diff --git a/META b/META
+index 7818d34..fc98597 100644
+--- a/META
++++ b/META
+@@ -1,7 +1,7 @@
+ Meta:         1
+ Name:         spl
+ Branch:       1.0
+-Version:      0.7.10
++Version:      0.7.11
+ Release:      1
+ Release-Tags: relext
+ License:      GPL
+diff --git a/rpm/generic/spl-kmod.spec.in b/rpm/generic/spl-kmod.spec.in
+index f31e31e..4cc1faf 100644
+--- a/rpm/generic/spl-kmod.spec.in
++++ b/rpm/generic/spl-kmod.spec.in
+@@ -167,6 +167,9 @@ chmod u+x ${RPM_BUILD_ROOT}%{kmodinstdir_prefix}/*/extra/*/*/*
+ rm -rf $RPM_BUILD_ROOT
+ 
+ %changelog
++* Thu Sep 13 2018 Tony Hutter <hutter2@llnl.gov> - 0.7.11-1
++- Released 0.7.11-1, detailed release notes are available at:
++- https://github.com/zfsonlinux/zfs/releases/tag/zfs-0.7.11
+ * Wed Sep 05 2018 Tony Hutter <hutter2@llnl.gov> - 0.7.10-1
+ - Released 0.7.10-1, detailed release notes are available at:
+ - https://github.com/zfsonlinux/zfs/releases/tag/zfs-0.7.10
+diff --git a/rpm/generic/spl.spec.in b/rpm/generic/spl.spec.in
+index 7e9ee12..4b3a3d7 100644
+--- a/rpm/generic/spl.spec.in
++++ b/rpm/generic/spl.spec.in
+@@ -44,6 +44,9 @@ make install DESTDIR=%{?buildroot}
+ %{_mandir}/man5/*
+ 
+ %changelog
++* Thu Sep 13 2018 Tony Hutter <hutter2@llnl.gov> - 0.7.11-1
++- Released 0.7.11-1, detailed release notes are available at:
++- https://github.com/zfsonlinux/zfs/releases/tag/zfs-0.7.11
+ * Wed Sep 05 2018 Tony Hutter <hutter2@llnl.gov> - 0.7.10-1
+ - Released 0.7.10-1, detailed release notes are available at:
+ - https://github.com/zfsonlinux/zfs/releases/tag/zfs-0.7.10
