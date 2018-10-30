@@ -7,17 +7,18 @@ Content-Type: text/plain; charset=UTF-8
 Content-Transfer-Encoding: 8bit
 
 Signed-off-by: Fabian Grünbichler <f.gruenbichler@proxmox.com>
+Signed-off-by: Stoiko Ivanov <s.ivanov@proxmox.com>
 ---
  debian/control    |  1 -
  debian/control.in | 31 -------------------------
- debian/rules      | 68 +------------------------------------------------------
- 3 files changed, 1 insertion(+), 99 deletions(-)
+ debian/rules      | 67 +------------------------------------------------------
+ 3 files changed, 1 insertion(+), 98 deletions(-)
 
 diff --git a/debian/control b/debian/control
-index 07db14a..01387e5 100644
+index d83f962..f780c80 100644
 --- a/debian/control
 +++ b/debian/control
-@@ -8,7 +8,6 @@ Build-Depends: autogen,
+@@ -9,7 +9,6 @@ Build-Depends: autogen,
                 autotools-dev,
                 debhelper (>= 9),
                 dh-autoreconf,
@@ -26,10 +27,10 @@ index 07db14a..01387e5 100644
  Standards-Version: 4.1.2
  Homepage: http://www.zfsonlinux.org/
 diff --git a/debian/control.in b/debian/control.in
-index 91242a1..5fd81aa 100644
+index 0e6c3fc..c8fe170 100644
 --- a/debian/control.in
 +++ b/debian/control.in
-@@ -8,47 +8,16 @@ Build-Depends: autogen,
+@@ -9,47 +9,16 @@ Build-Depends: autogen,
                 autotools-dev,
                 debhelper (>= 9),
                 dh-autoreconf,
@@ -37,7 +38,7 @@ index 91242a1..5fd81aa 100644
                 libtool
  Standards-Version: 4.1.2
  Homepage: http://www.zfsonlinux.org/
- Vcs-Git: git@salsa.debian.org:zfsonlinux-team/spl.git
+ Vcs-Git: https://salsa.debian.org/zfsonlinux-team/spl.git
  Vcs-Browser: https://salsa.debian.org/zfsonlinux-team/spl
  
 -Package: spl-dkms
@@ -78,24 +79,23 @@ index 91242a1..5fd81aa 100644
   The Solaris Porting Layer (SPL) is a Linux kernel module which provides
   many of the Solaris kernel APIs. This shim layer makes it possible to
 diff --git a/debian/rules b/debian/rules
-index 3a12abc..8dca8fd 100755
+index 72ded49..5abeebb 100755
 --- a/debian/rules
 +++ b/debian/rules
-@@ -14,12 +14,8 @@ ifndef KVERS
+@@ -14,11 +14,8 @@ ifndef KVERS
  KVERS=$(shell uname -r)
  endif
  
 -non_epoch_version=$(shell echo $(KVERS) | perl -pe 's/^\d+://')
--PACKAGE=spl
--pmodules = $(PACKAGE)-modules-$(non_epoch_version)
+-pmodules = $(NAME)-modules-$(non_epoch_version)
 -
  %:
 -	dh $@ --with dkms,autoreconf --parallel
 +	dh $@ --with autoreconf --parallel
  
  override_dh_auto_configure:
- 	sed "s/@LINUX_COMPAT@/linux-libc-dev \(<< $(shell debian/get_next.sh)\)/" debian/control.in > debian/control
-@@ -45,69 +41,7 @@ override_dh_auto_install:
+ 	sed "s/@LINUX_COMPAT@/linux-libc-dev \(<< $(LINUX_NEXT)~\)/" debian/control.in > debian/control
+@@ -44,69 +41,7 @@ override_dh_auto_install:
  	@# This creates the $(CURDIR)/$(NAME)-$(VERSION)/ tree.
  	$(MAKE) distdir
  
@@ -115,7 +115,7 @@ index 3a12abc..8dca8fd 100755
  override_dh_auto_clean:
  	dh_auto_clean
  	@if test -e META.orig; then mv META.orig META; fi
- 	sed "s/@LINUX_COMPAT@/linux-libc-dev \(<< $(shell debian/get_next.sh)\)/" debian/control.in > debian/control
+ 	sed "s/@LINUX_COMPAT@/linux-libc-dev \(<< $(LINUX_NEXT)~\)/" debian/control.in > debian/control
 -
 -# ------------
 -
@@ -165,6 +165,3 @@ index 3a12abc..8dca8fd 100755
 -	dh_md5sums -p${pmodules}
 -
 -	dh_builddeb -p${pmodules}
--- 
-2.11.0
-
