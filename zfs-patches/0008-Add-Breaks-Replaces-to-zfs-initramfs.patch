@@ -1,0 +1,43 @@
+From 5ac80068e911d3b0935903f713c5f492d518da91 Mon Sep 17 00:00:00 2001
+From: Stoiko Ivanov <s.ivanov@proxmox.com>
+Date: Mon, 29 Oct 2018 15:49:20 +0100
+Subject: [PATCH] Add Breaks/Replaces to zfs-initramfs
+
+addressing the move of zdev initramfs hook from zfsutils-linux to
+zfs-initramfs
+
+Signed-off-by: Stoiko Ivanov <s.ivanov@proxmox.com>
+---
+ debian/control    | 2 ++
+ debian/control.in | 2 ++
+ 2 files changed, 4 insertions(+)
+
+diff --git a/debian/control b/debian/control
+index 4d22ff50..a414e449 100644
+--- a/debian/control
++++ b/debian/control
+@@ -117,6 +117,8 @@ Depends: busybox-initramfs | busybox-static | busybox,
+          zfs-modules | zfs-dkms,
+          zfsutils-linux (>= ${binary:Version}),
+          ${misc:Depends}
++Breaks: zfsutils-linux (<= 0.7.11-pve1~bpo1)
++Replaces: zfsutils-linux (<= 0.7.11-pve1~bpo1)
+ Description: OpenZFS root filesystem capabilities for Linux - initramfs
+  The Z file system is a pooled filesystem designed for maximum data
+  integrity, supporting data snapshots, multiple copies, and data
+diff --git a/debian/control.in b/debian/control.in
+index 96154c5c..b9c34331 100644
+--- a/debian/control.in
++++ b/debian/control.in
+@@ -117,6 +117,8 @@ Depends: busybox-initramfs | busybox-static | busybox,
+          zfs-modules | zfs-dkms,
+          zfsutils-linux (>= ${binary:Version}),
+          ${misc:Depends}
++Breaks: zfsutils-linux (<= 0.7.11-pve1~bpo1)
++Replaces: zfsutils-linux (<= 0.7.11-pve1~bpo1)
+ Description: OpenZFS root filesystem capabilities for Linux - initramfs
+  The Z file system is a pooled filesystem designed for maximum data
+  integrity, supporting data snapshots, multiple copies, and data
+-- 
+2.11.0
+
