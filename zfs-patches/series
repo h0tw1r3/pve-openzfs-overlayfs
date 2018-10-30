@@ -4,3 +4,4 @@
 0004-Fix-deadlock-between-zfs-umount-snapentry_expire.patch
 0005-Fix-race-in-dnode_check_slots_free.patch
 0006-Reduce-taskq-and-context-switch-cost-of-zio-pipe.patch
+0007-deadlock-between-mm_sem-and-tx-assign-in-zfs_write-a.patch
