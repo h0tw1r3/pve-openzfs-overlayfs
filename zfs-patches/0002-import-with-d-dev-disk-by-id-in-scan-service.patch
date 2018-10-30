@@ -7,6 +7,7 @@ Content-Type: text/plain; charset=UTF-8
 Content-Transfer-Encoding: 8bit
 
 Signed-off-by: Fabian Grünbichler <f.gruenbichler@proxmox.com>
+Signed-off-by: Stoiko Ivanov <s.ivanov@proxmox.com>
 ---
  etc/systemd/system/zfs-import-scan.service.in | 2 +-
  1 file changed, 1 insertion(+), 1 deletion(-)
@@ -24,6 +25,3 @@ index abc8e8e6..8fe2c107 100644
  
  [Install]
  WantedBy=zfs-import.target
--- 
-2.11.0
-

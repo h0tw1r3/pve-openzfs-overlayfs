@@ -21,12 +21,14 @@ Closes #7752
 
 (Cherry-picked from fd7265c646f40e364396af5014bbb83e809e124a)
 Signed-off-by: Stoiko Ivanov <s.ivanov@proxmox.com>
+
+Signed-off-by: Stoiko Ivanov <s.ivanov@proxmox.com>
 ---
  module/zfs/zfs_ctldir.c | 11 +++++------
  1 file changed, 5 insertions(+), 6 deletions(-)
 
 diff --git a/module/zfs/zfs_ctldir.c b/module/zfs/zfs_ctldir.c
-index 3b5fb196..14af55c4 100644
+index 98897fe6..0ab5b4f0 100644
 --- a/module/zfs/zfs_ctldir.c
 +++ b/module/zfs/zfs_ctldir.c
 @@ -358,8 +358,6 @@ snapentry_expire(void *data)

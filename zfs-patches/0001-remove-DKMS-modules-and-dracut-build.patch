@@ -7,18 +7,19 @@ Content-Type: text/plain; charset=UTF-8
 Content-Transfer-Encoding: 8bit
 
 Signed-off-by: Fabian Grünbichler <f.gruenbichler@proxmox.com>
+Signed-off-by: Stoiko Ivanov <s.ivanov@proxmox.com>
 ---
  debian/control       |   1 -
  debian/control.in    |  40 ++-----------------
  debian/not-installed |   2 +
- debian/rules         | 106 +--------------------------------------------------
- 4 files changed, 7 insertions(+), 142 deletions(-)
+ debian/rules         | 108 +--------------------------------------------------
+ 4 files changed, 7 insertions(+), 144 deletions(-)
 
 diff --git a/debian/control b/debian/control
-index 9e4f8fa7..42fbec35 100644
+index 4d22ff50..f33008df 100644
 --- a/debian/control
 +++ b/debian/control
-@@ -9,7 +9,6 @@ Build-Depends: autotools-dev,
+@@ -10,7 +10,6 @@ Build-Depends: autotools-dev,
                 debhelper (>= 10.2),
                 dh-autoreconf,
                 dh-python,
@@ -27,10 +28,10 @@ index 9e4f8fa7..42fbec35 100644
                 libblkid-dev,
                 libselinux1-dev,
 diff --git a/debian/control.in b/debian/control.in
-index e193f017..2cb2f614 100644
+index 96154c5c..0a9ceef6 100644
 --- a/debian/control.in
 +++ b/debian/control.in
-@@ -9,7 +9,6 @@ Build-Depends: autotools-dev,
+@@ -10,7 +10,6 @@ Build-Depends: autotools-dev,
                 debhelper (>= 10.2),
                 dh-autoreconf,
                 dh-python,
@@ -38,7 +39,7 @@ index e193f017..2cb2f614 100644
                 libattr1-dev,
                 libblkid-dev,
                 libselinux1-dev,
-@@ -86,26 +85,10 @@ Description: OpenZFS pool library for Linux
+@@ -95,26 +94,10 @@ Description: OpenZFS pool library for Linux
   .
   This zpool library provides support for managing zpools.
  
@@ -65,7 +66,7 @@ index e193f017..2cb2f614 100644
           zfsutils-linux (>= ${binary:Version}),
           ${misc:Depends}
  Description: OpenZFS root filesystem capabilities for Linux - initramfs
-@@ -116,29 +99,14 @@ Description: OpenZFS root filesystem capabilities for Linux - initramfs
+@@ -125,29 +108,14 @@ Description: OpenZFS root filesystem capabilities for Linux - initramfs
   This package adds OpenZFS to the system initramfs with a hook
   for the initramfs-tools infrastructure.
  
@@ -97,7 +98,7 @@ index e193f017..2cb2f614 100644
  Conflicts: zfs, zfs-fuse
  Provides: zfsutils
  Description: command-line tools to manage OpenZFS filesystems
-@@ -152,8 +120,7 @@ Description: command-line tools to manage OpenZFS filesystems
+@@ -161,8 +129,7 @@ Description: command-line tools to manage OpenZFS filesystems
  Package: zfs-zed
  Section: contrib/admin
  Architecture: linux-any
@@ -107,7 +108,7 @@ index e193f017..2cb2f614 100644
           ${misc:Depends},
           ${shlibs:Depends}
  Description: OpenZFS Event Daemon
-@@ -176,7 +143,6 @@ Depends: acl,
+@@ -185,7 +152,6 @@ Depends: acl,
           python,
           sudo,
           sysstat,
@@ -126,12 +127,12 @@ index a008985c..c60b0016 100644
 +usr/lib/dracut
 +usr/share/zfs/enum-extract.pl
 diff --git a/debian/rules b/debian/rules
-index e2c5a25f..86b5994d 100755
+index 21b8ccef..3ba4b99a 100755
 --- a/debian/rules
 +++ b/debian/rules
-@@ -5,9 +5,6 @@ include /usr/share/dpkg/default.mk
- LSB_DISTRIBUTOR := $(shell lsb_release -is)
+@@ -6,9 +6,6 @@ LSB_DISTRIBUTOR := $(shell lsb_release -is)
  NAME := $(shell awk '$$1 == "Name:" { print $$2; }' META)
+ LINUX_NEXT := $(shell awk -F. '{print $$1 "." $$2+1}' debian/linux_compat)
  
 -DKMSFILES := module include config zfs.release.in autogen.sh META AUTHORS \
 -		DISCLAIMER COPYRIGHT OPENSOLARIS.LICENSE README.markdown
@@ -139,7 +140,7 @@ index e2c5a25f..86b5994d 100755
  ifndef BUILD_UDEB
  BUILD_UDEB=false
  endif
-@@ -17,21 +14,16 @@ KVERS=$(shell uname -r)
+@@ -18,21 +15,16 @@ KVERS=$(shell uname -r)
  endif
  
  ifndef SPL
@@ -161,29 +162,41 @@ index e2c5a25f..86b5994d 100755
 -	dh $@ --with autoreconf,dkms,python3,systemd --parallel
 +	dh $@ --with autoreconf,python3,systemd --parallel
  
- override_dh_auto_configure:
- 	sed "s/@LINUX_COMPAT@/linux-libc-dev \(<< $(shell debian/get_next.sh)\)/" debian/control.in > debian/control
-@@ -74,37 +66,6 @@ override_dh_auto_install:
- 	$(INSTALL) -d '$(CURDIR)/debian/tmp/usr/sbin/'
- 	mv '$(CURDIR)/debian/tmp/sbin/zed' '$(CURDIR)/debian/tmp/usr/sbin/zed'
+ override_dh_autoreconf:
+ 	@# Embed the downstream version in the module.
+@@ -57,14 +49,6 @@ endif
+ 	  --with-systemdpresetdir=/lib/systemd/system-preset \
+ 	  --with-config=user
  
+-override_dh_auto_build:
 -	@# Get a bare copy of the source code for DKMS.
 -	@# This creates the $(CURDIR)/$(NAME)-$(DEB_VERSION_UPSTREAM)/ tree, which does not
 -	@# contain the userland sources. NB: Remove-userland-dist-rules.patch
 -	$(MAKE) distdir
 -
+-	dh_auto_build
+-
+ override_dh_auto_test:
+ 	# The dh_auto_test rule is disabled because
+ 	# `make check` cannot run in an unprivileged build environment.
+@@ -88,29 +72,6 @@ override_dh_auto_install:
+ 	@# Zed has dependencies outside of the system root.
+ 	mv '$(CURDIR)/debian/tmp/sbin/zed' '$(CURDIR)/debian/tmp/usr/sbin/zed'
+ 
 -	@# Install the DKMS source.
 -	@# We only want the files needed to build the modules
--	mkdir -p '$(CURDIR)/debian/tmp/usr/src/$(NAME)-$(DEB_VERSION_UPSTREAM)/scripts'
--	cp '$(CURDIR)/scripts/enum-extract.pl' '$(CURDIR)/debian/tmp/usr/src/$(NAME)-$(DEB_VERSION_UPSTREAM)/scripts'
+-	install -D -t '$(CURDIR)/debian/tmp/usr/src/$(NAME)-$(DEB_VERSION_UPSTREAM)/scripts' \
+-		'$(CURDIR)/scripts/enum-extract.pl' \
+-		'$(CURDIR)/scripts/dkms.postbuild'
 -	$(foreach file,$(DKMSFILES),mv '$(CURDIR)/$(NAME)-$(DEB_VERSION_UPSTREAM)/$(file)' '$(CURDIR)/debian/tmp/usr/src/$(NAME)-$(DEB_VERSION_UPSTREAM)' || exit 1;)
 -	@# Hellish awk line:
 -	@#  * Deletes from configure.ac the parts not needed for building the kernel module
 -	@#     * It deletes from inside AC_CONFIG_FILES([]) everything except:
 -	@#        (Makefile$|include/|module/|*.release$)
 -	@#  * Takes care of spaces and tabs
+-	@#  * Remove reference to ZFS_AC_PACKAGE
 -	awk '/^AC_CONFIG_FILES\(\[/,/^\]\)/ { if ($$0 !~ /^(AC_CONFIG_FILES\(\[([ \t]+)?$$|\]\)([ \t]+)?$$|([ \t]+)?(include\/|module\/|Makefile([ \t]+)?$$|zfs\.release([ \t]+)?$$))/){next} } {print}' \
--		'$(CURDIR)/$(NAME)-$(DEB_VERSION_UPSTREAM)/configure.ac' > '$(CURDIR)/debian/tmp/usr/src/$(NAME)-$(DEB_VERSION_UPSTREAM)/configure.ac'
+-		'$(CURDIR)/$(NAME)-$(DEB_VERSION_UPSTREAM)/configure.ac' | sed '/ZFS_AC_PACKAGE/d' > '$(CURDIR)/debian/tmp/usr/src/$(NAME)-$(DEB_VERSION_UPSTREAM)/configure.ac'
 -	@# Set "SUBDIRS = module include" for CONFIG_KERNEL and remove SUBDIRS for all other configs.
 -	sed '1,/CONFIG_KERNEL/s/SUBDIRS.*=.*//g;s/SUBDIRS.*=.*/SUBDIRS = module include/g;' \
 -		'$(CURDIR)/$(NAME)-$(DEB_VERSION_UPSTREAM)/Makefile.am' > '$(CURDIR)/debian/tmp/usr/src/$(NAME)-$(DEB_VERSION_UPSTREAM)/Makefile.am'
@@ -193,25 +206,22 @@ index e2c5a25f..86b5994d 100755
 -	cd '$(CURDIR)/debian/tmp/usr/src/$(NAME)-$(DEB_VERSION_UPSTREAM)'; ./autogen.sh
 -	rm -fr '$(CURDIR)/debian/tmp/usr/src/$(NAME)-$(DEB_VERSION_UPSTREAM)/autom4te.cache'
 -
--	@# This shunt allows DKMS to install the Module.symvers and zfs_config.h
--	@# files to the ${dkms_tree} area through the POST_INSTALL directive.
--	printf '#!/bin/sh\ncp "$$@"\n' > '$(CURDIR)/debian/tmp/usr/src/$(NAME)-$(DEB_VERSION_UPSTREAM)/cp'
--	chmod 755 '$(CURDIR)/debian/tmp/usr/src/$(NAME)-$(DEB_VERSION_UPSTREAM)/cp'
--
  	mkdir -p $(CURDIR)/debian/tmp/usr/lib
  	for i in `ls $(CURDIR)/debian/tmp/lib/*.so`; do \
  		ln -s /lib/`readlink $${i}` $(CURDIR)/debian/tmp/usr/lib/`basename $${i}`; \
-@@ -114,9 +75,6 @@ override_dh_auto_install:
- 	chmod a-x $(CURDIR)/debian/tmp/etc/zfs/zfs-functions
- 	chmod a-x $(CURDIR)/debian/tmp/etc/default/zfs
+@@ -121,11 +82,6 @@ override_dh_auto_install:
+ 	chmod a-x '$(CURDIR)/debian/tmp/etc/default/zfs'
+ 	chmod a-x '$(CURDIR)/debian/tmp/usr/share/bash-completion/completions/zfs'
  
 -override_dh_dkms:
--	dh_dkms -V $(DEB_VERSION_UPSTREAM)
+-	'$(CURDIR)/scripts/dkms.mkconf' -n $(NAME) -v $(DEB_VERSION_UPSTREAM) -f '$(CURDIR)/scripts/zfs-dkms.dkms'
+-	dh_dkms
+-	rm -f '$(CURDIR)/scripts/zfs-dkms.dkms'
 -
  override_dh_makeshlibs:
  	dh_makeshlibs -a -V
  ifeq ($(BUILD_UDEB), true)
-@@ -154,65 +112,5 @@ override_dh_install:
+@@ -171,65 +127,5 @@ override_dh_installinit:
  
  # ------------
  
@@ -277,6 +287,3 @@ index e2c5a25f..86b5994d 100755
 -
  debian-copyright:
  	cme update dpkg-copyright -file debian/copyright.cme
--- 
-2.11.0
-

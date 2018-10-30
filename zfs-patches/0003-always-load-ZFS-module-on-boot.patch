@@ -12,6 +12,7 @@ is needed for zfs-mount, zfs-share and zfs-zed services in case ZFS is
 not actually used.
 
 Signed-off-by: Fabian Grünbichler <f.gruenbichler@proxmox.com>
+Signed-off-by: Stoiko Ivanov <s.ivanov@proxmox.com>
 ---
  etc/modules-load.d/zfs.conf.in | 2 +-
  1 file changed, 1 insertion(+), 1 deletion(-)
@@ -25,6 +26,3 @@ index 8b41baa3..59b058c9 100644
  # kernel modules in the zfs-import-*.service or when blkid(8) detects a pool.
 -#zfs
 +zfs
--- 
-2.11.0
-
