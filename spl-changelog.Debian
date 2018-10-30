@@ -1,3 +1,12 @@
+spl-linux (0.7.11-pve2~bpo1) unstable; urgency=medium
+
+  * update SPL to debian/0.7.11
+
+  * Backport deadlock fix between mm_sem and tx assign in zfs_write() and page
+    fault
+
+ -- Proxmox Support Team <support@proxmox.com>  Mon, 29 Oct 2018 13:47:39 +0100
+
 spl-linux (0.7.11-pve1~bpo1) unstable; urgency=medium
 
   * update SPL to 0.7.11
