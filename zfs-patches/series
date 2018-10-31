@@ -6,3 +6,4 @@
 0006-Reduce-taskq-and-context-switch-cost-of-zio-pipe.patch
 0007-deadlock-between-mm_sem-and-tx-assign-in-zfs_write-a.patch
 0008-Add-Breaks-Replaces-to-zfs-initramfs.patch
+0009-Revert-Install-init-scripts-to-support-non-systemd-s.patch
