@@ -1,0 +1,40 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Tony Hutter <hutter2@llnl.gov>
+Date: Wed, 24 Oct 2018 22:42:14 -0700
+Subject: [PATCH] Linux 4.20 compat: current_kernel_time()
+
+Commit torvalds/linux@976516404 removed the current_kernel_time()
+function (and several others).  All callers are expected to use
+current_kernel_time64().  Update the gethrestime_sec() wrapper
+accordingly.
+
+Backported to SPL from zfs:82c0a050f
+
+Reviewed-by: Olaf Faaland <faaland1@llnl.gov>
+Reviewed-by: Tony Hutter <hutter2@llnl.gov>
+Signed-off-by: Brian Behlendorf <behlendorf1@llnl.gov>
+Closes #8074
+
+Signed-off-by: Stoiko Ivanov <s.ivanov@proxmox.com>
+---
+ include/sys/time.h | 7 +++++--
+ 1 file changed, 5 insertions(+), 2 deletions(-)
+
+diff --git a/include/sys/time.h b/include/sys/time.h
+index 9029671..563c210 100644
+--- a/include/sys/time.h
++++ b/include/sys/time.h
+@@ -82,8 +82,11 @@ gethrestime(inode_timespec_t *ts)
+ static inline time_t
+ gethrestime_sec(void)
+ {
+-	struct timespec ts;
+-	ts = current_kernel_time();
++#if defined(HAVE_INODE_TIMESPEC64_TIMES)
++	inode_timespec_t ts = current_kernel_time64();
++#else
++	inode_timespec_t ts = current_kernel_time();
++#endif
+ 	return (ts.tv_sec);
+ }
+ 
