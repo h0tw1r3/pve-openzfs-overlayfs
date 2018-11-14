@@ -1,0 +1,29 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Brian Behlendorf <behlendorf1@llnl.gov>
+Date: Mon, 8 Oct 2018 14:59:34 -0700
+Subject: [PATCH] Fix arc_release() refcount
+
+Update arc_release to use arc_buf_size().  This hunk was accidentally
+dropped when porting compressed send/recv, 2aa34383b.
+
+Reviewed-by: Matthew Ahrens <mahrens@delphix.com>
+Signed-off-by: Tom Caputi <tcaputi@datto.com>
+Signed-off-by: Brian Behlendorf <behlendorf1@llnl.gov>
+Closes #8000
+---
+ module/zfs/arc.c | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+
+diff --git a/module/zfs/arc.c b/module/zfs/arc.c
+index 32ac0837..a7fb2429 100644
+--- a/module/zfs/arc.c
++++ b/module/zfs/arc.c
+@@ -5831,7 +5831,7 @@ arc_release(arc_buf_t *buf, void *tag)
+ 
+ 		mutex_exit(&buf->b_evict_lock);
+ 		(void) zfs_refcount_add_many(&arc_anon->arcs_size,
+-		    HDR_GET_LSIZE(nhdr), buf);
++		    arc_buf_size(buf), buf);
+ 	} else {
+ 		mutex_exit(&buf->b_evict_lock);
+ 		ASSERT(zfs_refcount_count(&hdr->b_l1hdr.b_refcnt) == 1);

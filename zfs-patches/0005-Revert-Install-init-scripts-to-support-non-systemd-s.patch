@@ -1,4 +1,4 @@
-From c37a6401469cae16519db06d623d49c6f606f312 Mon Sep 17 00:00:00 2001
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
 From: Thomas Lamprecht <t.lamprecht@proxmox.com>
 Date: Wed, 31 Oct 2018 15:37:39 +0100
 Subject: [PATCH] Revert "Install init scripts to support non-systemd setups.
@@ -11,11 +11,11 @@ systems)
 
 Signed-off-by: Thomas Lamprecht <t.lamprecht@proxmox.com>
 ---
- debian/rules                                 | 8 --------
- debian/zfs-zed.zfs-zed.init                  | 1 -
- debian/zfsutils-linux.zfs-import.init        | 1 -
- debian/zfsutils-linux.zfs-mount.init         | 1 -
- debian/zfsutils-linux.zfs-share.init         | 1 -
+ debian/rules                          | 8 --------
+ debian/zfs-zed.zfs-zed.init           | 1 -
+ debian/zfsutils-linux.zfs-import.init | 1 -
+ debian/zfsutils-linux.zfs-mount.init  | 1 -
+ debian/zfsutils-linux.zfs-share.init  | 1 -
  5 files changed, 12 deletions(-)
  delete mode 120000 debian/zfs-zed.zfs-zed.init
  delete mode 120000 debian/zfsutils-linux.zfs-import.init
@@ -23,10 +23,10 @@ Signed-off-by: Thomas Lamprecht <t.lamprecht@proxmox.com>
  delete mode 120000 debian/zfsutils-linux.zfs-share.init
 
 diff --git a/debian/rules b/debian/rules
-index 5fba58ff..81c301e4 100644
+index 3ba4b99a..d6cf5a56 100755
 --- a/debian/rules
 +++ b/debian/rules
-@@ -161,14 +153,6 @@ override_dh_install:
+@@ -117,14 +117,6 @@ override_dh_install:
  	find . -name lib*.la -delete
  	dh_install --fail-missing
  
@@ -40,7 +40,7 @@ index 5fba58ff..81c301e4 100644
 -
  # ------------
  
- override_dh_prep-deb-files:
+ debian-copyright:
 diff --git a/debian/zfs-zed.zfs-zed.init b/debian/zfs-zed.zfs-zed.init
 deleted file mode 120000
 index 3f41f681..00000000
@@ -73,6 +73,3 @@ index 3f069f9b..00000000
 @@ -1 +0,0 @@
 -../etc/init.d/zfs-share
 \ No newline at end of file
--- 
-2.19.1
-

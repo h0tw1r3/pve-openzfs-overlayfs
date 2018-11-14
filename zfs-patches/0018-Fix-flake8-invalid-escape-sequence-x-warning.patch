@@ -1,0 +1,35 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Brian Behlendorf <behlendorf1@llnl.gov>
+Date: Wed, 24 Oct 2018 23:26:08 -0700
+Subject: [PATCH] Fix flake8 "invalid escape sequence 'x'" warning
+
+From, https://lintlyci.github.io/Flake8Rules/rules/W605.html
+
+As of Python 3.6, a backslash-character pair that is not a valid
+escape sequence now generates a DeprecationWarning. Although this
+will eventually become a SyntaxError, that will not be for several
+Python releases.
+
+Note 'float_pobj' was simply removed from arcstat.py since it
+was entirely unused.
+
+Reviewed-by: John Kennedy <john.kennedy@delphix.com>
+Reviewed-by: Richard Elling <Richard.Elling@RichardElling.com>
+Signed-off-by: Brian Behlendorf <behlendorf1@llnl.gov>
+Closes #8056
+---
+ cmd/arcstat/arcstat.py | 1 -
+ 1 file changed, 1 deletion(-)
+
+diff --git a/cmd/arcstat/arcstat.py b/cmd/arcstat/arcstat.py
+index b52a8c29..d7d3e9b7 100755
+--- a/cmd/arcstat/arcstat.py
++++ b/cmd/arcstat/arcstat.py
+@@ -112,7 +112,6 @@ cur = {}
+ d = {}
+ out = None
+ kstat = None
+-float_pobj = re.compile("^[0-9]+(\.[0-9]+)?$")
+ 
+ 
+ def detailed_usage():

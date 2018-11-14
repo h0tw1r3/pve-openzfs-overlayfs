@@ -20,15 +20,11 @@ Reviewed-by: Brian Behlendorf <behlendorf1@llnl.gov>
 Reviewed by: George Wilson <george.wilson@delphix.com>
 Signed-off-by: Matthew Ahrens <mahrens@delphix.com>
 External-issue: DLPX-59292
-Requires-spl: spl-0.7-release
 Closes #7736
-
-(cherry-picked from behlendorf/issue-7736 496657ab3bcfeb638b1786e1759980ccfcacb08e)
-Signed-off-by: Stoiko Ivanov <s.ivanov@proxmox.com>
 ---
  include/sys/zio.h |   4 +-
- module/zfs/zio.c  | 250 +++++++++++++++++++++++++++++-------------------------
- 2 files changed, 137 insertions(+), 117 deletions(-)
+ module/zfs/zio.c  | 252 +++++++++++++++++++++++++++++-------------------------
+ 2 files changed, 139 insertions(+), 117 deletions(-)
 
 diff --git a/include/sys/zio.h b/include/sys/zio.h
 index 4b0eecc2..3618912c 100644
@@ -53,7 +49,7 @@ index 4b0eecc2..3618912c 100644
  /*
   * The io_reexecute flags are distinct from io_flags because the child must
 diff --git a/module/zfs/zio.c b/module/zfs/zio.c
-index 9a465e1b..b08b4747 100644
+index 9a465e1b..dd0dfcdb 100644
 --- a/module/zfs/zio.c
 +++ b/module/zfs/zio.c
 @@ -75,9 +75,6 @@ uint64_t zio_buf_cache_frees[SPA_MAXBLOCKSIZE >> SPA_MINBLOCKSHIFT];
@@ -226,16 +222,18 @@ index 9a465e1b..b08b4747 100644
  zio_free_bp_init(zio_t *zio)
  {
  	blkptr_t *bp = zio->io_bp;
-@@ -1472,7 +1490,7 @@ zio_free_bp_init(zio_t *zio)
+@@ -1472,7 +1490,9 @@ zio_free_bp_init(zio_t *zio)
  			zio->io_pipeline = ZIO_DDT_FREE_PIPELINE;
  	}
  
 -	return (ZIO_PIPELINE_CONTINUE);
++	ASSERT3P(zio->io_bp, ==, &zio->io_bp_copy);
++
 +	return (zio);
  }
  
  /*
-@@ -1541,12 +1559,12 @@ zio_taskq_member(zio_t *zio, zio_taskq_type_t q)
+@@ -1541,12 +1561,12 @@ zio_taskq_member(zio_t *zio, zio_taskq_type_t q)
  	return (B_FALSE);
  }
  
@@ -250,7 +248,7 @@ index 9a465e1b..b08b4747 100644
  }
  
  void
-@@ -1687,14 +1705,13 @@ __attribute__((always_inline))
+@@ -1687,14 +1707,13 @@ __attribute__((always_inline))
  static inline void
  __zio_execute(zio_t *zio)
  {
@@ -267,7 +265,7 @@ index 9a465e1b..b08b4747 100644
  
  		ASSERT(!MUTEX_HELD(&zio->io_lock));
  		ASSERT(ISP2(stage));
-@@ -1736,12 +1753,16 @@ __zio_execute(zio_t *zio)
+@@ -1736,12 +1755,16 @@ __zio_execute(zio_t *zio)
  
  		zio->io_stage = stage;
  		zio->io_pipeline_trace |= zio->io_stage;
@@ -288,7 +286,7 @@ index 9a465e1b..b08b4747 100644
  	}
  }
  
-@@ -2215,7 +2236,7 @@ zio_gang_tree_issue(zio_t *pio, zio_gang_node_t *gn, blkptr_t *bp, abd_t *data,
+@@ -2215,7 +2238,7 @@ zio_gang_tree_issue(zio_t *pio, zio_gang_node_t *gn, blkptr_t *bp, abd_t *data,
  		zio_nowait(zio);
  }
  
@@ -297,7 +295,7 @@ index 9a465e1b..b08b4747 100644
  zio_gang_assemble(zio_t *zio)
  {
  	blkptr_t *bp = zio->io_bp;
-@@ -2227,16 +2248,16 @@ zio_gang_assemble(zio_t *zio)
+@@ -2227,16 +2250,16 @@ zio_gang_assemble(zio_t *zio)
  
  	zio_gang_tree_assemble(zio, bp, &zio->io_gang_tree);
  
@@ -317,7 +315,7 @@ index 9a465e1b..b08b4747 100644
  	}
  
  	ASSERT(BP_IS_GANG(bp) && zio->io_gang_leader == zio);
-@@ -2250,7 +2271,7 @@ zio_gang_issue(zio_t *zio)
+@@ -2250,7 +2273,7 @@ zio_gang_issue(zio_t *zio)
  
  	zio->io_pipeline = ZIO_INTERLOCK_PIPELINE;
  
@@ -326,7 +324,7 @@ index 9a465e1b..b08b4747 100644
  }
  
  static void
-@@ -2290,7 +2311,7 @@ zio_write_gang_done(zio_t *zio)
+@@ -2290,7 +2313,7 @@ zio_write_gang_done(zio_t *zio)
  	abd_put(zio->io_abd);
  }
  
@@ -335,7 +333,7 @@ index 9a465e1b..b08b4747 100644
  zio_write_gang_block(zio_t *pio)
  {
  	spa_t *spa = pio->io_spa;
-@@ -2349,7 +2370,7 @@ zio_write_gang_block(zio_t *pio)
+@@ -2349,7 +2372,7 @@ zio_write_gang_block(zio_t *pio)
  		}
  
  		pio->io_error = error;
@@ -344,7 +342,7 @@ index 9a465e1b..b08b4747 100644
  	}
  
  	if (pio == gio) {
-@@ -2423,7 +2444,7 @@ zio_write_gang_block(zio_t *pio)
+@@ -2423,7 +2446,7 @@ zio_write_gang_block(zio_t *pio)
  
  	zio_nowait(zio);
  
@@ -353,7 +351,7 @@ index 9a465e1b..b08b4747 100644
  }
  
  /*
-@@ -2444,7 +2465,7 @@ zio_write_gang_block(zio_t *pio)
+@@ -2444,7 +2467,7 @@ zio_write_gang_block(zio_t *pio)
   * used for nopwrite, assuming that the salt and the checksums
   * themselves remain secret.
   */
@@ -362,7 +360,7 @@ index 9a465e1b..b08b4747 100644
  zio_nop_write(zio_t *zio)
  {
  	blkptr_t *bp = zio->io_bp;
-@@ -2471,7 +2492,7 @@ zio_nop_write(zio_t *zio)
+@@ -2471,7 +2494,7 @@ zio_nop_write(zio_t *zio)
  	    BP_GET_COMPRESS(bp) != BP_GET_COMPRESS(bp_orig) ||
  	    BP_GET_DEDUP(bp) != BP_GET_DEDUP(bp_orig) ||
  	    zp->zp_copies != BP_GET_NDVAS(bp_orig))
@@ -371,7 +369,7 @@ index 9a465e1b..b08b4747 100644
  
  	/*
  	 * If the checksums match then reset the pipeline so that we
-@@ -2491,7 +2512,7 @@ zio_nop_write(zio_t *zio)
+@@ -2491,7 +2514,7 @@ zio_nop_write(zio_t *zio)
  		zio->io_flags |= ZIO_FLAG_NOPWRITE;
  	}
  
@@ -380,7 +378,7 @@ index 9a465e1b..b08b4747 100644
  }
  
  /*
-@@ -2519,7 +2540,7 @@ zio_ddt_child_read_done(zio_t *zio)
+@@ -2519,7 +2542,7 @@ zio_ddt_child_read_done(zio_t *zio)
  	mutex_exit(&pio->io_lock);
  }
  
@@ -389,7 +387,7 @@ index 9a465e1b..b08b4747 100644
  zio_ddt_read_start(zio_t *zio)
  {
  	blkptr_t *bp = zio->io_bp;
-@@ -2540,7 +2561,7 @@ zio_ddt_read_start(zio_t *zio)
+@@ -2540,7 +2563,7 @@ zio_ddt_read_start(zio_t *zio)
  		zio->io_vsd = dde;
  
  		if (ddp_self == NULL)
@@ -398,7 +396,7 @@ index 9a465e1b..b08b4747 100644
  
  		for (p = 0; p < DDT_PHYS_TYPES; p++, ddp++) {
  			if (ddp->ddp_phys_birth == 0 || ddp == ddp_self)
-@@ -2553,23 +2574,23 @@ zio_ddt_read_start(zio_t *zio)
+@@ -2553,23 +2576,23 @@ zio_ddt_read_start(zio_t *zio)
  			    zio->io_priority, ZIO_DDT_CHILD_FLAGS(zio) |
  			    ZIO_FLAG_DONT_PROPAGATE, &zio->io_bookmark));
  		}
@@ -426,7 +424,7 @@ index 9a465e1b..b08b4747 100644
  	}
  
  	ASSERT(BP_GET_DEDUP(bp));
-@@ -2581,12 +2602,12 @@ zio_ddt_read_done(zio_t *zio)
+@@ -2581,12 +2604,12 @@ zio_ddt_read_done(zio_t *zio)
  		ddt_entry_t *dde = zio->io_vsd;
  		if (ddt == NULL) {
  			ASSERT(spa_load_state(zio->io_spa) != SPA_LOAD_NONE);
@@ -441,7 +439,7 @@ index 9a465e1b..b08b4747 100644
  		}
  		if (dde->dde_repair_abd != NULL) {
  			abd_copy(zio->io_abd, dde->dde_repair_abd,
-@@ -2599,7 +2620,7 @@ zio_ddt_read_done(zio_t *zio)
+@@ -2599,7 +2622,7 @@ zio_ddt_read_done(zio_t *zio)
  
  	ASSERT(zio->io_vsd == NULL);
  
@@ -450,7 +448,7 @@ index 9a465e1b..b08b4747 100644
  }
  
  static boolean_t
-@@ -2780,7 +2801,7 @@ zio_ddt_ditto_write_done(zio_t *zio)
+@@ -2780,7 +2803,7 @@ zio_ddt_ditto_write_done(zio_t *zio)
  	ddt_exit(ddt);
  }
  
@@ -459,7 +457,7 @@ index 9a465e1b..b08b4747 100644
  zio_ddt_write(zio_t *zio)
  {
  	spa_t *spa = zio->io_spa;
-@@ -2822,7 +2843,7 @@ zio_ddt_write(zio_t *zio)
+@@ -2822,7 +2845,7 @@ zio_ddt_write(zio_t *zio)
  		}
  		zio->io_pipeline = ZIO_WRITE_PIPELINE;
  		ddt_exit(ddt);
@@ -468,7 +466,7 @@ index 9a465e1b..b08b4747 100644
  	}
  
  	ditto_copies = ddt_ditto_copies_needed(ddt, dde, ddp);
-@@ -2848,7 +2869,7 @@ zio_ddt_write(zio_t *zio)
+@@ -2848,7 +2871,7 @@ zio_ddt_write(zio_t *zio)
  			zio->io_bp_override = NULL;
  			BP_ZERO(bp);
  			ddt_exit(ddt);
@@ -477,7 +475,7 @@ index 9a465e1b..b08b4747 100644
  		}
  
  		dio = zio_write(zio, spa, txg, bp, zio->io_orig_abd,
-@@ -2890,12 +2911,12 @@ zio_ddt_write(zio_t *zio)
+@@ -2890,12 +2913,12 @@ zio_ddt_write(zio_t *zio)
  	if (dio)
  		zio_nowait(dio);
  
@@ -492,7 +490,7 @@ index 9a465e1b..b08b4747 100644
  zio_ddt_free(zio_t *zio)
  {
  	spa_t *spa = zio->io_spa;
-@@ -2916,7 +2937,7 @@ zio_ddt_free(zio_t *zio)
+@@ -2916,7 +2939,7 @@ zio_ddt_free(zio_t *zio)
  	}
  	ddt_exit(ddt);
  
@@ -501,7 +499,7 @@ index 9a465e1b..b08b4747 100644
  }
  
  /*
-@@ -2953,7 +2974,7 @@ zio_io_to_allocate(spa_t *spa)
+@@ -2953,7 +2976,7 @@ zio_io_to_allocate(spa_t *spa)
  	return (zio);
  }
  
@@ -510,7 +508,7 @@ index 9a465e1b..b08b4747 100644
  zio_dva_throttle(zio_t *zio)
  {
  	spa_t *spa = zio->io_spa;
-@@ -2963,7 +2984,7 @@ zio_dva_throttle(zio_t *zio)
+@@ -2963,7 +2986,7 @@ zio_dva_throttle(zio_t *zio)
  	    !spa_normal_class(zio->io_spa)->mc_alloc_throttle_enabled ||
  	    zio->io_child_type == ZIO_CHILD_GANG ||
  	    zio->io_flags & ZIO_FLAG_NODATA) {
@@ -519,7 +517,7 @@ index 9a465e1b..b08b4747 100644
  	}
  
  	ASSERT(zio->io_child_type > ZIO_CHILD_GANG);
-@@ -2979,22 +3000,7 @@ zio_dva_throttle(zio_t *zio)
+@@ -2979,22 +3002,7 @@ zio_dva_throttle(zio_t *zio)
  	nio = zio_io_to_allocate(zio->io_spa);
  	mutex_exit(&spa->spa_alloc_lock);
  
@@ -543,7 +541,7 @@ index 9a465e1b..b08b4747 100644
  }
  
  void
-@@ -3013,7 +3019,7 @@ zio_allocate_dispatch(spa_t *spa)
+@@ -3013,7 +3021,7 @@ zio_allocate_dispatch(spa_t *spa)
  	zio_taskq_dispatch(zio, ZIO_TASKQ_ISSUE, B_TRUE);
  }
  
@@ -552,7 +550,7 @@ index 9a465e1b..b08b4747 100644
  zio_dva_allocate(zio_t *zio)
  {
  	spa_t *spa = zio->io_spa;
-@@ -3054,18 +3060,18 @@ zio_dva_allocate(zio_t *zio)
+@@ -3054,18 +3062,18 @@ zio_dva_allocate(zio_t *zio)
  		zio->io_error = error;
  	}
  
@@ -575,7 +573,7 @@ index 9a465e1b..b08b4747 100644
  zio_dva_claim(zio_t *zio)
  {
  	int error;
-@@ -3074,7 +3080,7 @@ zio_dva_claim(zio_t *zio)
+@@ -3074,7 +3082,7 @@ zio_dva_claim(zio_t *zio)
  	if (error)
  		zio->io_error = error;
  
@@ -584,7 +582,7 @@ index 9a465e1b..b08b4747 100644
  }
  
  /*
-@@ -3172,7 +3178,7 @@ zio_free_zil(spa_t *spa, uint64_t txg, blkptr_t *bp)
+@@ -3172,7 +3180,7 @@ zio_free_zil(spa_t *spa, uint64_t txg, blkptr_t *bp)
   * force the underlying vdev layers to call either zio_execute() or
   * zio_interrupt() to ensure that the pipeline continues with the correct I/O.
   */
@@ -593,7 +591,7 @@ index 9a465e1b..b08b4747 100644
  zio_vdev_io_start(zio_t *zio)
  {
  	vdev_t *vd = zio->io_vd;
-@@ -3192,7 +3198,7 @@ zio_vdev_io_start(zio_t *zio)
+@@ -3192,7 +3200,7 @@ zio_vdev_io_start(zio_t *zio)
  		 * The mirror_ops handle multiple DVAs in a single BP.
  		 */
  		vdev_mirror_ops.vdev_op_io_start(zio);
@@ -602,7 +600,7 @@ index 9a465e1b..b08b4747 100644
  	}
  
  	ASSERT3P(zio->io_logical, !=, zio);
-@@ -3269,31 +3275,31 @@ zio_vdev_io_start(zio_t *zio)
+@@ -3269,31 +3277,31 @@ zio_vdev_io_start(zio_t *zio)
  	    !vdev_dtl_contains(vd, DTL_PARTIAL, zio->io_txg, 1)) {
  		ASSERT(zio->io_type == ZIO_TYPE_WRITE);
  		zio_vdev_io_bypass(zio);
@@ -640,7 +638,7 @@ index 9a465e1b..b08b4747 100644
  zio_vdev_io_done(zio_t *zio)
  {
  	vdev_t *vd = zio->io_vd;
-@@ -3301,7 +3307,7 @@ zio_vdev_io_done(zio_t *zio)
+@@ -3301,7 +3309,7 @@ zio_vdev_io_done(zio_t *zio)
  	boolean_t unexpected_error = B_FALSE;
  
  	if (zio_wait_for_children(zio, ZIO_CHILD_VDEV_BIT, ZIO_WAIT_DONE)) {
@@ -649,7 +647,7 @@ index 9a465e1b..b08b4747 100644
  	}
  
  	ASSERT(zio->io_type == ZIO_TYPE_READ || zio->io_type == ZIO_TYPE_WRITE);
-@@ -3337,7 +3343,7 @@ zio_vdev_io_done(zio_t *zio)
+@@ -3337,7 +3345,7 @@ zio_vdev_io_done(zio_t *zio)
  	if (unexpected_error)
  		VERIFY(vdev_probe(vd, zio) == NULL);
  
@@ -658,7 +656,7 @@ index 9a465e1b..b08b4747 100644
  }
  
  /*
-@@ -3366,13 +3372,13 @@ zio_vsd_default_cksum_report(zio_t *zio, zio_cksum_report_t *zcr, void *ignored)
+@@ -3366,13 +3374,13 @@ zio_vsd_default_cksum_report(zio_t *zio, zio_cksum_report_t *zcr, void *ignored)
  	zcr->zcr_free = zio_abd_free;
  }
  
@@ -674,7 +672,7 @@ index 9a465e1b..b08b4747 100644
  	}
  
  	if (vd == NULL && !(zio->io_flags & ZIO_FLAG_CONFIG_WRITER))
-@@ -3402,7 +3408,7 @@ zio_vdev_io_assess(zio_t *zio)
+@@ -3402,7 +3410,7 @@ zio_vdev_io_assess(zio_t *zio)
  		zio->io_stage = ZIO_STAGE_VDEV_IO_START >> 1;
  		zio_taskq_dispatch(zio, ZIO_TASKQ_ISSUE,
  		    zio_requeue_io_start_cut_in_line);
@@ -683,7 +681,7 @@ index 9a465e1b..b08b4747 100644
  	}
  
  	/*
-@@ -3442,7 +3448,7 @@ zio_vdev_io_assess(zio_t *zio)
+@@ -3442,7 +3450,7 @@ zio_vdev_io_assess(zio_t *zio)
  		zio->io_physdone(zio->io_logical);
  	}
  
@@ -692,7 +690,7 @@ index 9a465e1b..b08b4747 100644
  }
  
  void
-@@ -3477,7 +3483,7 @@ zio_vdev_io_bypass(zio_t *zio)
+@@ -3477,7 +3485,7 @@ zio_vdev_io_bypass(zio_t *zio)
   * Generate and verify checksums
   * ==========================================================================
   */
@@ -701,7 +699,7 @@ index 9a465e1b..b08b4747 100644
  zio_checksum_generate(zio_t *zio)
  {
  	blkptr_t *bp = zio->io_bp;
-@@ -3491,7 +3497,7 @@ zio_checksum_generate(zio_t *zio)
+@@ -3491,7 +3499,7 @@ zio_checksum_generate(zio_t *zio)
  		checksum = zio->io_prop.zp_checksum;
  
  		if (checksum == ZIO_CHECKSUM_OFF)
@@ -710,7 +708,7 @@ index 9a465e1b..b08b4747 100644
  
  		ASSERT(checksum == ZIO_CHECKSUM_LABEL);
  	} else {
-@@ -3505,10 +3511,10 @@ zio_checksum_generate(zio_t *zio)
+@@ -3505,10 +3513,10 @@ zio_checksum_generate(zio_t *zio)
  
  	zio_checksum_compute(zio, checksum, zio->io_abd, zio->io_size);
  
@@ -723,7 +721,7 @@ index 9a465e1b..b08b4747 100644
  zio_checksum_verify(zio_t *zio)
  {
  	zio_bad_cksum_t info;
-@@ -3523,7 +3529,7 @@ zio_checksum_verify(zio_t *zio)
+@@ -3523,7 +3531,7 @@ zio_checksum_verify(zio_t *zio)
  		 * We're either verifying a label checksum, or nothing at all.
  		 */
  		if (zio->io_prop.zp_checksum == ZIO_CHECKSUM_OFF)
@@ -732,7 +730,7 @@ index 9a465e1b..b08b4747 100644
  
  		ASSERT(zio->io_prop.zp_checksum == ZIO_CHECKSUM_LABEL);
  	}
-@@ -3538,7 +3544,7 @@ zio_checksum_verify(zio_t *zio)
+@@ -3538,7 +3546,7 @@ zio_checksum_verify(zio_t *zio)
  		}
  	}
  
@@ -741,7 +739,7 @@ index 9a465e1b..b08b4747 100644
  }
  
  /*
-@@ -3581,7 +3587,7 @@ zio_worst_error(int e1, int e2)
+@@ -3581,7 +3589,7 @@ zio_worst_error(int e1, int e2)
   * I/O completion
   * ==========================================================================
   */
@@ -750,7 +748,7 @@ index 9a465e1b..b08b4747 100644
  zio_ready(zio_t *zio)
  {
  	blkptr_t *bp = zio->io_bp;
-@@ -3590,7 +3596,7 @@ zio_ready(zio_t *zio)
+@@ -3590,7 +3598,7 @@ zio_ready(zio_t *zio)
  
  	if (zio_wait_for_children(zio, ZIO_CHILD_GANG_BIT | ZIO_CHILD_DDT_BIT,
  	    ZIO_WAIT_READY)) {
@@ -759,7 +757,7 @@ index 9a465e1b..b08b4747 100644
  	}
  
  	if (zio->io_ready) {
-@@ -3636,7 +3642,7 @@ zio_ready(zio_t *zio)
+@@ -3636,7 +3644,7 @@ zio_ready(zio_t *zio)
  	 */
  	for (; pio != NULL; pio = pio_next) {
  		pio_next = zio_walk_parents(zio, &zl);
@@ -768,7 +766,7 @@ index 9a465e1b..b08b4747 100644
  	}
  
  	if (zio->io_flags & ZIO_FLAG_NODATA) {
-@@ -3652,7 +3658,7 @@ zio_ready(zio_t *zio)
+@@ -3652,7 +3660,7 @@ zio_ready(zio_t *zio)
  	    zio->io_spa->spa_syncing_txg == zio->io_txg)
  		zio_handle_ignored_writes(zio);
  
@@ -777,7 +775,7 @@ index 9a465e1b..b08b4747 100644
  }
  
  /*
-@@ -3716,7 +3722,7 @@ zio_dva_throttle_done(zio_t *zio)
+@@ -3716,7 +3724,7 @@ zio_dva_throttle_done(zio_t *zio)
  	zio_allocate_dispatch(zio->io_spa);
  }
  
@@ -786,7 +784,7 @@ index 9a465e1b..b08b4747 100644
  zio_done(zio_t *zio)
  {
  	/*
-@@ -3733,7 +3739,7 @@ zio_done(zio_t *zio)
+@@ -3733,7 +3741,7 @@ zio_done(zio_t *zio)
  	 * wait for them and then repeat this pipeline stage.
  	 */
  	if (zio_wait_for_children(zio, ZIO_CHILD_ALL_BITS, ZIO_WAIT_DONE)) {
@@ -795,7 +793,7 @@ index 9a465e1b..b08b4747 100644
  	}
  
  	/*
-@@ -3957,7 +3963,12 @@ zio_done(zio_t *zio)
+@@ -3957,7 +3965,12 @@ zio_done(zio_t *zio)
  			if ((pio->io_flags & ZIO_FLAG_GODFATHER) &&
  			    (zio->io_reexecute & ZIO_REEXECUTE_SUSPEND)) {
  				zio_remove_child(pio, zio, remove_zl);
@@ -809,7 +807,7 @@ index 9a465e1b..b08b4747 100644
  			}
  		}
  
-@@ -3969,7 +3980,11 @@ zio_done(zio_t *zio)
+@@ -3969,7 +3982,11 @@ zio_done(zio_t *zio)
  			 */
  			ASSERT(!(zio->io_flags & ZIO_FLAG_GODFATHER));
  			zio->io_flags |= ZIO_FLAG_DONT_PROPAGATE;
@@ -822,7 +820,7 @@ index 9a465e1b..b08b4747 100644
  		} else if (zio->io_reexecute & ZIO_REEXECUTE_SUSPEND) {
  			/*
  			 * We'd fail again if we reexecuted now, so suspend
-@@ -3987,7 +4002,7 @@ zio_done(zio_t *zio)
+@@ -3987,7 +4004,7 @@ zio_done(zio_t *zio)
  			    (task_func_t *)zio_reexecute, zio, 0,
  			    &zio->io_tqent);
  		}
@@ -831,7 +829,7 @@ index 9a465e1b..b08b4747 100644
  	}
  
  	ASSERT(zio->io_child_count == 0);
-@@ -4023,12 +4038,17 @@ zio_done(zio_t *zio)
+@@ -4023,12 +4040,17 @@ zio_done(zio_t *zio)
  	zio->io_state[ZIO_WAIT_DONE] = 1;
  	mutex_exit(&zio->io_lock);
  
@@ -850,7 +848,7 @@ index 9a465e1b..b08b4747 100644
  	}
  
  	if (zio->io_waiter != NULL) {
-@@ -4040,7 +4060,7 @@ zio_done(zio_t *zio)
+@@ -4040,7 +4062,7 @@ zio_done(zio_t *zio)
  		zio_destroy(zio);
  	}
  

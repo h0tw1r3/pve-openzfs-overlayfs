@@ -17,13 +17,8 @@ treated as a list_node_t when it is technically a multilist_node_t.
 
 Reviewed-by: Brian Behlendorf <behlendorf1@llnl.gov>
 Signed-off-by: Tom Caputi <tcaputi@datto.com>
-Requires-spl: spl-0.7-release
-Issue #7147
-Issue #7388
-Issue #7997
-
-(cherry-picked from behlendorf/issue-7997 4764f6f3be90be073d2700653dff286371e52583)
-Signed-off-by: Stoiko Ivanov <s.ivanov@proxmox.com>
+Closes #7147
+Closes #7388
 ---
  include/sys/dmu_impl.h  |  1 +
  include/sys/dnode.h     |  4 ++++

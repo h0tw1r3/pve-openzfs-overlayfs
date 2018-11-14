@@ -1,0 +1,59 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: George Melikov <mail@gmelikov.ru>
+Date: Wed, 24 Oct 2018 06:06:40 +0300
+Subject: [PATCH] Allow use of pool GUID as root pool
+MIME-Version: 1.0
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 8bit
+
+It's helpful if there are pools with same names,
+but you need to use only one of them.
+
+Main case is twin servers, meanwhile some software
+requires the same name of pools (e.g. Proxmox).
+
+Reviewed-by: Kash Pande <kash@tripleback.net>
+Reviewed-by: Brian Behlendorf <behlendorf1@llnl.gov>
+Signed-off-by: George Melikov <mail@gmelikov.ru>
+Signed-off-by: Igor ‘guardian’ Lidin of Moscow, Russia
+Closes #8052
+---
+ contrib/initramfs/scripts/zfs | 11 ++++++++++-
+ 1 file changed, 10 insertions(+), 1 deletion(-)
+
+diff --git a/contrib/initramfs/scripts/zfs b/contrib/initramfs/scripts/zfs
+index 86329e76..dacd71d2 100644
+--- a/contrib/initramfs/scripts/zfs
++++ b/contrib/initramfs/scripts/zfs
+@@ -193,7 +193,7 @@ import_pool()
+ 
+ 	# Verify that the pool isn't already imported
+ 	# Make as sure as we can to not require '-f' to import.
+-	"${ZPOOL}" status "$pool" > /dev/null 2>&1 && return 0
++	"${ZPOOL}" get name,guid -o value -H 2>/dev/null | grep -Fxq "$pool" && return 0
+ 
+ 	# For backwards compatibility, make sure that ZPOOL_IMPORT_PATH is set
+ 	# to something we can use later with the real import(s). We want to
+@@ -772,6 +772,7 @@ mountroot()
+ 	#	root=zfs:<pool>/<dataset>	(uses this for rpool - first part, without 'zfs:')
+ 	#
+ 	# Option <dataset> could also be <snapshot>
++	# Option <pool> could also be <guid>
+ 
+ 	# ------------
+ 	# Support force option
+@@ -889,6 +890,14 @@ mountroot()
+ 		/bin/sh
+ 	fi
+ 
++	# In case the pool was specified as guid, resolve guid to name
++	pool="$("${ZPOOL}" get name,guid -o name,value -H | \
++	    awk -v pool="${ZFS_RPOOL}" '$2 == pool { print $1 }')"
++	if [ -n "$pool" ]; then
++		ZFS_BOOTFS="${pool}/${ZFS_BOOTFS#*/}"
++		ZFS_RPOOL="${pool}"
++	fi
++
+ 	# Set elevator=noop on the root pool's vdevs' disks.  ZFS already
+ 	# does this for wholedisk vdevs (for all pools), so this is only
+ 	# important for partitions.

@@ -1,0 +1,878 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Tim Schumacher <timschumi@gmx.de>
+Date: Wed, 26 Sep 2018 19:29:26 +0200
+Subject: [PATCH] Linux 4.19-rc3+ compat: Remove refcount_t compat
+
+torvalds/linux@59b57717f ("blkcg: delay blkg destruction until
+after writeback has finished") added a refcount_t to the blkcg
+structure. Due to the refcount_t compatibility code, zfs_refcount_t
+was used by mistake.
+
+Resolve this by removing the compatibility code and replacing the
+occurrences of refcount_t with zfs_refcount_t.
+
+Reviewed-by: Franz Pletz <fpletz@fnordicwalking.de>
+Reviewed-by: Brian Behlendorf <behlendorf1@llnl.gov>
+Signed-off-by: Tim Schumacher <timschumi@gmx.de>
+Closes #7885
+Closes #7932
+---
+ cmd/ztest/ztest.c           |  6 +++---
+ include/linux/vfs_compat.h  |  5 -----
+ include/sys/abd.h           |  2 +-
+ include/sys/arc.h           |  2 +-
+ include/sys/arc_impl.h      |  8 +++----
+ include/sys/dbuf.h          |  2 +-
+ include/sys/dmu_tx.h        |  4 ++--
+ include/sys/dnode.h         |  4 ++--
+ include/sys/dsl_dataset.h   |  2 +-
+ include/sys/metaslab_impl.h |  5 ++---
+ include/sys/refcount.h      | 52 ++++++++++++++++++++-------------------------
+ include/sys/rrwlock.h       |  4 ++--
+ include/sys/sa_impl.h       |  2 +-
+ include/sys/spa_impl.h      |  6 +++---
+ include/sys/zap.h           |  2 +-
+ include/sys/zfs_znode.h     |  2 +-
+ module/zfs/arc.c            | 12 +++++------
+ module/zfs/dbuf.c           | 10 ++++-----
+ module/zfs/dmu.c            |  2 +-
+ module/zfs/dmu_tx.c         |  6 +++---
+ module/zfs/dnode.c          |  6 +++---
+ module/zfs/dsl_dataset.c    |  2 +-
+ module/zfs/metaslab.c       |  4 ++--
+ module/zfs/refcount.c       | 30 +++++++++++++-------------
+ module/zfs/rrwlock.c        |  4 ++--
+ module/zfs/sa.c             |  2 +-
+ module/zfs/spa_misc.c       |  8 +++----
+ module/zfs/zfs_ctldir.c     | 10 ++++-----
+ module/zfs/zfs_znode.c      |  2 +-
+ 29 files changed, 97 insertions(+), 109 deletions(-)
+
+diff --git a/cmd/ztest/ztest.c b/cmd/ztest/ztest.c
+index a410eeef..24967a76 100644
+--- a/cmd/ztest/ztest.c
++++ b/cmd/ztest/ztest.c
+@@ -1189,7 +1189,7 @@ ztest_spa_prop_set_uint64(zpool_prop_t prop, uint64_t value)
+  */
+ typedef struct {
+ 	list_node_t z_lnode;
+-	refcount_t z_refcnt;
++	zfs_refcount_t z_refcnt;
+ 	uint64_t z_object;
+ 	zfs_rlock_t z_range_lock;
+ } ztest_znode_t;
+@@ -1248,13 +1248,13 @@ ztest_znode_get(ztest_ds_t *zd, uint64_t object)
+ 	for (zp = list_head(&zll->z_list); (zp);
+ 	    zp = list_next(&zll->z_list, zp)) {
+ 		if (zp->z_object == object) {
+-			refcount_add(&zp->z_refcnt, RL_TAG);
++			zfs_refcount_add(&zp->z_refcnt, RL_TAG);
+ 			break;
+ 		}
+ 	}
+ 	if (zp == NULL) {
+ 		zp = ztest_znode_init(object);
+-		refcount_add(&zp->z_refcnt, RL_TAG);
++		zfs_refcount_add(&zp->z_refcnt, RL_TAG);
+ 		list_insert_head(&zll->z_list, zp);
+ 	}
+ 	mutex_exit(&zll->z_lock);
+diff --git a/include/linux/vfs_compat.h b/include/linux/vfs_compat.h
+index 90b3cca7..c01f5850 100644
+--- a/include/linux/vfs_compat.h
++++ b/include/linux/vfs_compat.h
+@@ -297,9 +297,6 @@ lseek_execute(
+  * This is several orders of magnitude larger than expected grace period.
+  * At 60 seconds the kernel will also begin issuing RCU stall warnings.
+  */
+-#ifdef refcount_t
+-#undef refcount_t
+-#endif
+ 
+ #include <linux/posix_acl.h>
+ 
+@@ -430,8 +427,6 @@ typedef mode_t zpl_equivmode_t;
+ #define	zpl_posix_acl_valid(ip, acl)  posix_acl_valid(acl)
+ #endif
+ 
+-#define	refcount_t	zfs_refcount_t
+-
+ #endif /* CONFIG_FS_POSIX_ACL */
+ 
+ /*
+diff --git a/include/sys/abd.h b/include/sys/abd.h
+index cd710501..4898606a 100644
+--- a/include/sys/abd.h
++++ b/include/sys/abd.h
+@@ -52,7 +52,7 @@ typedef struct abd {
+ 	abd_flags_t	abd_flags;
+ 	uint_t		abd_size;	/* excludes scattered abd_offset */
+ 	struct abd	*abd_parent;
+-	refcount_t	abd_children;
++	zfs_refcount_t	abd_children;
+ 	union {
+ 		struct abd_scatter {
+ 			uint_t		abd_offset;
+diff --git a/include/sys/arc.h b/include/sys/arc.h
+index 1ea4937b..943ebfb5 100644
+--- a/include/sys/arc.h
++++ b/include/sys/arc.h
+@@ -76,7 +76,7 @@ struct arc_prune {
+ 	void			*p_private;
+ 	uint64_t		p_adjust;
+ 	list_node_t		p_node;
+-	refcount_t		p_refcnt;
++	zfs_refcount_t		p_refcnt;
+ };
+ 
+ typedef enum arc_strategy {
+diff --git a/include/sys/arc_impl.h b/include/sys/arc_impl.h
+index c6363f2a..ed2b0abe 100644
+--- a/include/sys/arc_impl.h
++++ b/include/sys/arc_impl.h
+@@ -74,12 +74,12 @@ typedef struct arc_state {
+ 	/*
+ 	 * total amount of evictable data in this state
+ 	 */
+-	refcount_t arcs_esize[ARC_BUFC_NUMTYPES];
++	zfs_refcount_t arcs_esize[ARC_BUFC_NUMTYPES];
+ 	/*
+ 	 * total amount of data in this state; this includes: evictable,
+ 	 * non-evictable, ARC_BUFC_DATA, and ARC_BUFC_METADATA.
+ 	 */
+-	refcount_t arcs_size;
++	zfs_refcount_t arcs_size;
+ 	/*
+ 	 * supports the "dbufs" kstat
+ 	 */
+@@ -163,7 +163,7 @@ typedef struct l1arc_buf_hdr {
+ 	uint32_t		b_l2_hits;
+ 
+ 	/* self protecting */
+-	refcount_t		b_refcnt;
++	zfs_refcount_t		b_refcnt;
+ 
+ 	arc_callback_t		*b_acb;
+ 	abd_t			*b_pabd;
+@@ -180,7 +180,7 @@ typedef struct l2arc_dev {
+ 	kmutex_t		l2ad_mtx;	/* lock for buffer list */
+ 	list_t			l2ad_buflist;	/* buffer list */
+ 	list_node_t		l2ad_node;	/* device list node */
+-	refcount_t		l2ad_alloc;	/* allocated bytes */
++	zfs_refcount_t		l2ad_alloc;	/* allocated bytes */
+ } l2arc_dev_t;
+ 
+ typedef struct l2arc_buf_hdr {
+diff --git a/include/sys/dbuf.h b/include/sys/dbuf.h
+index f3f2007d..127acad3 100644
+--- a/include/sys/dbuf.h
++++ b/include/sys/dbuf.h
+@@ -212,7 +212,7 @@ typedef struct dmu_buf_impl {
+ 	 * If nonzero, the buffer can't be destroyed.
+ 	 * Protected by db_mtx.
+ 	 */
+-	refcount_t db_holds;
++	zfs_refcount_t db_holds;
+ 
+ 	/* buffer holding our data */
+ 	arc_buf_t *db_buf;
+diff --git a/include/sys/dmu_tx.h b/include/sys/dmu_tx.h
+index 74b7e111..96bbcb05 100644
+--- a/include/sys/dmu_tx.h
++++ b/include/sys/dmu_tx.h
+@@ -97,8 +97,8 @@ typedef struct dmu_tx_hold {
+ 	dmu_tx_t *txh_tx;
+ 	list_node_t txh_node;
+ 	struct dnode *txh_dnode;
+-	refcount_t txh_space_towrite;
+-	refcount_t txh_memory_tohold;
++	zfs_refcount_t txh_space_towrite;
++	zfs_refcount_t txh_memory_tohold;
+ 	enum dmu_tx_hold_type txh_type;
+ 	uint64_t txh_arg1;
+ 	uint64_t txh_arg2;
+diff --git a/include/sys/dnode.h b/include/sys/dnode.h
+index 2dd087b3..1e77e0a3 100644
+--- a/include/sys/dnode.h
++++ b/include/sys/dnode.h
+@@ -266,8 +266,8 @@ struct dnode {
+ 	uint8_t *dn_dirtyctx_firstset;		/* dbg: contents meaningless */
+ 
+ 	/* protected by own devices */
+-	refcount_t dn_tx_holds;
+-	refcount_t dn_holds;
++	zfs_refcount_t dn_tx_holds;
++	zfs_refcount_t dn_holds;
+ 
+ 	kmutex_t dn_dbufs_mtx;
+ 	/*
+diff --git a/include/sys/dsl_dataset.h b/include/sys/dsl_dataset.h
+index 1281674b..d96f526d 100644
+--- a/include/sys/dsl_dataset.h
++++ b/include/sys/dsl_dataset.h
+@@ -186,7 +186,7 @@ typedef struct dsl_dataset {
+ 	 * Owning counts as a long hold.  See the comments above
+ 	 * dsl_pool_hold() for details.
+ 	 */
+-	refcount_t ds_longholds;
++	zfs_refcount_t ds_longholds;
+ 
+ 	/* no locking; only for making guesses */
+ 	uint64_t ds_trysnap_txg;
+diff --git a/include/sys/metaslab_impl.h b/include/sys/metaslab_impl.h
+index f8a713a4..60151937 100644
+--- a/include/sys/metaslab_impl.h
++++ b/include/sys/metaslab_impl.h
+@@ -179,8 +179,7 @@ struct metaslab_class {
+ 	 * number of allocations allowed.
+ 	 */
+ 	uint64_t		mc_alloc_max_slots;
+-	refcount_t		mc_alloc_slots;
+-
++	zfs_refcount_t		mc_alloc_slots;
+ 	uint64_t		mc_alloc_groups; /* # of allocatable groups */
+ 
+ 	uint64_t		mc_alloc;	/* total allocated space */
+@@ -230,7 +229,7 @@ struct metaslab_group {
+ 	 * are unable to handle their share of allocations.
+ 	 */
+ 	uint64_t		mg_max_alloc_queue_depth;
+-	refcount_t		mg_alloc_queue_depth;
++	zfs_refcount_t		mg_alloc_queue_depth;
+ 
+ 	/*
+ 	 * A metalab group that can no longer allocate the minimum block
+diff --git a/include/sys/refcount.h b/include/sys/refcount.h
+index a96220b2..5c5198d8 100644
+--- a/include/sys/refcount.h
++++ b/include/sys/refcount.h
+@@ -41,17 +41,6 @@ extern "C" {
+  */
+ #define	FTAG ((char *)__func__)
+ 
+-/*
+- * Starting with 4.11, torvalds/linux@f405df5, the linux kernel defines a
+- * refcount_t type of its own.  The macro below effectively changes references
+- * in the ZFS code from refcount_t to zfs_refcount_t at compile time, so that
+- * existing code need not be altered, reducing conflicts when landing openZFS
+- * patches.
+- */
+-
+-#define	refcount_t	zfs_refcount_t
+-#define	refcount_add	zfs_refcount_add
+-
+ #ifdef	ZFS_DEBUG
+ typedef struct reference {
+ 	list_node_t ref_link;
+@@ -69,23 +58,28 @@ typedef struct refcount {
+ 	uint64_t rc_removed_count;
+ } zfs_refcount_t;
+ 
+-/* Note: refcount_t must be initialized with refcount_create[_untracked]() */
+-
+-void refcount_create(refcount_t *rc);
+-void refcount_create_untracked(refcount_t *rc);
+-void refcount_create_tracked(refcount_t *rc);
+-void refcount_destroy(refcount_t *rc);
+-void refcount_destroy_many(refcount_t *rc, uint64_t number);
+-int refcount_is_zero(refcount_t *rc);
+-int64_t refcount_count(refcount_t *rc);
+-int64_t zfs_refcount_add(refcount_t *rc, void *holder_tag);
+-int64_t refcount_remove(refcount_t *rc, void *holder_tag);
+-int64_t refcount_add_many(refcount_t *rc, uint64_t number, void *holder_tag);
+-int64_t refcount_remove_many(refcount_t *rc, uint64_t number, void *holder_tag);
+-void refcount_transfer(refcount_t *dst, refcount_t *src);
+-void refcount_transfer_ownership(refcount_t *, void *, void *);
+-boolean_t refcount_held(refcount_t *, void *);
+-boolean_t refcount_not_held(refcount_t *, void *);
++/*
++ * Note: zfs_refcount_t must be initialized with
++ * refcount_create[_untracked]()
++ */
++
++void refcount_create(zfs_refcount_t *rc);
++void refcount_create_untracked(zfs_refcount_t *rc);
++void refcount_create_tracked(zfs_refcount_t *rc);
++void refcount_destroy(zfs_refcount_t *rc);
++void refcount_destroy_many(zfs_refcount_t *rc, uint64_t number);
++int refcount_is_zero(zfs_refcount_t *rc);
++int64_t refcount_count(zfs_refcount_t *rc);
++int64_t zfs_refcount_add(zfs_refcount_t *rc, void *holder_tag);
++int64_t refcount_remove(zfs_refcount_t *rc, void *holder_tag);
++int64_t refcount_add_many(zfs_refcount_t *rc, uint64_t number,
++    void *holder_tag);
++int64_t refcount_remove_many(zfs_refcount_t *rc, uint64_t number,
++    void *holder_tag);
++void refcount_transfer(zfs_refcount_t *dst, zfs_refcount_t *src);
++void refcount_transfer_ownership(zfs_refcount_t *, void *, void *);
++boolean_t refcount_held(zfs_refcount_t *, void *);
++boolean_t refcount_not_held(zfs_refcount_t *, void *);
+ 
+ void refcount_init(void);
+ void refcount_fini(void);
+@@ -94,7 +88,7 @@ void refcount_fini(void);
+ 
+ typedef struct refcount {
+ 	uint64_t rc_count;
+-} refcount_t;
++} zfs_refcount_t;
+ 
+ #define	refcount_create(rc) ((rc)->rc_count = 0)
+ #define	refcount_create_untracked(rc) ((rc)->rc_count = 0)
+diff --git a/include/sys/rrwlock.h b/include/sys/rrwlock.h
+index 7a328fd6..e1c1756c 100644
+--- a/include/sys/rrwlock.h
++++ b/include/sys/rrwlock.h
+@@ -57,8 +57,8 @@ typedef struct rrwlock {
+ 	kmutex_t	rr_lock;
+ 	kcondvar_t	rr_cv;
+ 	kthread_t	*rr_writer;
+-	refcount_t	rr_anon_rcount;
+-	refcount_t	rr_linked_rcount;
++	zfs_refcount_t	rr_anon_rcount;
++	zfs_refcount_t	rr_linked_rcount;
+ 	boolean_t	rr_writer_wanted;
+ 	boolean_t	rr_track_all;
+ } rrwlock_t;
+diff --git a/include/sys/sa_impl.h b/include/sys/sa_impl.h
+index b68b7610..7eddd875 100644
+--- a/include/sys/sa_impl.h
++++ b/include/sys/sa_impl.h
+@@ -110,7 +110,7 @@ typedef struct sa_idx_tab {
+ 	list_node_t	sa_next;
+ 	sa_lot_t	*sa_layout;
+ 	uint16_t	*sa_variable_lengths;
+-	refcount_t	sa_refcount;
++	zfs_refcount_t	sa_refcount;
+ 	uint32_t	*sa_idx_tab;	/* array of offsets */
+ } sa_idx_tab_t;
+ 
+diff --git a/include/sys/spa_impl.h b/include/sys/spa_impl.h
+index fa7490ac..62ac8f67 100644
+--- a/include/sys/spa_impl.h
++++ b/include/sys/spa_impl.h
+@@ -78,7 +78,7 @@ typedef struct spa_config_lock {
+ 	kthread_t	*scl_writer;
+ 	int		scl_write_wanted;
+ 	kcondvar_t	scl_cv;
+-	refcount_t	scl_count;
++	zfs_refcount_t	scl_count;
+ } spa_config_lock_t;
+ 
+ typedef struct spa_config_dirent {
+@@ -281,12 +281,12 @@ struct spa {
+ 
+ 	/*
+ 	 * spa_refcount & spa_config_lock must be the last elements
+-	 * because refcount_t changes size based on compilation options.
++	 * because zfs_refcount_t changes size based on compilation options.
+ 	 * In order for the MDB module to function correctly, the other
+ 	 * fields must remain in the same location.
+ 	 */
+ 	spa_config_lock_t spa_config_lock[SCL_LOCKS]; /* config changes */
+-	refcount_t	spa_refcount;		/* number of opens */
++	zfs_refcount_t	spa_refcount;		/* number of opens */
+ 
+ 	taskq_t		*spa_upgrade_taskq;	/* taskq for upgrade jobs */
+ };
+diff --git a/include/sys/zap.h b/include/sys/zap.h
+index 43b7fbd2..7acc3bec 100644
+--- a/include/sys/zap.h
++++ b/include/sys/zap.h
+@@ -226,7 +226,7 @@ int zap_lookup_norm_by_dnode(dnode_t *dn, const char *name,
+     boolean_t *ncp);
+ 
+ int zap_count_write_by_dnode(dnode_t *dn, const char *name,
+-    int add, refcount_t *towrite, refcount_t *tooverwrite);
++    int add, zfs_refcount_t *towrite, zfs_refcount_t *tooverwrite);
+ 
+ /*
+  * Create an attribute with the given name and value.
+diff --git a/include/sys/zfs_znode.h b/include/sys/zfs_znode.h
+index 26d1eb37..33bc20d1 100644
+--- a/include/sys/zfs_znode.h
++++ b/include/sys/zfs_znode.h
+@@ -209,7 +209,7 @@ typedef struct znode_hold {
+ 	uint64_t	zh_obj;		/* object id */
+ 	kmutex_t	zh_lock;	/* lock serializing object access */
+ 	avl_node_t	zh_node;	/* avl tree linkage */
+-	refcount_t	zh_refcount;	/* active consumer reference count */
++	zfs_refcount_t	zh_refcount;	/* active consumer reference count */
+ } znode_hold_t;
+ 
+ /*
+diff --git a/module/zfs/arc.c b/module/zfs/arc.c
+index bcf74dd6..7518d5c8 100644
+--- a/module/zfs/arc.c
++++ b/module/zfs/arc.c
+@@ -1966,7 +1966,7 @@ add_reference(arc_buf_hdr_t *hdr, void *tag)
+ 
+ 	state = hdr->b_l1hdr.b_state;
+ 
+-	if ((refcount_add(&hdr->b_l1hdr.b_refcnt, tag) == 1) &&
++	if ((zfs_refcount_add(&hdr->b_l1hdr.b_refcnt, tag) == 1) &&
+ 	    (state != arc_anon)) {
+ 		/* We don't use the L2-only state list. */
+ 		if (state != arc_l2c_only) {
+@@ -2505,7 +2505,7 @@ arc_return_buf(arc_buf_t *buf, void *tag)
+ 
+ 	ASSERT3P(buf->b_data, !=, NULL);
+ 	ASSERT(HDR_HAS_L1HDR(hdr));
+-	(void) refcount_add(&hdr->b_l1hdr.b_refcnt, tag);
++	(void) zfs_refcount_add(&hdr->b_l1hdr.b_refcnt, tag);
+ 	(void) refcount_remove(&hdr->b_l1hdr.b_refcnt, arc_onloan_tag);
+ 
+ 	arc_loaned_bytes_update(-arc_buf_size(buf));
+@@ -2519,7 +2519,7 @@ arc_loan_inuse_buf(arc_buf_t *buf, void *tag)
+ 
+ 	ASSERT3P(buf->b_data, !=, NULL);
+ 	ASSERT(HDR_HAS_L1HDR(hdr));
+-	(void) refcount_add(&hdr->b_l1hdr.b_refcnt, arc_onloan_tag);
++	(void) zfs_refcount_add(&hdr->b_l1hdr.b_refcnt, arc_onloan_tag);
+ 	(void) refcount_remove(&hdr->b_l1hdr.b_refcnt, tag);
+ 
+ 	arc_loaned_bytes_update(arc_buf_size(buf));
+@@ -3533,7 +3533,7 @@ arc_prune_async(int64_t adjust)
+ 		if (refcount_count(&ap->p_refcnt) >= 2)
+ 			continue;
+ 
+-		refcount_add(&ap->p_refcnt, ap->p_pfunc);
++		zfs_refcount_add(&ap->p_refcnt, ap->p_pfunc);
+ 		ap->p_adjust = adjust;
+ 		if (taskq_dispatch(arc_prune_taskq, arc_prune_task,
+ 		    ap, TQ_SLEEP) == TASKQID_INVALID) {
+@@ -5549,7 +5549,7 @@ arc_add_prune_callback(arc_prune_func_t *func, void *private)
+ 	refcount_create(&p->p_refcnt);
+ 
+ 	mutex_enter(&arc_prune_mtx);
+-	refcount_add(&p->p_refcnt, &arc_prune_list);
++	zfs_refcount_add(&p->p_refcnt, &arc_prune_list);
+ 	list_insert_head(&arc_prune_list, p);
+ 	mutex_exit(&arc_prune_mtx);
+ 
+@@ -5815,7 +5815,7 @@ arc_release(arc_buf_t *buf, void *tag)
+ 		nhdr->b_l1hdr.b_mfu_hits = 0;
+ 		nhdr->b_l1hdr.b_mfu_ghost_hits = 0;
+ 		nhdr->b_l1hdr.b_l2_hits = 0;
+-		(void) refcount_add(&nhdr->b_l1hdr.b_refcnt, tag);
++		(void) zfs_refcount_add(&nhdr->b_l1hdr.b_refcnt, tag);
+ 		buf->b_hdr = nhdr;
+ 
+ 		mutex_exit(&buf->b_evict_lock);
+diff --git a/module/zfs/dbuf.c b/module/zfs/dbuf.c
+index 6edb39d6..5101c848 100644
+--- a/module/zfs/dbuf.c
++++ b/module/zfs/dbuf.c
+@@ -104,7 +104,7 @@ static boolean_t dbuf_evict_thread_exit;
+  * become eligible for arc eviction.
+  */
+ static multilist_t *dbuf_cache;
+-static refcount_t dbuf_cache_size;
++static zfs_refcount_t dbuf_cache_size;
+ unsigned long  dbuf_cache_max_bytes = 100 * 1024 * 1024;
+ 
+ /* Cap the size of the dbuf cache to log2 fraction of arc size. */
+@@ -2384,7 +2384,7 @@ dbuf_create(dnode_t *dn, uint8_t level, uint64_t blkid,
+ 
+ 	ASSERT(dn->dn_object == DMU_META_DNODE_OBJECT ||
+ 	    refcount_count(&dn->dn_holds) > 0);
+-	(void) refcount_add(&dn->dn_holds, db);
++	(void) zfs_refcount_add(&dn->dn_holds, db);
+ 	atomic_inc_32(&dn->dn_dbufs_count);
+ 
+ 	dprintf_dbuf(db, "db=%p\n", db);
+@@ -2749,7 +2749,7 @@ __dbuf_hold_impl(struct dbuf_hold_impl_data *dh)
+ 		(void) refcount_remove_many(&dbuf_cache_size,
+ 		    dh->dh_db->db.db_size, dh->dh_db);
+ 	}
+-	(void) refcount_add(&dh->dh_db->db_holds, dh->dh_tag);
++	(void) zfs_refcount_add(&dh->dh_db->db_holds, dh->dh_tag);
+ 	DBUF_VERIFY(dh->dh_db);
+ 	mutex_exit(&dh->dh_db->db_mtx);
+ 
+@@ -2873,7 +2873,7 @@ dbuf_rm_spill(dnode_t *dn, dmu_tx_t *tx)
+ void
+ dbuf_add_ref(dmu_buf_impl_t *db, void *tag)
+ {
+-	int64_t holds = refcount_add(&db->db_holds, tag);
++	int64_t holds = zfs_refcount_add(&db->db_holds, tag);
+ 	VERIFY3S(holds, >, 1);
+ }
+ 
+@@ -2893,7 +2893,7 @@ dbuf_try_add_ref(dmu_buf_t *db_fake, objset_t *os, uint64_t obj, uint64_t blkid,
+ 
+ 	if (found_db != NULL) {
+ 		if (db == found_db && dbuf_refcount(db) > db->db_dirtycnt) {
+-			(void) refcount_add(&db->db_holds, tag);
++			(void) zfs_refcount_add(&db->db_holds, tag);
+ 			result = B_TRUE;
+ 		}
+ 		mutex_exit(&found_db->db_mtx);
+diff --git a/module/zfs/dmu.c b/module/zfs/dmu.c
+index a09ac4f9..a76cdd9f 100644
+--- a/module/zfs/dmu.c
++++ b/module/zfs/dmu.c
+@@ -342,7 +342,7 @@ dmu_bonus_hold(objset_t *os, uint64_t object, void *tag, dmu_buf_t **dbp)
+ 	db = dn->dn_bonus;
+ 
+ 	/* as long as the bonus buf is held, the dnode will be held */
+-	if (refcount_add(&db->db_holds, tag) == 1) {
++	if (zfs_refcount_add(&db->db_holds, tag) == 1) {
+ 		VERIFY(dnode_add_ref(dn, db));
+ 		atomic_inc_32(&dn->dn_dbufs_count);
+ 	}
+diff --git a/module/zfs/dmu_tx.c b/module/zfs/dmu_tx.c
+index 6ebff267..b1508ffa 100644
+--- a/module/zfs/dmu_tx.c
++++ b/module/zfs/dmu_tx.c
+@@ -114,7 +114,7 @@ dmu_tx_hold_dnode_impl(dmu_tx_t *tx, dnode_t *dn, enum dmu_tx_hold_type type,
+ 	dmu_tx_hold_t *txh;
+ 
+ 	if (dn != NULL) {
+-		(void) refcount_add(&dn->dn_holds, tx);
++		(void) zfs_refcount_add(&dn->dn_holds, tx);
+ 		if (tx->tx_txg != 0) {
+ 			mutex_enter(&dn->dn_mtx);
+ 			/*
+@@ -124,7 +124,7 @@ dmu_tx_hold_dnode_impl(dmu_tx_t *tx, dnode_t *dn, enum dmu_tx_hold_type type,
+ 			 */
+ 			ASSERT(dn->dn_assigned_txg == 0);
+ 			dn->dn_assigned_txg = tx->tx_txg;
+-			(void) refcount_add(&dn->dn_tx_holds, tx);
++			(void) zfs_refcount_add(&dn->dn_tx_holds, tx);
+ 			mutex_exit(&dn->dn_mtx);
+ 		}
+ 	}
+@@ -916,7 +916,7 @@ dmu_tx_try_assign(dmu_tx_t *tx, uint64_t txg_how)
+ 			if (dn->dn_assigned_txg == 0)
+ 				dn->dn_assigned_txg = tx->tx_txg;
+ 			ASSERT3U(dn->dn_assigned_txg, ==, tx->tx_txg);
+-			(void) refcount_add(&dn->dn_tx_holds, tx);
++			(void) zfs_refcount_add(&dn->dn_tx_holds, tx);
+ 			mutex_exit(&dn->dn_mtx);
+ 		}
+ 		towrite += refcount_count(&txh->txh_space_towrite);
+diff --git a/module/zfs/dnode.c b/module/zfs/dnode.c
+index 4a169c49..77d38c36 100644
+--- a/module/zfs/dnode.c
++++ b/module/zfs/dnode.c
+@@ -1267,7 +1267,7 @@ dnode_hold_impl(objset_t *os, uint64_t object, int flag, int slots,
+ 		if ((flag & DNODE_MUST_BE_FREE) && type != DMU_OT_NONE)
+ 			return (SET_ERROR(EEXIST));
+ 		DNODE_VERIFY(dn);
+-		(void) refcount_add(&dn->dn_holds, tag);
++		(void) zfs_refcount_add(&dn->dn_holds, tag);
+ 		*dnp = dn;
+ 		return (0);
+ 	}
+@@ -1484,7 +1484,7 @@ dnode_hold_impl(objset_t *os, uint64_t object, int flag, int slots,
+ 		return (type == DMU_OT_NONE ? ENOENT : EEXIST);
+ 	}
+ 
+-	if (refcount_add(&dn->dn_holds, tag) == 1)
++	if (zfs_refcount_add(&dn->dn_holds, tag) == 1)
+ 		dbuf_add_ref(db, dnh);
+ 
+ 	mutex_exit(&dn->dn_mtx);
+@@ -1524,7 +1524,7 @@ dnode_add_ref(dnode_t *dn, void *tag)
+ 		mutex_exit(&dn->dn_mtx);
+ 		return (FALSE);
+ 	}
+-	VERIFY(1 < refcount_add(&dn->dn_holds, tag));
++	VERIFY(1 < zfs_refcount_add(&dn->dn_holds, tag));
+ 	mutex_exit(&dn->dn_mtx);
+ 	return (TRUE);
+ }
+diff --git a/module/zfs/dsl_dataset.c b/module/zfs/dsl_dataset.c
+index bd03b486..b7562bcd 100644
+--- a/module/zfs/dsl_dataset.c
++++ b/module/zfs/dsl_dataset.c
+@@ -645,7 +645,7 @@ void
+ dsl_dataset_long_hold(dsl_dataset_t *ds, void *tag)
+ {
+ 	ASSERT(dsl_pool_config_held(ds->ds_dir->dd_pool));
+-	(void) refcount_add(&ds->ds_longholds, tag);
++	(void) zfs_refcount_add(&ds->ds_longholds, tag);
+ }
+ 
+ void
+diff --git a/module/zfs/metaslab.c b/module/zfs/metaslab.c
+index ee24850d..40658d51 100644
+--- a/module/zfs/metaslab.c
++++ b/module/zfs/metaslab.c
+@@ -2663,7 +2663,7 @@ metaslab_group_alloc_increment(spa_t *spa, uint64_t vdev, void *tag, int flags)
+ 	if (!mg->mg_class->mc_alloc_throttle_enabled)
+ 		return;
+ 
+-	(void) refcount_add(&mg->mg_alloc_queue_depth, tag);
++	(void) zfs_refcount_add(&mg->mg_alloc_queue_depth, tag);
+ }
+ 
+ void
+@@ -3360,7 +3360,7 @@ metaslab_class_throttle_reserve(metaslab_class_t *mc, int slots, zio_t *zio,
+ 		 * them individually when an I/O completes.
+ 		 */
+ 		for (d = 0; d < slots; d++) {
+-			reserved_slots = refcount_add(&mc->mc_alloc_slots, zio);
++			reserved_slots = zfs_refcount_add(&mc->mc_alloc_slots, zio);
+ 		}
+ 		zio->io_flags |= ZIO_FLAG_IO_ALLOCATING;
+ 		slot_reserved = B_TRUE;
+diff --git a/module/zfs/refcount.c b/module/zfs/refcount.c
+index a151acea..13f9bb6b 100644
+--- a/module/zfs/refcount.c
++++ b/module/zfs/refcount.c
+@@ -55,7 +55,7 @@ refcount_fini(void)
+ }
+ 
+ void
+-refcount_create(refcount_t *rc)
++refcount_create(zfs_refcount_t *rc)
+ {
+ 	mutex_init(&rc->rc_mtx, NULL, MUTEX_DEFAULT, NULL);
+ 	list_create(&rc->rc_list, sizeof (reference_t),
+@@ -68,21 +68,21 @@ refcount_create(refcount_t *rc)
+ }
+ 
+ void
+-refcount_create_tracked(refcount_t *rc)
++refcount_create_tracked(zfs_refcount_t *rc)
+ {
+ 	refcount_create(rc);
+ 	rc->rc_tracked = B_TRUE;
+ }
+ 
+ void
+-refcount_create_untracked(refcount_t *rc)
++refcount_create_untracked(zfs_refcount_t *rc)
+ {
+ 	refcount_create(rc);
+ 	rc->rc_tracked = B_FALSE;
+ }
+ 
+ void
+-refcount_destroy_many(refcount_t *rc, uint64_t number)
++refcount_destroy_many(zfs_refcount_t *rc, uint64_t number)
+ {
+ 	reference_t *ref;
+ 
+@@ -103,25 +103,25 @@ refcount_destroy_many(refcount_t *rc, uint64_t number)
+ }
+ 
+ void
+-refcount_destroy(refcount_t *rc)
++refcount_destroy(zfs_refcount_t *rc)
+ {
+ 	refcount_destroy_many(rc, 0);
+ }
+ 
+ int
+-refcount_is_zero(refcount_t *rc)
++refcount_is_zero(zfs_refcount_t *rc)
+ {
+ 	return (rc->rc_count == 0);
+ }
+ 
+ int64_t
+-refcount_count(refcount_t *rc)
++refcount_count(zfs_refcount_t *rc)
+ {
+ 	return (rc->rc_count);
+ }
+ 
+ int64_t
+-refcount_add_many(refcount_t *rc, uint64_t number, void *holder)
++refcount_add_many(zfs_refcount_t *rc, uint64_t number, void *holder)
+ {
+ 	reference_t *ref = NULL;
+ 	int64_t count;
+@@ -143,13 +143,13 @@ refcount_add_many(refcount_t *rc, uint64_t number, void *holder)
+ }
+ 
+ int64_t
+-zfs_refcount_add(refcount_t *rc, void *holder)
++zfs_refcount_add(zfs_refcount_t *rc, void *holder)
+ {
+ 	return (refcount_add_many(rc, 1, holder));
+ }
+ 
+ int64_t
+-refcount_remove_many(refcount_t *rc, uint64_t number, void *holder)
++refcount_remove_many(zfs_refcount_t *rc, uint64_t number, void *holder)
+ {
+ 	reference_t *ref;
+ 	int64_t count;
+@@ -197,13 +197,13 @@ refcount_remove_many(refcount_t *rc, uint64_t number, void *holder)
+ }
+ 
+ int64_t
+-refcount_remove(refcount_t *rc, void *holder)
++refcount_remove(zfs_refcount_t *rc, void *holder)
+ {
+ 	return (refcount_remove_many(rc, 1, holder));
+ }
+ 
+ void
+-refcount_transfer(refcount_t *dst, refcount_t *src)
++refcount_transfer(zfs_refcount_t *dst, zfs_refcount_t *src)
+ {
+ 	int64_t count, removed_count;
+ 	list_t list, removed;
+@@ -234,7 +234,7 @@ refcount_transfer(refcount_t *dst, refcount_t *src)
+ }
+ 
+ void
+-refcount_transfer_ownership(refcount_t *rc, void *current_holder,
++refcount_transfer_ownership(zfs_refcount_t *rc, void *current_holder,
+     void *new_holder)
+ {
+ 	reference_t *ref;
+@@ -264,7 +264,7 @@ refcount_transfer_ownership(refcount_t *rc, void *current_holder,
+  * might be held.
+  */
+ boolean_t
+-refcount_held(refcount_t *rc, void *holder)
++refcount_held(zfs_refcount_t *rc, void *holder)
+ {
+ 	reference_t *ref;
+ 
+@@ -292,7 +292,7 @@ refcount_held(refcount_t *rc, void *holder)
+  * since the reference might not be held.
+  */
+ boolean_t
+-refcount_not_held(refcount_t *rc, void *holder)
++refcount_not_held(zfs_refcount_t *rc, void *holder)
+ {
+ 	reference_t *ref;
+ 
+diff --git a/module/zfs/rrwlock.c b/module/zfs/rrwlock.c
+index 704f7606..effff330 100644
+--- a/module/zfs/rrwlock.c
++++ b/module/zfs/rrwlock.c
+@@ -183,9 +183,9 @@ rrw_enter_read_impl(rrwlock_t *rrl, boolean_t prio, void *tag)
+ 	if (rrl->rr_writer_wanted || rrl->rr_track_all) {
+ 		/* may or may not be a re-entrant enter */
+ 		rrn_add(rrl, tag);
+-		(void) refcount_add(&rrl->rr_linked_rcount, tag);
++		(void) zfs_refcount_add(&rrl->rr_linked_rcount, tag);
+ 	} else {
+-		(void) refcount_add(&rrl->rr_anon_rcount, tag);
++		(void) zfs_refcount_add(&rrl->rr_anon_rcount, tag);
+ 	}
+ 	ASSERT(rrl->rr_writer == NULL);
+ 	mutex_exit(&rrl->rr_lock);
+diff --git a/module/zfs/sa.c b/module/zfs/sa.c
+index 1fb1a8b5..df4f6fd8 100644
+--- a/module/zfs/sa.c
++++ b/module/zfs/sa.c
+@@ -1337,7 +1337,7 @@ sa_idx_tab_hold(objset_t *os, sa_idx_tab_t *idx_tab)
+ 	ASSERTV(sa_os_t *sa = os->os_sa);
+ 
+ 	ASSERT(MUTEX_HELD(&sa->sa_lock));
+-	(void) refcount_add(&idx_tab->sa_refcount, NULL);
++	(void) zfs_refcount_add(&idx_tab->sa_refcount, NULL);
+ }
+ 
+ void
+diff --git a/module/zfs/spa_misc.c b/module/zfs/spa_misc.c
+index cc1c641d..f6c9b40b 100644
+--- a/module/zfs/spa_misc.c
++++ b/module/zfs/spa_misc.c
+@@ -80,7 +80,7 @@
+  *	definition they must have an existing reference, and will never need
+  *	to lookup a spa_t by name.
+  *
+- * spa_refcount (per-spa refcount_t protected by mutex)
++ * spa_refcount (per-spa zfs_refcount_t protected by mutex)
+  *
+  *	This reference count keep track of any active users of the spa_t.  The
+  *	spa_t cannot be destroyed or freed while this is non-zero.  Internally,
+@@ -414,7 +414,7 @@ spa_config_tryenter(spa_t *spa, int locks, void *tag, krw_t rw)
+ 			}
+ 			scl->scl_writer = curthread;
+ 		}
+-		(void) refcount_add(&scl->scl_count, tag);
++		(void) zfs_refcount_add(&scl->scl_count, tag);
+ 		mutex_exit(&scl->scl_lock);
+ 	}
+ 	return (1);
+@@ -448,7 +448,7 @@ spa_config_enter(spa_t *spa, int locks, void *tag, krw_t rw)
+ 			}
+ 			scl->scl_writer = curthread;
+ 		}
+-		(void) refcount_add(&scl->scl_count, tag);
++		(void) zfs_refcount_add(&scl->scl_count, tag);
+ 		mutex_exit(&scl->scl_lock);
+ 	}
+ 	ASSERT(wlocks_held <= locks);
+@@ -768,7 +768,7 @@ spa_open_ref(spa_t *spa, void *tag)
+ {
+ 	ASSERT(refcount_count(&spa->spa_refcount) >= spa->spa_minref ||
+ 	    MUTEX_HELD(&spa_namespace_lock));
+-	(void) refcount_add(&spa->spa_refcount, tag);
++	(void) zfs_refcount_add(&spa->spa_refcount, tag);
+ }
+ 
+ /*
+diff --git a/module/zfs/zfs_ctldir.c b/module/zfs/zfs_ctldir.c
+index 0ab5b4f0..de3c5a41 100644
+--- a/module/zfs/zfs_ctldir.c
++++ b/module/zfs/zfs_ctldir.c
+@@ -120,7 +120,7 @@ typedef struct {
+ 	taskqid_t	se_taskqid;	/* scheduled unmount taskqid */
+ 	avl_node_t	se_node_name;	/* zfs_snapshots_by_name link */
+ 	avl_node_t	se_node_objsetid; /* zfs_snapshots_by_objsetid link */
+-	refcount_t	se_refcount;	/* reference count */
++	zfs_refcount_t	se_refcount;	/* reference count */
+ } zfs_snapentry_t;
+ 
+ static void zfsctl_snapshot_unmount_delay_impl(zfs_snapentry_t *se, int delay);
+@@ -169,7 +169,7 @@ zfsctl_snapshot_free(zfs_snapentry_t *se)
+ static void
+ zfsctl_snapshot_hold(zfs_snapentry_t *se)
+ {
+-	refcount_add(&se->se_refcount, NULL);
++	zfs_refcount_add(&se->se_refcount, NULL);
+ }
+ 
+ /*
+@@ -192,7 +192,7 @@ static void
+ zfsctl_snapshot_add(zfs_snapentry_t *se)
+ {
+ 	ASSERT(RW_WRITE_HELD(&zfs_snapshot_lock));
+-	refcount_add(&se->se_refcount, NULL);
++	zfs_refcount_add(&se->se_refcount, NULL);
+ 	avl_add(&zfs_snapshots_by_name, se);
+ 	avl_add(&zfs_snapshots_by_objsetid, se);
+ }
+@@ -269,7 +269,7 @@ zfsctl_snapshot_find_by_name(char *snapname)
+ 	search.se_name = snapname;
+ 	se = avl_find(&zfs_snapshots_by_name, &search, NULL);
+ 	if (se)
+-		refcount_add(&se->se_refcount, NULL);
++		zfs_refcount_add(&se->se_refcount, NULL);
+ 
+ 	return (se);
+ }
+@@ -290,7 +290,7 @@ zfsctl_snapshot_find_by_objsetid(spa_t *spa, uint64_t objsetid)
+ 	search.se_objsetid = objsetid;
+ 	se = avl_find(&zfs_snapshots_by_objsetid, &search, NULL);
+ 	if (se)
+-		refcount_add(&se->se_refcount, NULL);
++		zfs_refcount_add(&se->se_refcount, NULL);
+ 
+ 	return (se);
+ }
+diff --git a/module/zfs/zfs_znode.c b/module/zfs/zfs_znode.c
+index e222c791..0ca10f82 100644
+--- a/module/zfs/zfs_znode.c
++++ b/module/zfs/zfs_znode.c
+@@ -272,7 +272,7 @@ zfs_znode_hold_enter(zfsvfs_t *zfsvfs, uint64_t obj)
+ 		ASSERT3U(zh->zh_obj, ==, obj);
+ 		found = B_TRUE;
+ 	}
+-	refcount_add(&zh->zh_refcount, NULL);
++	zfs_refcount_add(&zh->zh_refcount, NULL);
+ 	mutex_exit(&zfsvfs->z_hold_locks[i]);
+ 
+ 	if (found == B_TRUE)
