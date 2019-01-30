@@ -25,15 +25,15 @@ Closes #7939
 (backported from: zfs-upstream 779a6c0bf6df76e0dd92c1ccf81f48512b835bb0)
 Signed-off-by: Stoiko Ivanov <s.ivanov@proxmox.com>
 ---
- include/sys/uio_impl.h                             |   2 +-
- module/zcommon/zfs_uio.c                           |  31 ++++-
- module/zfs/zfs_vnops.c                             |  24 +++-
- tests/zfs-tests/cmd/mmapwrite/mmapwrite.c          | 140 +++++++++++++++------
- .../tests/functional/mmap/mmap_write_001_pos.ksh   |   8 +-
+ include/sys/uio_impl.h                        |   2 +-
+ module/zcommon/zfs_uio.c                      |  31 +++-
+ module/zfs/zfs_vnops.c                        |  24 ++-
+ tests/zfs-tests/cmd/mmapwrite/mmapwrite.c     | 140 +++++++++++++-----
+ .../functional/mmap/mmap_write_001_pos.ksh    |   8 +-
  5 files changed, 151 insertions(+), 54 deletions(-)
 
 diff --git a/include/sys/uio_impl.h b/include/sys/uio_impl.h
-index 37e283da..cfef0b95 100644
+index 37e283da0..cfef0b95d 100644
 --- a/include/sys/uio_impl.h
 +++ b/include/sys/uio_impl.h
 @@ -42,7 +42,7 @@
@@ -46,7 +46,7 @@ index 37e283da..cfef0b95 100644
  extern void uioskip(uio_t *, size_t);
  
 diff --git a/module/zcommon/zfs_uio.c b/module/zcommon/zfs_uio.c
-index 7b4175bb..8e969bbc 100644
+index 7b4175bbe..8e969bbcc 100644
 --- a/module/zcommon/zfs_uio.c
 +++ b/module/zcommon/zfs_uio.c
 @@ -50,6 +50,7 @@
@@ -124,7 +124,7 @@ index 7b4175bb..8e969bbc 100644
  EXPORT_SYMBOL(uio_prefaultpages);
  
 diff --git a/module/zfs/zfs_vnops.c b/module/zfs/zfs_vnops.c
-index 5a2e55eb..c866352d 100644
+index 5a2e55eb1..c866352d7 100644
 --- a/module/zfs/zfs_vnops.c
 +++ b/module/zfs/zfs_vnops.c
 @@ -675,7 +675,10 @@ zfs_write(struct inode *ip, uio_t *uio, int ioflag, cred_t *cr)
@@ -175,7 +175,7 @@ index 5a2e55eb..c866352d 100644
  
  	zfs_inode_update(zp);
 diff --git a/tests/zfs-tests/cmd/mmapwrite/mmapwrite.c b/tests/zfs-tests/cmd/mmapwrite/mmapwrite.c
-index 190d31af..b9915d5d 100644
+index 190d31af3..b9915d5d3 100644
 --- a/tests/zfs-tests/cmd/mmapwrite/mmapwrite.c
 +++ b/tests/zfs-tests/cmd/mmapwrite/mmapwrite.c
 @@ -31,74 +31,132 @@
@@ -353,7 +353,7 @@ index 190d31af..b9915d5d 100644
  	return (0);
  }
 diff --git a/tests/zfs-tests/tests/functional/mmap/mmap_write_001_pos.ksh b/tests/zfs-tests/tests/functional/mmap/mmap_write_001_pos.ksh
-index 1eda9710..24150b82 100755
+index 1eda97104..24150b827 100755
 --- a/tests/zfs-tests/tests/functional/mmap/mmap_write_001_pos.ksh
 +++ b/tests/zfs-tests/tests/functional/mmap/mmap_write_001_pos.ksh
 @@ -53,12 +53,14 @@ if ! is_mp; then

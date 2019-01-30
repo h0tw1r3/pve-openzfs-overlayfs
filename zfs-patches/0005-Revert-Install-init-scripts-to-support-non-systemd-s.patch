@@ -23,7 +23,7 @@ Signed-off-by: Thomas Lamprecht <t.lamprecht@proxmox.com>
  delete mode 120000 debian/zfsutils-linux.zfs-share.init
 
 diff --git a/debian/rules b/debian/rules
-index 3ba4b99a..d6cf5a56 100755
+index a7ad2b96b..d6cf5a56f 100755
 --- a/debian/rules
 +++ b/debian/rules
 @@ -117,14 +117,6 @@ override_dh_install:
@@ -31,10 +31,10 @@ index 3ba4b99a..d6cf5a56 100755
  	dh_install --fail-missing
  
 -override_dh_installinit:
--	dh_installinit -r --no-start --name zfs-import
--	dh_installinit -r --no-start --name zfs-mount
--	dh_installinit -r --no-start --name zfs-share
--	dh_installinit -R --no-start --name zfs-zed
+-	dh_installinit -R --name zfs-import
+-	dh_installinit -R --name zfs-mount
+-	dh_installinit -R --name zfs-share
+-	dh_installinit -R --name zfs-zed
 -	mkdir -p debian/zfsutils-linux/lib/systemd/system
 -	ln -sr /dev/null debian/zfsutils-linux/lib/systemd/system/zfs-import.service
 -
@@ -43,7 +43,7 @@ index 3ba4b99a..d6cf5a56 100755
  debian-copyright:
 diff --git a/debian/zfs-zed.zfs-zed.init b/debian/zfs-zed.zfs-zed.init
 deleted file mode 120000
-index 3f41f681..00000000
+index 3f41f6813..000000000
 --- a/debian/zfs-zed.zfs-zed.init
 +++ /dev/null
 @@ -1 +0,0 @@
@@ -51,7 +51,7 @@ index 3f41f681..00000000
 \ No newline at end of file
 diff --git a/debian/zfsutils-linux.zfs-import.init b/debian/zfsutils-linux.zfs-import.init
 deleted file mode 120000
-index bfc368fd..00000000
+index bfc368fd3..000000000
 --- a/debian/zfsutils-linux.zfs-import.init
 +++ /dev/null
 @@ -1 +0,0 @@
@@ -59,7 +59,7 @@ index bfc368fd..00000000
 \ No newline at end of file
 diff --git a/debian/zfsutils-linux.zfs-mount.init b/debian/zfsutils-linux.zfs-mount.init
 deleted file mode 120000
-index 62a54433..00000000
+index 62a544332..000000000
 --- a/debian/zfsutils-linux.zfs-mount.init
 +++ /dev/null
 @@ -1 +0,0 @@
@@ -67,7 +67,7 @@ index 62a54433..00000000
 \ No newline at end of file
 diff --git a/debian/zfsutils-linux.zfs-share.init b/debian/zfsutils-linux.zfs-share.init
 deleted file mode 120000
-index 3f069f9b..00000000
+index 3f069f9ba..000000000
 --- a/debian/zfsutils-linux.zfs-share.init
 +++ /dev/null
 @@ -1 +0,0 @@

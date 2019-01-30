@@ -5,16 +5,3 @@
 0005-Revert-Install-init-scripts-to-support-non-systemd-s.patch
 0006-Fix-deadlock-between-zfs-umount-snapentry_expire.patch
 0007-deadlock-between-mm_sem-and-tx-assign-in-zfs_write-a.patch
-0008-Fix-race-in-dnode_check_slots_free.patch
-0009-Reduce-taskq-and-context-switch-cost-of-zio-pipe.patch
-0010-Skip-import-activity-test-in-more-zdb-code-paths.patch
-0011-Fix-statfs-2-for-32-bit-user-space.patch
-0012-Zpool-iostat-remove-latency-queue-scaling.patch
-0013-Linux-4.19-rc3-compat-Remove-refcount_t-compat.patch
-0014-Prefix-all-refcount-functions-with-zfs_.patch
-0015-Fix-arc_release-refcount.patch
-0016-Allow-use-of-pool-GUID-as-root-pool.patch
-0017-ZTS-Update-O_TMPFILE-support-check.patch
-0018-Fix-flake8-invalid-escape-sequence-x-warning.patch
-0019-Add-BuildRequires-gcc-make-elfutils-libelf-devel.patch
-0020-Tag-zfs-0.7.12.patch

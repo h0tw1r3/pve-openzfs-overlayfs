@@ -18,7 +18,7 @@ Signed-off-by: Stoiko Ivanov <s.ivanov@proxmox.com>
  1 file changed, 1 insertion(+), 1 deletion(-)
 
 diff --git a/etc/modules-load.d/zfs.conf.in b/etc/modules-load.d/zfs.conf.in
-index 8b41baa3..59b058c9 100644
+index 8b41baa30..59b058c9a 100644
 --- a/etc/modules-load.d/zfs.conf.in
 +++ b/etc/modules-load.d/zfs.conf.in
 @@ -1,3 +1,3 @@

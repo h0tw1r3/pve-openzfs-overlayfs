@@ -9,26 +9,14 @@ Content-Transfer-Encoding: 8bit
 Signed-off-by: Fabian Grünbichler <f.gruenbichler@proxmox.com>
 Signed-off-by: Stoiko Ivanov <s.ivanov@proxmox.com>
 ---
+ debian/control.in    |  40 ++--------------
  debian/control       |   1 -
- debian/control.in    |  40 ++-----------------
  debian/not-installed |   2 +
- debian/rules         | 108 +--------------------------------------------------
+ debian/rules         | 108 +------------------------------------------
  4 files changed, 7 insertions(+), 144 deletions(-)
 
-diff --git a/debian/control b/debian/control
-index 4d22ff50..f33008df 100644
---- a/debian/control
-+++ b/debian/control
-@@ -10,7 +10,6 @@ Build-Depends: autotools-dev,
-                debhelper (>= 10.2),
-                dh-autoreconf,
-                dh-python,
--               dkms (>> 2.1.1.2-5),
-                libattr1-dev,
-                libblkid-dev,
-                libselinux1-dev,
 diff --git a/debian/control.in b/debian/control.in
-index 96154c5c..0a9ceef6 100644
+index ab62ea676..978b39e91 100644
 --- a/debian/control.in
 +++ b/debian/control.in
 @@ -10,7 +10,6 @@ Build-Depends: autotools-dev,
@@ -39,7 +27,7 @@ index 96154c5c..0a9ceef6 100644
                 libattr1-dev,
                 libblkid-dev,
                 libselinux1-dev,
-@@ -95,26 +94,10 @@ Description: OpenZFS pool library for Linux
+@@ -96,26 +95,10 @@ Description: OpenZFS pool library for Linux
   .
   This zpool library provides support for managing zpools.
  
@@ -47,7 +35,7 @@ index 96154c5c..0a9ceef6 100644
 -Architecture: all
 -Pre-Depends: spl-dkms (<<${source:Upstream-Version}.),
 -             spl-dkms (>= ${source:Upstream-Version})
--Depends: dkms (>> 2.1.1.2-5), lsb-release, ${misc:Depends}
+-Depends: dkms (>> 2.1.1.2-5), lsb-release, ${misc:Depends}, ${perl:Depends},
 -Recommends: zfs-zed, zfsutils-linux (>= ${binary:Version}), @LINUX_COMPAT@
 -Provides: zfs-modules
 -Description: OpenZFS filesystem kernel modules for Linux
@@ -65,8 +53,8 @@ index 96154c5c..0a9ceef6 100644
 -         zfs-modules | zfs-dkms,
           zfsutils-linux (>= ${binary:Version}),
           ${misc:Depends}
- Description: OpenZFS root filesystem capabilities for Linux - initramfs
-@@ -125,29 +108,14 @@ Description: OpenZFS root filesystem capabilities for Linux - initramfs
+ Breaks: zfsutils-linux (<= 0.7.11-2)
+@@ -128,29 +111,14 @@ Description: OpenZFS root filesystem capabilities for Linux - initramfs
   This package adds OpenZFS to the system initramfs with a hook
   for the initramfs-tools infrastructure.
  
@@ -95,10 +83,10 @@ index 96154c5c..0a9ceef6 100644
            samba-common-bin (>= 3.0.23),
 -          zfs-initramfs | zfs-dracut
 +          zfs-initramfs
- Conflicts: zfs, zfs-fuse
+ Conflicts: zfs, zfs-fuse, insserv (<< 1.18)
  Provides: zfsutils
  Description: command-line tools to manage OpenZFS filesystems
-@@ -161,8 +129,7 @@ Description: command-line tools to manage OpenZFS filesystems
+@@ -164,8 +132,7 @@ Description: command-line tools to manage OpenZFS filesystems
  Package: zfs-zed
  Section: contrib/admin
  Architecture: linux-any
@@ -108,7 +96,7 @@ index 96154c5c..0a9ceef6 100644
           ${misc:Depends},
           ${shlibs:Depends}
  Description: OpenZFS Event Daemon
-@@ -185,7 +152,6 @@ Depends: acl,
+@@ -188,7 +155,6 @@ Depends: acl,
           python,
           sudo,
           sysstat,
@@ -116,8 +104,20 @@ index 96154c5c..0a9ceef6 100644
           zfsutils-linux (>=${binary:Version}),
           ${misc:Depends},
           ${shlibs:Depends}
+diff --git a/debian/control b/debian/control
+index 7e47f3673..763f45df8 100644
+--- a/debian/control
++++ b/debian/control
+@@ -10,7 +10,6 @@ Build-Depends: autotools-dev,
+                debhelper (>= 10.2),
+                dh-autoreconf,
+                dh-python,
+-               dkms (>> 2.1.1.2-5),
+                libattr1-dev,
+                libblkid-dev,
+                libselinux1-dev,
 diff --git a/debian/not-installed b/debian/not-installed
-index a008985c..c60b0016 100644
+index a008985cf..c60b0016f 100644
 --- a/debian/not-installed
 +++ b/debian/not-installed
 @@ -6,3 +6,5 @@ etc/zfs/vdev_id.conf.alias.example
@@ -127,7 +127,7 @@ index a008985c..c60b0016 100644
 +usr/lib/dracut
 +usr/share/zfs/enum-extract.pl
 diff --git a/debian/rules b/debian/rules
-index 21b8ccef..3ba4b99a 100755
+index b4c885a6f..a7ad2b96b 100755
 --- a/debian/rules
 +++ b/debian/rules
 @@ -6,9 +6,6 @@ LSB_DISTRIBUTOR := $(shell lsb_release -is)

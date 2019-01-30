@@ -28,7 +28,7 @@ Signed-off-by: Stoiko Ivanov <s.ivanov@proxmox.com>
  1 file changed, 5 insertions(+), 6 deletions(-)
 
 diff --git a/module/zfs/zfs_ctldir.c b/module/zfs/zfs_ctldir.c
-index 98897fe6..0ab5b4f0 100644
+index bf5a1d059..2964b65a6 100644
 --- a/module/zfs/zfs_ctldir.c
 +++ b/module/zfs/zfs_ctldir.c
 @@ -358,8 +358,6 @@ snapentry_expire(void *data)
