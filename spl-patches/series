@@ -1,7 +1,2 @@
 0001-remove-DKMS-and-module-build.patch
 0002-deadlock-between-mm_sem-and-tx-assign-in-zfs_write-a.patch
-0003-Define-timestruc_t-for-Lustre-compatibility.patch
-0004-Backport-vnode.h-changes-from-zfs-93ce2b4c.patch
-0005-Linux-4.20-compat-current_kernel_time.patch
-0006-Add-BuildRequires-gcc-make-elfutils-libelf-devel.patch
-0007-Tag-spl-0.7.12.patch

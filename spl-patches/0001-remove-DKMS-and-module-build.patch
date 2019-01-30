@@ -9,23 +9,11 @@ Content-Transfer-Encoding: 8bit
 Signed-off-by: Fabian Grünbichler <f.gruenbichler@proxmox.com>
 Signed-off-by: Stoiko Ivanov <s.ivanov@proxmox.com>
 ---
+ debian/control.in | 31 ----------------------
  debian/control    |  1 -
- debian/control.in | 31 -------------------------
- debian/rules      | 67 +------------------------------------------------------
+ debian/rules      | 67 +----------------------------------------------
  3 files changed, 1 insertion(+), 98 deletions(-)
 
-diff --git a/debian/control b/debian/control
-index d83f962..f780c80 100644
---- a/debian/control
-+++ b/debian/control
-@@ -9,7 +9,6 @@ Build-Depends: autogen,
-                autotools-dev,
-                debhelper (>= 9),
-                dh-autoreconf,
--               dkms (>> 2.2.0.2-1~),
-                libtool
- Standards-Version: 4.1.2
- Homepage: http://www.zfsonlinux.org/
 diff --git a/debian/control.in b/debian/control.in
 index 0e6c3fc..c8fe170 100644
 --- a/debian/control.in
@@ -78,6 +66,18 @@ index 0e6c3fc..c8fe170 100644
  Description: Solaris Porting Layer user-space utilities for Linux
   The Solaris Porting Layer (SPL) is a Linux kernel module which provides
   many of the Solaris kernel APIs. This shim layer makes it possible to
+diff --git a/debian/control b/debian/control
+index d83f962..f780c80 100644
+--- a/debian/control
++++ b/debian/control
+@@ -9,7 +9,6 @@ Build-Depends: autogen,
+                autotools-dev,
+                debhelper (>= 9),
+                dh-autoreconf,
+-               dkms (>> 2.2.0.2-1~),
+                libtool
+ Standards-Version: 4.1.2
+ Homepage: http://www.zfsonlinux.org/
 diff --git a/debian/rules b/debian/rules
 index 72ded49..5abeebb 100755
 --- a/debian/rules
