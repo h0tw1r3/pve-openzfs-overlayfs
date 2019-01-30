@@ -1,0 +1,677 @@
+zfs-linux (0.7.12-pve1~bpo1) unstable; urgency=medium
+
+  * update ZFS to 0.7.12
+
+ -- Proxmox Support Team <support@proxmox.com>  Wed, 14 Nov 2018 17:51:59 +0100
+
+zfs-linux (0.7.11-pve2~bpo1) unstable; urgency=medium
+
+  * update ZFS to debian/0.7.11-3
+
+  * Cherry-pick two fixes planned for 0.7.12
+
+  * Backport deadlock fix between mm_sem and tx assign in zfs_write() and page
+    fault
+
+  * Fix missing Breaks/Replaces in zfs-initramfs
+
+ -- Proxmox Support Team <support@proxmox.com>  Mon, 29 Oct 2018 13:45:49 +0100
+
+zfs-linux (0.7.11-pve1~bpo1) unstable; urgency=medium
+
+  * update ZFS to 0.7.11
+
+ -- Proxmox Support Team <support@proxmox.com>  Mon, 10 Sep 2018 15:47:31 +0200
+
+zfs-linux (0.7.9-pve3~bpo9) unstable; urgency=medium
+
+  *  Cherry-pick fix for deadlock umount/snapentry_expire
+
+ -- Proxmox Support Team <support@proxmox.com>  Fri, 03 Aug 2018 11:41:11 +0200
+
+zfs-linux (0.7.9-pve2~bpo9) unstable; urgency=medium
+
+  * Cherry-pick fix for zpl_mount deadlock
+
+ -- Proxmox Support Team <support@proxmox.com>  Fri, 12 Jul 2018 12:37:50 +0200
+
+zfs-linux (0.7.9-pve1~bpo9) unstable; urgency=medium
+
+  * update ZFS to 0.7.9
+
+ -- Proxmox Support Team <support@proxmox.com>  Fri, 18 May 2018 13:49:09 +0200
+
+zfs-linux (0.7.8-pve1~bpo9) unstable; urgency=medium
+
+  * update ZFS to 0.7.8 (no changes)
+
+ -- Proxmox Support Team <support@proxmox.com>  Mon, 30 Apr 2018 13:47:22 +0200
+
+zfs-linux (0.7.7-pve2~bpo9) unstable; urgency=medium
+
+  * (temporarily) revert likely cause of #7401
+
+ -- Proxmox Support Team <support@proxmox.com>  Mon, 9 Apr 2018 09:49:27 +0200
+
+zfs-linux (0.7.7-pve1~bpo9) unstable; urgency=medium
+
+  * update ZFS to 0.7.7
+
+ -- Proxmox Support Team <support@proxmox.com>  Tue, 3 Apr 2018 14:28:35 +0200
+
+zfs-linux (0.7.6-pve1~bpo9) unstable; urgency=medium
+
+  * update ZFS to 0.7.6
+
+ -- Proxmox Support Team <support@proxmox.com>  Wed, 21 Feb 2018 09:48:29 +0100
+
+zfs-linux (0.7.4-pve2~bpo9) unstable; urgency=medium
+
+  * cherry-pick ARC hit rate fix from 0.7.6
+
+  * always load ZFS modules on boot
+
+ -- Proxmox Support Team <support@proxmox.com>  Fri, 19 Jan 2018 11:31:14 +0100
+
+zfs-linux (0.7.4-pve1~bpo9) unstable; urgency=medium
+
+  * update ZFS to 0.7.4
+
+ -- Proxmox Support Team <support@proxmox.com>  Tue, 19 Dec 2017 12:52:42 +0100
+
+zfs-linux (0.7.3-pve1~bpo9) unstable; urgency=medium
+
+  * update ZFS to 0.7.3
+
+  * include fix for user namespace setgid issue (#6800 upstream)
+
+ -- Proxmox Support Team <support@proxmox.com>  Mon, 6 Nov 2017 09:14:19 +0100
+
+zfs-linux (0.7.2-pve1~bpo90) unstable; urgency=medium
+
+  * update zfs to 0.7.2
+
+  * add PR 6616 - zfs send/recv compatibility with 0.6.5
+
+  * add PR 6695 - zfs recv: don't skip over objects which should be freed
+
+  * various small fixes
+
+  * split test suite into zfs-test package
+
+ -- Proxmox Support Team <support@proxmox.com>  Thu, 12 Oct 2017 13:34:05 +0200
+
+zfs-linux (0.6.5.11-pve18~bpo90) unstable; urgency=medium
+
+  * fix #1509: arc_summary error with L2ARC
+
+ -- Proxmox Support Team <support@proxmox.com>  Mon, 2 Oct 2017 09:30:41 +0200
+
+zfs-linux (0.6.5.11-pve17~bpo90) unstable; urgency=medium
+
+  * update zfs to debian/0.6.5.11-1
+
+ -- Proxmox Support Team <support@proxmox.com>  Thu, 27 Jul 2017 13:11:45 +0200
+
+zfs-linux (0.6.5.9-pve16~bpo90) unstable; urgency=medium
+
+  * drop transitional packages
+
+  * convert python scripts to python 3, drop .py suffix
+
+  * rebuild for PVE 5.0 / Debian Stretch
+
+ -- Proxmox Support Team <support@proxmox.com>  Fri, 10 Mar 2017 09:45:52 +0100
+
+zfs-linux (0.6.5.9-pve15~bpo80) unstable; urgency=medium
+
+  * update zfs to debian/0.6.5.9-1
+
+ -- Proxmox Support Team <support@proxmox.com>  Mon, 6 Feb 2017 12:39:10 +0100
+
+zfs-linux (0.6.5.8-pve14~bpo80) unstable; urgency=medium
+
+  * update zfs to debian/0.6.5.8-3
+
+ -- Proxmox Support Team <support@proxmox.com>  Wed, 11 Jan 2017 09:34:58 +0100
+
+zfs-linux (0.6.5.8-pve13~bpo80) unstable; urgency=medium
+
+  * fix #1184: zfs-share.service has wrong path to 'rm' command
+
+ -- Proxmox Support Team <support@proxmox.com>  Thu, 27 Oct 2016 11:25:47 +0200
+
+zfs-linux (0.6.5.8-pve12~bpo80) unstable; urgency=medium
+
+  * import with "-d /dev/disk/by-id" in systemd service
+
+ -- Proxmox Support Team <support@proxmox.com>  Mon, 24 Oct 2016 13:48:08 +0200
+
+zfs-linux (0.6.5.8-pve11~bpo80) unstable; urgency=medium
+
+  * update zfs to debian/0.6.5.8-1
+
+  * switch package upstream sources to Debian (Jessie)
+
+  * add transitional packages for upgrades
+
+ -- Proxmox Support Team <support@proxmox.com>  Wed, 12 Oct 2016 11:16:02 +0200
+
+zfs-linux (0.6.5.7-pve10~bpo80) unstable; urgency=medium
+
+  * update to pkg-zfs jessie/0.6.5.7-8
+
+  * change package versioning to allow upgrades from PVE3/wheezy
+
+ -- Proxmox Support Team <support@proxmox.com>  Tue, 28 Jun 2016 09:50:00 +0200
+
+zfs-linux (0.6.5-pve9~jessie) unstable; urgency=medium
+
+  * Update to pkg-zfs jessie/0.6.5.6-3
+
+ -- Proxmox Support Team <support@proxmox.com>  Tue, 12 Apr 2016 09:51:35 +0200
+
+zfs-linux (0.6.5-pve8~jessie) unstable; urgency=medium
+
+  * update to zfs-0.6.5.6
+
+ -- Proxmox Support Team <support@proxmox.com>  Wed, 30 Mar 2016 10:50:22 +0200
+
+zfs-linux (0.6.5-pve7~jessie) unstable; urgency=medium
+
+  * update to zfs-0.6.5.4
+
+ -- Proxmox Support Team <support@proxmox.com>  Thu, 14 Jan 2016 10:51:17 +0100
+
+zfs-linux (0.6.5-pve6~jessie) unstable; urgency=medium
+
+  * Prepare to tag zfs-0.6.5.3
+
+ -- Proxmox Support Team <support@proxmox.com>  Thu, 05 Nov 2015 07:21:44 +0100
+
+zfs-linux (0.6.5-pve5~jessie) unstable; urgency=medium
+
+  * Illumos 6267 - dn_bonus evicted too early
+
+  * Fix use-after-free in vdev_disk_physio_completion
+
+ -- Proxmox Support Team <support@proxmox.com>  Wed, 04 Nov 2015 17:42:42 +0100
+
+zfs-linux (0.6.5-pve4~jessie) unstable; urgency=medium
+
+  * update to master/debian/jessie/0.6.5.2-2
+
+ -- Proxmox Support Team <support@proxmox.com>  Mon, 05 Oct 2015 17:56:45 +0200
+
+zfs-linux (0.6.5-pve3~jessie) unstable; urgency=medium
+
+  * do not install /etc/init.d/zfs-zed script to avoid double startup
+    with systemd
+
+ -- Proxmox Support Team <support@proxmox.com>  Mon, 28 Sep 2015 10:14:40 +0200
+
+zfs-linux (0.6.5-pve2~jessie) unstable; urgency=medium
+
+  * update to master/debian/jessie/0.6.5.1-4
+
+ -- Proxmox Support Team <support@proxmox.com>  Thu, 24 Sep 2015 12:45:33 +0200
+
+zfs-linux (0.6.5-pve1~jessie) unstable; urgency=medium
+
+  * update to master/debian/jessie/0.6.5.1-2
+
+ -- Proxmox Support Team <support@proxmox.com>  Mon, 21 Sep 2015 10:02:41 +0200
+
+zfs-linux (0.6.4-pve3~jessie) unstable; urgency=medium
+
+  * update to snapshot/debian/jessie/0.6.4-24-6bec43
+
+ -- Proxmox Support Team <support@proxmox.com>  Mon, 24 Aug 2015 06:13:44 +0200
+
+zfs-linux (0.6.4-pve2~jessie) unstable; urgency=medium
+
+  * update to 0.6.4.2 (snapshot/debian/jessie/0.6.4-21-53b1d9)
+
+ -- Proxmox Support Team <support@proxmox.com>  Tue, 21 Jul 2015 11:03:21 +0200
+
+zfs-linux (0.6.4-pve1~jessie) unstable; urgency=medium
+
+  * update to 0.6.4 (use upstream zol package definitions)
+
+ -- Proxmox Support Team <support@proxmox.com>  Tue, 14 Apr 2015 10:19:22 +0200
+
+zfs-linux (0.6.3-pve3~jessie) unstable; urgency=medium
+
+  * ignore zfs-import-scan errors
+
+ -- Proxmox Support Team <support@proxmox.com>  Tue, 31 Mar 2015 17:52:40 +0200
+
+zfs-linux (0.6.3-pve2~jessie) unstable; urgency=medium
+
+  * use systemd for service startup
+
+  * install zed configuration file /etc/zfs/zed.d/zed.rc
+
+ -- Proxmox Support Team <support@proxmox.com>  Sun, 15 Mar 2015 15:52:54 +0100
+
+zfs-linux (0.6.3-pve1~jessie) unstable; urgency=medium
+
+  * recompile on jessie
+
+ -- Proxmox Support Team <support@proxmox.com>  Sat, 28 Feb 2015 16:02:08 +0100
+
+zfs-linux (0.6.3-2~wheezy) unstable; urgency=low
+
+  * use /sbin/modprobe to avoid warning inside initrd
+
+  * fix warning about undefined values inside initrd
+
+ -- Proxmox Support Team <support@proxmox.com>  Wed, 14 Jan 2015 19:03:04 +0100
+
+zfs-linux (0.6.3-1~wheezy) unstable; urgency=low
+
+  * first version for Proxmox VE
+
+ -- Proxmox Support Team <support@proxmox.com>  Sat, 10 Jan 2015 14:06:34 +0100
+
+zfs-linux (0.7.12-2) unstable; urgency=medium
+
+  [ Colin Ian King ]
+  * Only run autopkgtests for amd64, arm64, ppc64el and s390x (LP#1805627).
+
+  [ Martin Bagge / brother ]
+  * [INTL:sv] Swedish strings for zfs-linux debconf (Closes: #918020)
+
+  [ Anders Jonsson ]
+  * sv.po: typo fix
+
+  [ Mo Zhou ]
+  * Change init script's behaviour to default during postinst.
+  * Add ${perl:Depends} to zfs-dkms's Depends.
+  * Add autopkgtest script to test zfs-dkms build.
+  * autopkgtest: minor fix
+
+  [ Aron Xu ]
+  * Add XS-Autobuild: yes to d/control
+  * Conflicts with insserv << 1.18 (Closes: #915831)
+
+ -- Aron Xu <aron@debian.org>  Fri, 11 Jan 2019 21:32:06 +0800
+
+zfs-linux (0.7.12-1) unstable; urgency=medium
+
+  [ Stoiko Ivanov ]
+  * Add Breaks/Replaces to zfs-initramfs
+
+  [ Mo Zhou ]
+  * New upstream version 0.7.12
+  * Drop unnecessary patch init-start-stop-dep-on-local-fs.patch .
+  * Override init.d-script-missing-dependency-on-local_fs for zfs-zed.
+  * Bump linux compatibility to 4.19 .
+
+ -- Mo Zhou <cdluminate@gmail.com>  Mon, 19 Nov 2018 11:32:44 +0000
+
+zfs-linux (0.7.11-3) unstable; urgency=medium
+
+  [ Antonio Russo ]
+  + https://salsa.debian.org/zfsonlinux-team/zfs/merge_requests/9
+  * Break/Replace upstream .deb packages (Closes: #839921)
+  * Install upstream bash completion file instead of embedded one.
+  * Modify META before autoreconf.
+  * Make dkms distdir before build to avoid including build artifacts.
+  * Remove ZFS_AC_PACKAGE macros from DKMS sources.
+    This removes dpkg-dev dependency from zfs-dkms package.
+  * Use upstream's dkms.mkconf script to produce dkms.conf .
+  * Ship initramfs zdev hook in zfs-initramfs (Closes: #902052)
+
+  [ Nicolas Braud-Santoni ]
+  * Update debian/copyright, removing unused wildcards.
+
+  [ Nicholas D Steeves ]
+  * Change -dbg package's priority from extra to optional.
+
+  [ Mo Zhou ]
+  * Fix FTBFS on architecture=all due to FileNotFound. (Closes: #911937)
+  * Add isolation-machine restriction to autopkgtest because the tests
+    needs to interact with the kernel, i.e. loading kernel module.
+
+ -- Mo Zhou <cdluminate@gmail.com>  Sun, 28 Oct 2018 10:28:52 +0000
+
+zfs-linux (0.7.11-2) unstable; urgency=medium
+
+  * Support Devuan in dkms script. (Closes: #900089)
+    Thanks to Chris Dos <chris@chrisdos.com>
+  * Install init scripts to support non-systemd setups. (Closes: #826994)
+    Thanks to Chris Dos <chris@chrisdos.com>
+  * Override init.d-script-does-not-source-init-functions for
+    zfsutils-linux and zfs-zed.
+  * Patch upstream init scripts to make them work for Debian+OpenRC setup.
+  * Patch upstream init script to fix missing dependency on local_fs.
+
+ -- Mo Zhou <cdluminate@gmail.com>  Fri, 26 Oct 2018 09:32:06 +0000
+
+zfs-linux (0.7.11-1) unstable; urgency=medium
+
+  [ Aron Xu ]
+  * Add dpkg-dev to Depends of zfs-dkms (Closes: #900714)
+
+  [ Nicolas Braud-Santoni ]
+  * Use canonical HTTPS format URL for Vcs-Git (Closes: #895873)
+
+  [ Mo Zhou ]
+  * New upstream version 0.7.11 (Closes: #908290)
+  * Bump linux_compat to 4.18 .
+  * Replace get_next.sh with one-liner awk script in rules.
+  * Append myself to Uploaders and refresh auto-generated control.
+  * Use HTTPS format URI in watch file.
+  * Recommends linux-libc-dev (<< LINUX_NEXT~) instead of (<< LINUX_NEXT).
+
+ -- Mo Zhou <cdluminate@gmail.com>  Wed, 19 Sep 2018 08:45:18 +0000
+
+zfs-linux (0.7.9-3) unstable; urgency=medium
+
+  [ Antonio Russo ]
+  * Expand zfs-test and add Breaks/Conflicts (Closes: #899047)
+
+  [ Aron Xu ]
+  * d/control: migrate to alioth-lists (Closes: #899756)
+
+ -- Aron Xu <aron@debian.org>  Mon, 28 May 2018 18:22:02 +0800
+
+zfs-linux (0.7.9-2) unstable; urgency=medium
+
+  [ Aron Xu ]
+  * Move more zfs test tools to zfs-test package (Closes: #868653)
+  * New upstream version 0.7.9
+  * d/rules: add --enable-systemd
+  * Fix lintian obsolete-relation-form-in-source
+  * Bump supported linux version to 4.16
+
+  [ Antonio Russo ]
+  * Install enum-extract.pl with dkms
+  * Handle /proc/kallsym obfuscation (Closes: #891936)
+
+ -- Aron Xu <aron@debian.org>  Thu, 17 May 2018 23:47:29 +0800
+
+zfs-linux (0.7.6-1) unstable; urgency=medium
+
+  [ Lev Lamberov ]
+  * [INTL:ru] Updated Russian translation of debconf (Closes: #885990)
+
+  [ Aron Xu]
+  * New upstream release (Closes: #889795, #890576)
+  * 0001-Fix-bug-in-distclean-which-removes-needed-files.patch:
+    removed, applied upstream
+  * Update VCS-* URL to salsa.debian.org
+  * Apply wrap-and-sort
+  * Recommends: linux-libc-dev (< ${LINUX_NEXT}):
+    Tries to prevent unexpected upgrades of kernel that is not known to
+    be supported by the packaged version of ZFS/SPL. (Closes: #849420)
+
+ -- Aron Xu <aron@debian.org>  Mon, 26 Feb 2018 16:32:29 +0800
+
+zfs-linux (0.7.5-1) unstable; urgency=medium
+
+  [ Aron Xu ]
+  * New upstream version 0.7.5 (Closes: #884812)
+
+  [ Antonio Russo ]
+  * Add version dependency on zfsutils-linux package (Closes: #880889)
+
+ -- Aron Xu <aron@debian.org>  Fri, 19 Jan 2018 15:39:23 +0800
+
+zfs-linux (0.7.4-1) unstable; urgency=medium
+
+  * New upstream version 0.7.4 (Closes: #884287, #883832)
+  * Require debhelper >= 10.2
+  * cherry-pick: fix distclean which removes needed files (Closes: #884706)
+  * Refresh patches
+  * Update stdver to 4.1.2, no change required
+  * Install zfs-import.target
+
+ -- Aron Xu <aron@debian.org>  Mon, 18 Dec 2017 22:48:59 +0800
+
+zfs-linux (0.7.3-3) unstable; urgency=medium
+
+  [ Antonio Russo ]
+  * Add maximum version dependency on spl-dkms (Closes: #883008)
+
+ -- Aron Xu <aron@debian.org>  Thu, 30 Nov 2017 00:34:30 +0800
+
+zfs-linux (0.7.3-2) unstable; urgency=medium
+
+  [ Fabian Grünbichler ]
+  * d/rules: remove obsolete calls to dpkg-architecture (Closes: #882209)
+  * zfs-test: add proper Breaks+Replaces (Closes: #880902)
+  * build: add implicit version to dh_makeshlibs (Closes: #880709)
+
+  [ Aron Xu ]
+  * Depend on matching version of spl-dkms (Closes: ##881013)
+
+ -- Aron Xu <aron@debian.org>  Tue, 28 Nov 2017 16:16:34 +0800
+
+zfs-linux (0.7.3-1) unstable; urgency=medium
+
+  [ Antonio Russo ]
+  * Refresh manual builds DKMS prevention patch
+
+  [ Fabian Grünbichler ]
+  * zfs-test package
+  * add files to debian/not-installed
+  * dh_install: switch to --fail-missing
+  * add new files from 0.7 to install
+  * dkms: build icp module as well
+
+  [ Antonio Russo ]
+  * dracut: make module-setup.sh shebang explicit
+  * add man page reference to systemd units
+  * Fix install path of zpool.d scripts
+  * Incorporate DebianPT.org Portuguese translation
+  * Fix typo in debconf templates
+  * Drop dependency on dh-systemd
+
+  [ Aron Xu ]
+  * Drop merged patches, update remainders
+  * Update std-ver to 4.1.1
+  * New upstream version 0.7.3
+  * Update debconf pot file
+  * Update control.in for dh-systemd deprecation
+  * Add lintian override for zfs-test
+
+  [ Colin King ]
+  * Improve cloning performance for large numbers of clones (LP: #1567557)
+    Bump zcmd buffer from 16K to 256K.
+
+ -- Aron Xu <aron@debian.org>  Tue, 31 Oct 2017 18:52:01 +0800
+
+zfs-linux (0.6.5.11-1) unstable; urgency=medium
+
+  [ Aron Xu ]
+  * Imported Upstream version 0.6.5.11
+
+  [ Fabian Grünbichler ]
+  * fix rm path in zfs-share.service
+
+ -- Aron Xu <aron@debian.org>  Fri, 14 Jul 2017 16:33:23 +0800
+
+zfs-linux (0.6.5.10-1) unstable; urgency=medium
+
+  * Add kernel version to depmod cmd (Closes: #860958)
+  * New upstream version 0.6.5.10
+
+ -- Aron Xu <aron@debian.org>  Wed, 05 Jul 2017 18:11:39 +0800
+
+zfs-linux (0.6.5.9-5) unstable; urgency=medium
+
+  * Add zfs initramfs conf for root pool setup
+    (Closes: #848157, LP: #1673197)
+
+ -- Aron Xu <aron@debian.org>  Sun, 19 Mar 2017 18:14:57 +0800
+
+zfs-linux (0.6.5.9-4) unstable; urgency=medium
+
+  * autopkgtest: load zfs module before running tests
+
+ -- Aron Xu <aron@debian.org>  Tue, 14 Mar 2017 11:38:08 +0800
+
+zfs-linux (0.6.5.9-3) unstable; urgency=medium
+
+  [ Petter Reinholdtsen ]
+  * Updated German debconf translation by Helge Kreutzmann. (Closes: #857528)
+  * Updated metadata on a few patches.
+
+  [ Aron Xu ]
+  * Cherry-pick upstream fix for merged /usr/lib and /lib
+  * Manually maintain adt test Depends
+
+ -- Aron Xu <aron@debian.org>  Mon, 13 Mar 2017 12:23:32 +0800
+
+zfs-linux (0.6.5.9-2) unstable; urgency=medium
+
+  [ Fabian Grünbichler ]
+  * fix zed-service-bindir patch
+
+ -- Aron Xu <aron@debian.org>  Tue, 07 Feb 2017 17:22:02 +0800
+
+zfs-linux (0.6.5.9-1) unstable; urgency=medium
+
+  [ Aron Xu ]
+  * Imported Upstream version 0.6.5.9 (Closes: #851513)
+
+  [ Lukas Wunner ]
+  * Cherry picks for root zpool with dracut (Closes: #849969)
+  * Fix installation path of systemd files
+  * Fix build breakage caused by nonstandard umask
+
+  [ Fabian Grünbichler ]
+  * fix python script install path (Closes: #842237)
+
+ -- Aron Xu <aron@debian.org>  Mon, 06 Feb 2017 15:57:50 +0800
+
+zfs-linux (0.6.5.8-3) unstable; urgency=medium
+
+  * Fix the path on the zfs-zed unit file (Closes: #849813)
+
+ -- Carlos Alberto Lopez Perez <clopez@igalia.com>  Thu, 05 Jan 2017 16:23:16 +0100
+
+zfs-linux (0.6.5.8-2) unstable; urgency=medium
+
+  [ Richard Laager ]
+  * Remove .py extension from utilities in /usr/sbin as per policy
+    10.4 Scripts (LP: #1628279)
+
+  [ Colin Ian King ]
+  * Use python3 for arcstat.py, arc_summary.py & dbufstat.py (LP: #1627909)
+
+  [ Richard Laager ]
+  * Set PATH in cron.d job to fix monthly scrubs. (LP: #1548009)
+
+  [ Aron Xu ]
+  * Install zed into /usr/sbin
+  * Rename zfsutils path to follow the package name
+  * Add missing part in python3 move
+  * Install zed to /usr/sbin
+
+  [ Petter Reinholdtsen ]
+  * Updated Italian debconf translation by Beatrice Torracca.
+    (Closes: #846928)
+  * Added patch 1003-linux-4.9-compat.patch from upstream to build with
+    Linux kernel 4.9. (Closes: #847018)
+
+ -- Aron Xu <aron@debian.org>  Sat, 17 Dec 2016 17:42:21 +0800
+
+zfs-linux (0.6.5.8-1) unstable; urgency=medium
+
+  [ Carlos Alberto Lopez Perez ]
+  * Reflow changelog from last upload to avoid lintian warning.
+
+  [ Aron Xu ]
+  * Imported Upstream version 0.6.5.8 (Closes: #838192)
+  * Conflicts with zutils (Closes: #836853)
+
+  [ Zhou Mo ]
+  * Patch: remove merged patches.
+  * Upstream renamed zed.service to zfs-zed.service .
+  * Avoid installing zfs-zed.service twice.
+
+ -- Aron Xu <aron@debian.org>  Tue, 20 Sep 2016 15:20:21 +0800
+
+zfs-linux (0.6.5.7-2) unstable; urgency=medium
+
+  [ Aron Xu ]
+  * Add busybox to zfs-initramfs list of dependencies. (Closes: #824976)
+
+  [ Petter Reinholdtsen ]
+  * Updated Danish debconf translation by Joe Hansen. (Closes: #830652)
+  * Added Dutch (nl) debconf translation by Frans Spiesschaert.
+    (Closes: #832280)
+  * Norwegian Bokmål (nb) debconf template translation by Petter Reinholdtsen.
+
+  [ Eric Desrochers ]
+  * Change utilities path (bindir) to /usr/sbin. (Closes: #832938)
+
+  [ Carlos Alberto Lopez Perez]
+  * Add tunable to ignore hole_birth, and enable it by default.
+    (Closes: #830824)
+
+ -- Carlos Alberto Lopez Perez <clopez@igalia.com>  Tue, 16 Aug 2016 17:43:48 +0200
+
+zfs-linux (0.6.5.7-1) unstable; urgency=medium
+
+  [ YunQiang Su ]
+  * 1002-fix-mips-build.patch: fix builds on mips* archs
+
+  [ Aron Xu ]
+  * New upstream release.
+  * 1001-Fix-aarch64-compilation.patch: dropped, not needed anymore
+  * Merge patches from Ubuntu:
+    - 0002-Check-for-META-and-DCH-consistency-in-autoconf.patch
+    - 0003-Add-libuutil-to-LIBADD-for-libzfs-and-libzfs_core.patch
+    - enable-zed.patch
+
+ -- Aron Xu <aron@debian.org>  Tue, 31 May 2016 14:10:49 +0800
+
+zfs-linux (0.6.5.6-2) unstable; urgency=medium
+
+  [ Aron Xu ]
+  * Adding smoke testing scripts from Ubuntu
+  * Fix binary module builds
+  * Add libblkid-dev, libattr1-dev to build-dep
+  * Re-sync source tree
+  * Add dh-python to b-d
+  * Remove .gitignore files and clean build tree
+  * Scrub all healthy pools monthly from Richard Laager
+
+  [ Petter Reinholdtsen ]
+  * Copied 1000-ppc64el-endian-support.patch from Ubuntu to fix endian
+    build problem on ppc64el
+  * Copied 1001-Fix-aarch64-compilation.patch from Ubuntu to fix build
+    problem on arm64.
+  * Copied 0001-Prevent-manual-builds-in-the-DKMS-source.patch from
+    Ubuntu to block manual building in the DKMS source tree.
+  * Updated Standards-Version from 3.9.7 to 3.9.8.
+  * Bring some files back to the upstream tarball content to get gbp
+    buildpackage working.
+
+ -- Petter Reinholdtsen <pere@debian.org>  Thu, 12 May 2016 12:19:55 +0200
+
+zfs-linux (0.6.5.6-1) unstable; urgency=medium
+
+  [ Aron Xu ]
+  * New upstream version 0.6.5.6.
+
+  [ Petter Reinholdtsen ]
+  * Generated new copyright.cme file based on version 0.6.5.6.
+  * Updated d/copyright file, add missing BSD licensed init.d scripts, and
+    new copyright holders in the new upstream version.
+  * Updated Standards-Version from 3.9.6 to 3.9.7.
+  * Added myself as uploader.
+  * Updated debconf po files based on newest pot file.
+  * Correct URL to git repo in d/control.
+
+ -- Petter Reinholdtsen <pere@debian.org>  Sat, 26 Mar 2016 07:08:11 +0000
+
+zfs-linux (0.6.5.5-1) unstable; urgency=medium
+
+  * Initial Release (Closes: #686447)
+
+ -- Aron Xu <aron@debian.org>  Sun, 20 Mar 2016 22:57:06 +0800

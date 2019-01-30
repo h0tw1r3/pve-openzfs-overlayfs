@@ -1,7 +1,6 @@
-From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
 From: Rohan Puri <rohan.puri15@gmail.com>
 Date: Sat, 28 Jul 2018 18:32:12 +0530
-Subject: [PATCH] Fix deadlock between zfs umount & snapentry_expire
+Subject: Fix deadlock between zfs umount & snapentry_expire
 
 zfs umount -> zfsctl_destroy() takes the zfs_snapshot_lock as a
 writer and calls zfsctl_snapshot_unmount_cancel(), which waits
@@ -28,7 +27,7 @@ Signed-off-by: Stoiko Ivanov <s.ivanov@proxmox.com>
  1 file changed, 5 insertions(+), 6 deletions(-)
 
 diff --git a/module/zfs/zfs_ctldir.c b/module/zfs/zfs_ctldir.c
-index bf5a1d059..2964b65a6 100644
+index bf5a1d0..2964b65 100644
 --- a/module/zfs/zfs_ctldir.c
 +++ b/module/zfs/zfs_ctldir.c
 @@ -358,8 +358,6 @@ snapentry_expire(void *data)

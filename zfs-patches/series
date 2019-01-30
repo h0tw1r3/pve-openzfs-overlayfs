@@ -1,7 +1,0 @@
-0001-remove-DKMS-modules-and-dracut-build.patch
-0002-import-with-d-dev-disk-by-id-in-scan-service.patch
-0003-always-load-ZFS-module-on-boot.patch
-0004-Add-Breaks-Replaces-to-zfs-initramfs.patch
-0005-Revert-Install-init-scripts-to-support-non-systemd-s.patch
-0006-Fix-deadlock-between-zfs-umount-snapentry_expire.patch
-0007-deadlock-between-mm_sem-and-tx-assign-in-zfs_write-a.patch

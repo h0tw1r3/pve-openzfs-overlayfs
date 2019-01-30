@@ -1,0 +1,87 @@
+#!/usr/bin/make -f
+
+include /usr/share/dpkg/default.mk
+
+export DEB_BUILD_MAINT_OPTIONS = hardening=+all
+
+%:
+	dh $@ --with autoreconf,python3,systemd --parallel
+
+override_dh_autoreconf:
+	@# Embed the downstream version in the module.
+	@sed -e 's/^Version:.*/Version:      $(DEB_VERSION_UPSTREAM)/' -i.orig META
+
+	dh_autoreconf
+
+override_dh_auto_configure:
+	@# Build the userland, but don't build the kernel modules.
+	dh_auto_configure -- \
+	  --bindir=/usr/bin \
+	  --sbindir=/sbin \
+	  --libdir=/lib \
+	  --with-udevdir=/lib/udev \
+	  --enable-systemd \
+	  --with-systemdunitdir=/lib/systemd/system \
+	  --with-systemdpresetdir=/lib/systemd/system-preset \
+	  --with-config=user
+
+override_dh_auto_test:
+	# The dh_auto_test rule is disabled because
+	# `make check` cannot run in an unprivileged build environment.
+
+override_dh_auto_install:
+	@# Install the utilities.
+	$(MAKE) install DESTDIR='$(CURDIR)/debian/tmp'
+
+	# Use upstream's bash completion
+	install -D -t '$(CURDIR)/debian/tmp/usr/share/bash-completion/completions/' \
+		'$(CURDIR)/contrib/bash_completion.d/zfs'
+
+	# Move from bin_dir to /usr/sbin
+	# Remove suffix (.py) as per policy 10.4 - Scripts
+	# https://www.debian.org/doc/debian-policy/ch-files.html#s-scripts
+	mkdir -p '$(CURDIR)/debian/tmp/usr/sbin/'
+	mv '$(CURDIR)/debian/tmp/usr/bin/arc_summary.py' '$(CURDIR)/debian/tmp/usr/sbin/arc_summary'
+	mv '$(CURDIR)/debian/tmp/usr/bin/arcstat.py' '$(CURDIR)/debian/tmp/usr/sbin/arcstat'
+	mv '$(CURDIR)/debian/tmp/usr/bin/dbufstat.py' '$(CURDIR)/debian/tmp/usr/sbin/dbufstat'
+
+	@# Zed has dependencies outside of the system root.
+	mv '$(CURDIR)/debian/tmp/sbin/zed' '$(CURDIR)/debian/tmp/usr/sbin/zed'
+
+	mkdir -p $(CURDIR)/debian/tmp/usr/lib
+	for i in `ls $(CURDIR)/debian/tmp/lib/*.so`; do \
+		ln -s /lib/`readlink $${i}` $(CURDIR)/debian/tmp/usr/lib/`basename $${i}`; \
+		rm $${i}; \
+	done
+
+	chmod a-x '$(CURDIR)/debian/tmp/etc/zfs/zfs-functions'
+	chmod a-x '$(CURDIR)/debian/tmp/etc/default/zfs'
+	chmod a-x '$(CURDIR)/debian/tmp/usr/share/bash-completion/completions/zfs'
+
+override_dh_makeshlibs:
+	dh_makeshlibs -a -V
+ifeq ($(BUILD_UDEB), true)
+	dh_makeshlibs -V -plibnvpair1linux
+	dh_makeshlibs -V -plibuutil1linux
+	dh_makeshlibs -V -plibzfs2linux
+	dh_makeshlibs -V -plibzpool2linux
+	dh_makeshlibs -V -pzfsutils-linux
+endif
+
+override_dh_strip:
+	dh_strip --dbg-package=zfs-dbg
+
+override_dh_auto_clean:
+	find . -name .gitignore -delete
+	rm -rf zfs-$(DEB_VERSION_UPSTREAM)
+	dh_auto_clean
+	@if test -e META.orig; then mv META.orig META; fi
+
+override_dh_install:
+	find . -name lib*.la -delete
+	dh_install --fail-missing
+
+# ------------
+
+debian-copyright:
+	cme update dpkg-copyright -file debian/copyright.cme
