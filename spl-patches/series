@@ -1,2 +1,0 @@
-0001-remove-DKMS-and-module-build.patch
-0002-deadlock-between-mm_sem-and-tx-assign-in-zfs_write-a.patch

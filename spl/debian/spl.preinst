@@ -1,0 +1,10 @@
+#!/bin/sh
+set -e
+
+# Detect if /etc/hostid is a conffile of previous spl package, migrate if yes
+# hostid file should preserve even when package is purged
+if $(dpkg-query --showformat='${Conffiles}\n' --show spl >/dev/null 2>&1); then
+        dpkg-maintscript-helper rm_conffile /etc/hostid -- "$@"
+fi
+
+#DEBHELPER#

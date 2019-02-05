@@ -1,0 +1,372 @@
+spl-linux (0.7.12-pve1~bpo1) unstable; urgency=medium
+
+  * update SPL to 0.7.12
+
+ -- Proxmox Support Team <support@proxmox.com>  Wed, 14 Nov 2018 17:51:59 +0100
+
+spl-linux (0.7.11-pve2~bpo1) unstable; urgency=medium
+
+  * update SPL to debian/0.7.11
+
+  * Backport deadlock fix between mm_sem and tx assign in zfs_write() and page
+    fault
+
+ -- Proxmox Support Team <support@proxmox.com>  Mon, 29 Oct 2018 13:47:39 +0100
+
+spl-linux (0.7.11-pve1~bpo1) unstable; urgency=medium
+
+  * update SPL to 0.7.11
+
+ -- Proxmox Support Team <support@proxmox.com>  Mon, 10 Sep 2018 15:47:06 +0200
+
+spl-linux (0.7.9-pve1~bpo9) unstable; urgency=medium
+
+  * update SPL to 0.7.9
+
+ -- Proxmox Support Team <support@proxmox.com>  Fri, 18 May 2018 13:49:09 +0200
+
+spl-linux (0.7.8-pve1~bpo9) unstable; urgency=medium
+
+  * update SPL to 0.7.8 (no changes)
+
+ -- Proxmox Support Team <support@proxmox.com>  Mon, 30 Apr 2018 13:47:22 +0200
+
+spl-linux (0.7.7-pve1~bpo9) unstable; urgency=medium
+
+  * update SPL to 0.7.7
+
+ -- Proxmox Support Team <support@proxmox.com>  Tue, 3 Apr 2018 14:28:35 +0200
+
+spl-linux (0.7.6-pve1~bpo9) unstable; urgency=medium
+
+  * update SPL to 0.7.6
+
+ -- Proxmox Support Team <support@proxmox.com>  Wed, 21 Feb 2018 09:47:54 +0100
+
+spl-linux (0.7.4-pve1~bpo9) unstable; urgency=medium
+
+  * update SPL to 0.7.4
+
+ -- Proxmox Support Team <support@proxmox.com>  Tue, 19 Dec 2017 12:52:42 +0100
+
+spl-linux (0.7.3-pve1~bpo9) unstable; urgency=medium
+
+  * update spl to 0.7.3
+
+ -- Proxmox Support Team <support@proxmox.com>  Mon, 6 Nov 2017 09:14:19 +0100
+
+spl-linux (0.7.2-pve1~bpo90) unstable; urgency=medium
+
+  * update spl to 0.7.2
+
+  * clean up man pages
+
+ -- Proxmox Support Team <support@proxmox.com>  Thu, 12 Oct 2017 13:33:04 +0200
+
+spl-linux (0.6.5.11-pve10~bpo90) unstable; urgency=medium
+
+  * update spl to debian/0.6.5.11-1
+
+ -- Proxmox Support Team <support@proxmox.com>  Thu, 27 Jul 2017 13:11:45 +0200
+
+spl-linux (0.6.5.9-pve9~bpo90) unstable; urgency=medium
+
+  * rebuild for PVE 5.0 / Debian Stretch
+
+ -- Proxmox Support Team <support@proxmox.com>  Fri, 10 Mar 2017 09:45:52 +0100
+
+spl-linux (0.6.5.9-pve8~bpo80) unstable; urgency=medium
+
+  * update spl to debian/0.6.5.9-1
+
+ -- Proxmox Support Team <support@proxmox.com>  Mon, 6 Feb 2017 12:39:35 +0100
+
+spl-linux (0.6.5.8-pve7~bpo80) unstable; urgency=medium
+
+  * update spl to debian/0.6.5.8-2
+
+  * switch package upstream sources to Debian (Jessie)
+
+ -- Proxmox Support Team <support@proxmox.com>  Wed, 12 Oct 2016 11:16:02 +0200
+
+spl-linux (0.6.5.7-pve6~bpo80) unstable; urgency=medium
+
+  * update pkg-spl to jessie/0.6.5.7-5
+
+  * change package versioning to allow upgrades from PVE3/wheezy
+
+ -- Proxmox Support Team <support@proxmox.com>  Tue, 28 Jun 2016 09:50:00 +0200
+
+spl-linux (0.6.5-pve5~jessie) unstable; urgency=medium
+
+  * Update pkg-spl to jessie/0.6.5.6-3
+
+ -- Proxmox Support Team <support@proxmox.com>  Fri, 15 Apr 2016 11:11:59 +0200
+
+spl-linux (0.6.5-pve4~jessie) unstable; urgency=medium
+
+  * update to 0.6.5.6
+
+ -- Proxmox Support Team <support@proxmox.com>  Wed, 30 Mar 2016 10:49:49 +0200
+
+spl-linux (0.6.5-pve3~jessie) unstable; urgency=medium
+
+  * update to 0.6.5.4
+
+ -- Proxmox Support Team <support@proxmox.com>  Thu, 14 Jan 2016 11:00:40 +0100
+
+spl-linux (0.6.5-pve2~jessie) unstable; urgency=medium
+
+  * update to 0.6.5.3
+
+ -- Proxmox Support Team <support@proxmox.com>  Wed, 04 Nov 2015 17:40:58 +0100
+
+spl-linux (0.6.5-pve1~jessie) unstable; urgency=medium
+
+  * update to master/debian/jessie/0.6.5-1
+
+ -- Proxmox Support Team <support@proxmox.com>  Mon, 21 Sep 2015 10:04:23 +0200
+
+spl-linux (0.6.4-pve3~jessie) unstable; urgency=medium
+
+  * update to snapshot/debian/jessie/0.6.4-8-8ac6ff
+
+ -- Proxmox Support Team <support@proxmox.com>  Mon, 24 Aug 2015 06:14:12 +0200
+
+spl-linux (0.6.4-pve2~jessie) unstable; urgency=medium
+
+  * update to 0.6.4.2 (snapshot/debian/jessie/0.6.4-6-37d7cd)
+
+ -- Proxmox Support Team <support@proxmox.com>  Tue, 21 Jul 2015 11:02:31 +0200
+
+spl-linux (0.6.4-pve1~jessie) unstable; urgency=medium
+
+  * update to 0.6.4 (use upstream zol package definitions)
+
+ -- Proxmox Support Team <support@proxmox.com>  Tue, 14 Apr 2015 10:17:26 +0200
+
+spl-linux (0.6.3-pve1~jessie) unstable; urgency=medium
+
+  * recompile for jessie
+
+ -- Proxmox Support Team <support@proxmox.com>  Sat, 28 Feb 2015 16:03:01 +0100
+
+spl-linux (0.6.3-pve1~wheezy) unstable; urgency=low
+
+  * first version for Proxmox VE
+
+ -- Proxmox Support Team <support@proxmox.com>  Sat, 10 Jan 2015 14:06:34 +0100
+
+spl-linux (0.7.12-1) unstable; urgency=medium
+
+  * New upstream version 0.7.12
+  * Bump linux compatibility to 4.19 .
+
+ -- Mo Zhou <cdluminate@gmail.com>  Mon, 19 Nov 2018 11:25:53 +0000
+
+spl-linux (0.7.11-1) unstable; urgency=medium
+
+  [ Nicolas Braud-Santoni ]
+  * control: Use a canonical URI for Vcs-Git
+  * copyright: Use HTTPs Format URI in copyright
+  * debian/rules: Enable build hardening
+  * debian/rules: Use DEB_VERSION* instead of manually parsing.
+
+  [ Mo Zhou ]
+  * New upstream version 0.7.11 (Closes: #908483)
+  * Append myself to Uploaders.
+  * Suggests linux-libc-dev (<< LINUX_NEXT~) instead of (<< LINUX_NEXT).
+  * Replace get_next.sh with one-liner awk script in rules.
+  * Bump linux_compat to 4.18 .
+  * Fix debian-rules-sets-dpkg-architecture-variable.
+  * Fix debian-watch-uses-insecure-uri.
+
+ -- Mo Zhou <cdluminate@gmail.com>  Wed, 19 Sep 2018 04:13:01 +0000
+
+spl-linux (0.7.9-3) unstable; urgency=medium
+
+  * d/control: migrate to alioth-lists (Closes: #899692)
+
+ -- Aron Xu <aron@debian.org>  Mon, 28 May 2018 18:05:37 +0800
+
+spl-linux (0.7.9-2) unstable; urgency=medium
+
+  [ Aron Xu ]
+  * New upstream version 0.7.9
+  * Fix lintian obsolete-relation-form-in-source
+  * Bump supported linux version to 4.16
+
+  [ Antonio Russo ]
+  * Reduce dependency on spl, and move documentation (Closes: #894608)
+
+ -- Aron Xu <aron@debian.org>  Wed, 16 May 2018 21:36:17 +0800
+
+spl-linux (0.7.6-1) unstable; urgency=medium
+
+  * New upstream release (Closes: #891235)
+  * Update VCS-* URL to salsa.debian.org
+  * Apply wrap-and-sort to control*
+  * Recommends: linux-libc-dev (< ${LINUX_NEXT}):
+    Tries to prevent unexpected upgrades of kernel that is not known
+    to be supported by the packaged version of ZFS/SPL.
+
+ -- Aron Xu <aron@debian.org>  Mon, 26 Feb 2018 16:29:50 +0800
+
+spl-linux (0.7.5-1) unstable; urgency=medium
+
+  * Add libelf-dev to Depends (Closes: #886453)
+  * New upstream version 0.7.5 (Closes: #886453)
+
+ -- Aron Xu <aron@debian.org>  Fri, 19 Jan 2018 15:23:26 +0800
+
+spl-linux (0.7.4-1) unstable; urgency=medium
+
+  * New upstream version 0.7.4 (Closes: #883830)
+  * Update stdver to 4.1.2, no change required
+
+ -- Aron Xu <aron@debian.org>  Mon, 18 Dec 2017 22:05:32 +0800
+
+spl-linux (0.7.3-1) unstable; urgency=medium
+
+  * New upstream version 0.7.3
+
+ -- Aron Xu <aron@debian.org>  Tue, 31 Oct 2017 17:29:08 +0800
+
+spl-linux (0.6.5.11-1) unstable; urgency=medium
+
+  * Imported Upstream version 0.6.5.11
+
+ -- Aron Xu <aron@debian.org>  Fri, 14 Jul 2017 14:39:21 +0800
+
+spl-linux (0.6.5.10-1) unstable; urgency=medium
+
+  * New upstream version 0.6.5.10
+
+ -- Aron Xu <aron@debian.org>  Wed, 05 Jul 2017 18:00:58 +0800
+
+spl-linux (0.6.5.9-1) unstable; urgency=medium
+
+  * Imported Upstream version 0.6.5.9
+
+ -- Aron Xu <aron@debian.org>  Mon, 06 Feb 2017 15:52:47 +0800
+
+spl-linux (0.6.5.8-3) unstable; urgency=medium
+
+  * Fix Linux 4.9 compatibility (Closes: #851352)
+    Thanks to Fabian Grünbichler!
+
+ -- Aron Xu <aron@debian.org>  Tue, 17 Jan 2017 20:57:13 +0800
+
+spl-linux (0.6.5.8-2) unstable; urgency=medium
+
+  [ Petter Reinholdtsen ]
+  * Added d/gbp.conf to enforce the use of pristine-tar.
+  * Added extra autopkgtest script check.sh from the Ubuntu package.
+
+  [ Aron Xu ]
+  * Make use of dh-autoreconf
+  * Deal with /etc/hostid in postinst of spl package
+  * Add lintian-overrides: extra-license-file
+  * Simplify rules by merging Ubuntu one
+  * Handle the case /etc/hostid is being wrongly marked as conffile
+  * Install man pages for spl
+  * Move command-with-path-in-maintainer-script override to spl
+
+ -- Aron Xu <aron@debian.org>  Wed, 28 Sep 2016 05:02:06 +0800
+
+spl-linux (0.6.5.8-1) unstable; urgency=medium
+
+  [ Petter Reinholdtsen ]
+  * Fix invalid command in dkms (Closes: #836578)
+
+  [ Zhou Mo ]
+  * control: bump standards version to 3.9.8
+
+  [ Aron Xu ]
+  * Imported Upstream version 0.6.5.8 (Closes: #835992)
+  * rules: allow parallel building
+
+ -- Aron Xu <aron@debian.org>  Sun, 18 Sep 2016 01:06:04 +0800
+
+spl-linux (0.6.5.7-1) unstable; urgency=medium
+
+  * Imported Upstream version 0.6.5.7
+
+ -- Aron Xu <aron@debian.org>  Wed, 25 May 2016 12:17:05 +0800
+
+spl-linux (0.6.5.6-2) unstable; urgency=medium
+
+  * Add license names to entries missing it.
+  * Added autopkgtest using code from Ubuntu using dkms >= 2.2.0.3-3~.
+
+ -- Petter Reinholdtsen <pere@hungry.com>  Thu, 28 Apr 2016 20:21:29 +0800
+
+spl-linux (0.6.5.6-1) unstable; urgency=medium
+
+  * New upstream release
+
+ -- Aron Xu <aron@debian.org>  Thu, 24 Mar 2016 07:14:47 +0800
+
+spl-linux (0.6.5.5-1) unstable; urgency=medium
+
+  * New upstream release
+
+ -- Aron Xu <aron@debian.org>  Sun, 20 Mar 2016 22:50:26 +0800
+
+spl-linux (0.6.5.4-1) unstable; urgency=medium
+
+  * New upstream release
+
+ -- Aron Xu <aron@debian.org>  Sun, 10 Jan 2016 20:13:15 +0800
+
+spl-linux (0.6.5.3-1) unstable; urgency=medium
+
+  * New upstream release
+
+ -- Aron Xu <aron@debian.org>  Thu, 05 Nov 2015 21:08:25 +0800
+
+spl-linux (0.6.5.2-1) unstable; urgency=medium
+
+  * Imported Upstream version 0.6.5.2
+  * Add conflicts to splat (Closes: #769147)
+
+ -- Aron Xu <aron@debian.org>  Tue, 13 Oct 2015 15:26:33 +0100
+
+spl-linux (0.6.4.2-1) experimental; urgency=medium
+
+  * New upstream release.
+
+ -- Aron Xu <aron@debian.org>  Thu, 13 Aug 2015 19:58:26 +0800
+
+spl-linux (0.6.4.1-1) experimental; urgency=medium
+
+  * New upstream release.
+
+ -- Aron Xu <aron@debian.org>  Sun, 17 May 2015 05:47:51 +0800
+
+spl-linux (0.6.2-2) experimental; urgency=low
+
+  * Add file and libc-dev to Depends of spl-dkms (Closes: #717565).
+
+ -- Aron Xu <aron@debian.org>  Sun, 25 Aug 2013 02:02:15 +0800
+
+spl-linux (0.6.2-1) experimental; urgency=low
+
+  * New upstream release.
+
+ -- Aron Xu <aron@debian.org>  Sat, 24 Aug 2013 14:30:25 +0800
+
+spl-linux (0.6.1-2) experimental; urgency=low
+
+  * Add license info for scripts/kmodtool
+  * Add linux 3.10 compatibility patch from upstream. (Closes: #717565)
+  * Add facility to build udeb and binary modules, thanks Turbo Fredriksson
+    for the work.
+
+ -- Aron Xu <aron@debian.org>  Mon, 29 Jul 2013 16:04:24 +0800
+
+spl-linux (0.6.1-1) experimental; urgency=low
+
+  * Initial Release (Closes: #686453)
+
+ -- Aron Xu <aron@debian.org>  Tue, 02 Apr 2013 01:03:05 +0200
