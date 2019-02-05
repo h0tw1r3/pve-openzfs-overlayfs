@@ -3,7 +3,7 @@ Section: contrib/kernel
 Priority: optional
 Maintainer: Proxmox Support Team <support@proxmox.com>
 Build-Depends: autotools-dev,
-               debhelper (>= 10.2),
+               debhelper (>= 10~),
                dh-autoreconf,
                dh-python,
                libattr1-dev,

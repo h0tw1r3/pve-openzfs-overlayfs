@@ -4,7 +4,7 @@ Priority: optional
 Maintainer: Proxmox Support Team <support@proxmox.com>
 Build-Depends: autogen,
                autotools-dev,
-               debhelper (>= 9),
+               debhelper (>= 10~),
                dh-autoreconf,
                libtool
 Standards-Version: 4.1.2
