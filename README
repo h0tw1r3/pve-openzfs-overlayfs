@@ -2,8 +2,8 @@ Proxmox VE packaging for ZFS on Linux
 
 This is based on code from:
 
-https://github.com/zfsonlinux/pkg-spl.git
-https://github.com/zfsonlinux/pkg-zfs.git
+https://salsa.debian.org/zfsonlinux-team/zfs
+https://salsa.debian.org/zfsonlinux-team/spl
 
 We removed the dkms/modules related code, because we ship the
 modules with the kernel.
