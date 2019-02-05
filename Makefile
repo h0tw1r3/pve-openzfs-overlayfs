@@ -42,6 +42,12 @@ deb: ${DEBS}
 .PHONY: dsc
 dsc: ${DSCS}
 
+# called from pve-kernel's Makefile to get patched sources
+.PHONY: kernel
+kernel: dsc
+	dpkg-source -x ${SPL_DSC} ../pkg-spl
+	dpkg-source -x ${ZFS_DSC} ../pkg-zfs
+
 .PHONY: dinstall
 dinstall: ${DEBS}
 	dpkg -i ${DEBS}
