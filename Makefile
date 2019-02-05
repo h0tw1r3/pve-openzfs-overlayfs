@@ -8,10 +8,12 @@ SPLPKGREL=pve1~bpo1
 ZFSPKGVER=${ZFSVER}-${ZFSPKGREL}
 SPLPKGVER=${ZFSVER}-${SPLPKGREL}
 
-SPLDIR=spl-build
-SPLSRC=spl-debian
-ZFSDIR=zfs-build
-ZFSSRC=zfs-debian
+SPLDIR=spl-${ZFSVER}
+SPLSRC=spl/upstream
+SPLPKG=spl/debian
+ZFSDIR=zfs-${ZFSVER}
+ZFSSRC=zfs/upstream
+ZFSPKG=zfs/debian
 
 SPL_DEB = 					\
 spl_${SPLPKGVER}_amd64.deb
@@ -40,8 +42,8 @@ dinstall: ${DEBS}
 
 .PHONY: submodule
 submodule:
-	test -f "${ZFSSRC}/debian/changelog" || git submodule update --init
-	test -f "${SPLSRC}/debian/changelog" || git submodule update --init
+	test -f "${ZFSSRC}/README.markdown" || git submodule update --init
+	test -f "${SPLSRC}/README.markdown" || git submodule update --init
 
 .PHONY: spl
 spl: ${SPL_DEB}
@@ -49,11 +51,7 @@ ${SPL_DEB}: ${SPLSRC}
 	rm -rf ${SPLDIR}
 	mkdir ${SPLDIR}
 	cp -a ${SPLSRC}/* ${SPLDIR}/
-	mv ${SPLDIR}/debian/changelog ${SPLDIR}/debian/changelog.org
-	cat spl-changelog.Debian ${SPLDIR}/debian/changelog.org > ${SPLDIR}/debian/changelog
-	cd ${SPLDIR}; ln -s ../spl-patches patches
-	cd ${SPLDIR}; quilt push -a
-	cd ${SPLDIR}; rm -rf .pc ./patches
+	cp -a ${SPLPKG} ${SPLDIR}/debian
 	cd ${SPLDIR}; dpkg-buildpackage -b -uc -us
 
 .PHONY: zfs
@@ -63,11 +61,7 @@ $(ZFS_DEB1): $(ZFSSRC)
 	rm -rf ${ZFSDIR}
 	mkdir ${ZFSDIR}
 	cp -a ${ZFSSRC}/* ${ZFSDIR}/
-	mv ${ZFSDIR}/debian/changelog ${ZFSDIR}/debian/changelog.org
-	cat zfs-changelog.Debian ${ZFSDIR}/debian/changelog.org > ${ZFSDIR}/debian/changelog
-	cd ${ZFSDIR}; ln -s ../zfs-patches patches
-	cd ${ZFSDIR}; quilt push -a
-	cd ${ZFSDIR}; rm -rf .pc ./patches
+	cp -a ${ZFSPKG} ${ZFSDIR}/debian
 	cd ${ZFSDIR}; dpkg-buildpackage -b -uc -us
 
 .PHONY: clean
@@ -76,7 +70,6 @@ clean:
 
 .PHONY: distclean
 distclean: clean
-
 
 .PHONY: upload
 upload: ${DEBS}
