@@ -8,15 +8,16 @@ SPLPKGREL=pve1~bpo1
 ZFSPKGVER=${ZFSVER}-${ZFSPKGREL}
 SPLPKGVER=${ZFSVER}-${SPLPKGREL}
 
-SPLDIR=spl-${ZFSVER}
+SPLDIR=spl-linux_${ZFSVER}
 SPLSRC=spl/upstream
 SPLPKG=spl/debian
-ZFSDIR=zfs-${ZFSVER}
+ZFSDIR=zfs-linux_${ZFSVER}
 ZFSSRC=zfs/upstream
 ZFSPKG=zfs/debian
 
 SPL_DEB = 					\
 spl_${SPLPKGVER}_amd64.deb
+SPL_DSC = spl-linux_${SPLPKGVER}.dsc
 
 ZFS_DEB1= libnvpair1linux_${ZFSPKGVER}_amd64.deb
 ZFS_DEB2= 					\
@@ -30,11 +31,16 @@ zfs-initramfs_${ZFSPKGVER}_all.deb		\
 zfs-test_${ZFSPKGVER}_amd64.deb		\
 zfsutils-linux_${ZFSPKGVER}_amd64.deb
 ZFS_DEBS= $(ZFS_DEB1) $(ZFS_DEB2)
+ZFS_DSC = zfs-linux_${ZFSPKGVER}.dsc
 
 DEBS=${SPL_DEB} ${ZFS_DEBS}
+DSCS=${SPL_DSC} ${ZFS_DSC}
 
 all: deb
+.PHONY: deb
 deb: ${DEBS}
+.PHONY: dsc
+dsc: ${DSCS}
 
 .PHONY: dinstall
 dinstall: ${DEBS}
@@ -47,26 +53,43 @@ submodule:
 
 .PHONY: spl
 spl: ${SPL_DEB}
-${SPL_DEB}: ${SPLSRC}
+${SPL_DEB}: ${SPLDIR}
+	cd ${SPLDIR}; dpkg-buildpackage -b -uc -us
+	lintian ${SPL_DEB}
+
+${SPL_DSC}: ${SPLDIR}
+	tar czf spl-linux_${ZFSVER}.orig.tar.gz ${SPLDIR}
+	cd ${SPLDIR}; dpkg-buildpackage -S -uc -us -d
+	lintian $@
+
+${SPLDIR}: ${SPLSRC} ${SPLPKG}
 	rm -rf ${SPLDIR}
 	mkdir ${SPLDIR}
 	cp -a ${SPLSRC}/* ${SPLDIR}/
 	cp -a ${SPLPKG} ${SPLDIR}/debian
-	cd ${SPLDIR}; dpkg-buildpackage -b -uc -us
 
 .PHONY: zfs
 zfs: $(ZFS_DEBS)
 $(ZFS_DEB2): $(ZFS_DEB1)
-$(ZFS_DEB1): $(ZFSSRC)
+$(ZFS_DEB1): ${ZFSDIR}
+	cd ${ZFSDIR}; dpkg-buildpackage -b -uc -us
+	lintian ${ZFS_DEBS}
+
+${ZFS_DSC}: ${ZFSDIR}
+	tar czf zfs-linux_${ZFSVER}.orig.tar.gz ${ZFSDIR}
+	cd ${ZFSDIR}; dpkg-buildpackage -S -uc -us -d
+	lintian $@
+
+${ZFSDIR}: $(ZFSSRC) ${ZFSPKG}
 	rm -rf ${ZFSDIR}
 	mkdir ${ZFSDIR}
 	cp -a ${ZFSSRC}/* ${ZFSDIR}/
 	cp -a ${ZFSPKG} ${ZFSDIR}/debian
-	cd ${ZFSDIR}; dpkg-buildpackage -b -uc -us
+
 
 .PHONY: clean
 clean: 	
-	rm -rf *~ *.deb *.changes *.buildinfo ${ZFSDIR} ${SPLDIR}
+	rm -rf *~ *.deb *.changes *.buildinfo *.dsc *.orig.tar.* *.debian.tar.* ${ZFSDIR} ${SPLDIR}
 
 .PHONY: distclean
 distclean: clean
