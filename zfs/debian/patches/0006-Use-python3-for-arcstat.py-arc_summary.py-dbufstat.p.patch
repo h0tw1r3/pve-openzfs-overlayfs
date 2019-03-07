@@ -1,6 +1,7 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
 From: Colin Ian King <colin.king@canonical.com>
 Date: Mon, 17 Oct 2016 14:30:56 +0800
-Subject: Use python3 for arcstat.py, arc_summary.py & dbufstat.py
+Subject: [PATCH] Use python3 for arcstat.py, arc_summary.py & dbufstat.py
 
 ---
  cmd/arc_summary/arc_summary.py | 2 +-
@@ -9,7 +10,7 @@ Subject: Use python3 for arcstat.py, arc_summary.py & dbufstat.py
  3 files changed, 3 insertions(+), 3 deletions(-)
 
 diff --git a/cmd/arc_summary/arc_summary.py b/cmd/arc_summary/arc_summary.py
-index f6dbb9b..723c2e5 100755
+index f6dbb9bfb..723c2e5a6 100755
 --- a/cmd/arc_summary/arc_summary.py
 +++ b/cmd/arc_summary/arc_summary.py
 @@ -1,4 +1,4 @@
@@ -19,7 +20,7 @@ index f6dbb9b..723c2e5 100755
  # $Id: arc_summary.pl,v 388:e27800740aa2 2011-07-08 02:53:29Z jhell $
  #
 diff --git a/cmd/arcstat/arcstat.py b/cmd/arcstat/arcstat.py
-index d7d3e9b..3a7a47d 100755
+index d7d3e9b73..3a7a47d67 100755
 --- a/cmd/arcstat/arcstat.py
 +++ b/cmd/arcstat/arcstat.py
 @@ -1,4 +1,4 @@
@@ -29,7 +30,7 @@ index d7d3e9b..3a7a47d 100755
  # Print out ZFS ARC Statistics exported via kstat(1)
  # For a definition of fields, or usage, use arctstat.pl -v
 diff --git a/cmd/dbufstat/dbufstat.py b/cmd/dbufstat/dbufstat.py
-index 42bb0c7..73e02ca 100755
+index 42bb0c7c7..73e02ca11 100755
 --- a/cmd/dbufstat/dbufstat.py
 +++ b/cmd/dbufstat/dbufstat.py
 @@ -1,4 +1,4 @@

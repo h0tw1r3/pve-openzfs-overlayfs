@@ -1,6 +1,7 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
 From: Richard Laager <rlaager@wiktel.com>
 Date: Wed, 30 Jan 2019 15:12:04 +0100
-Subject: Enable zed emails
+Subject: [PATCH] Enable zed emails
 
 The OpenZFS event daemon monitors pools. This patch enables the email sending
 function by default (if zed is installed). This is consistent with the default
@@ -10,7 +11,7 @@ behavior of mdadm.
  1 file changed, 2 insertions(+), 2 deletions(-)
 
 diff --git a/cmd/zed/zed.d/zed.rc b/cmd/zed/zed.d/zed.rc
-index 35a4d12..c6c106b 100644
+index 35a4d1275..c6c106b06 100644
 --- a/cmd/zed/zed.d/zed.rc
 +++ b/cmd/zed/zed.d/zed.rc
 @@ -15,7 +15,7 @@

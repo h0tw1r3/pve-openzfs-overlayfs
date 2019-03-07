@@ -1,8 +1,9 @@
-From: =?utf-8?q?Fabian_Gr=C3=BCnbichler?= <f.gruenbichler@proxmox.com>
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: =?UTF-8?q?Fabian=20Gr=C3=BCnbichler?= <f.gruenbichler@proxmox.com>
 Date: Mon, 4 Sep 2017 10:59:32 +0200
-Subject: add man page reference to systemd units
+Subject: [PATCH] add man page reference to systemd units
 MIME-Version: 1.0
-Content-Type: text/plain; charset="utf-8"
+Content-Type: text/plain; charset=UTF-8
 Content-Transfer-Encoding: 8bit
 
 Signed-off-by: Fabian Grünbichler <f.gruenbichler@proxmox.com>
@@ -14,7 +15,7 @@ Signed-off-by: Fabian Grünbichler <f.gruenbichler@proxmox.com>
  4 files changed, 4 insertions(+)
 
 diff --git a/etc/systemd/system/zfs-import-cache.service.in b/etc/systemd/system/zfs-import-cache.service.in
-index 726c468..d5b4043 100644
+index 97808dee7..cb4358fb4 100644
 --- a/etc/systemd/system/zfs-import-cache.service.in
 +++ b/etc/systemd/system/zfs-import-cache.service.in
 @@ -1,5 +1,6 @@
@@ -25,7 +26,7 @@ index 726c468..d5b4043 100644
  Requires=systemd-udev-settle.service
  After=systemd-udev-settle.service
 diff --git a/etc/systemd/system/zfs-import-scan.service.in b/etc/systemd/system/zfs-import-scan.service.in
-index abc8e8e..fd66505 100644
+index c097e3852..e7b1d8862 100644
 --- a/etc/systemd/system/zfs-import-scan.service.in
 +++ b/etc/systemd/system/zfs-import-scan.service.in
 @@ -1,5 +1,6 @@
@@ -36,7 +37,7 @@ index abc8e8e..fd66505 100644
  Requires=systemd-udev-settle.service
  After=systemd-udev-settle.service
 diff --git a/etc/systemd/system/zfs-mount.service.in b/etc/systemd/system/zfs-mount.service.in
-index 728fc63..8a73716 100644
+index 728fc630c..8a73716f5 100644
 --- a/etc/systemd/system/zfs-mount.service.in
 +++ b/etc/systemd/system/zfs-mount.service.in
 @@ -1,5 +1,6 @@
@@ -47,7 +48,7 @@ index 728fc63..8a73716 100644
  After=systemd-udev-settle.service
  After=zfs-import.target
 diff --git a/etc/systemd/system/zfs-share.service.in b/etc/systemd/system/zfs-share.service.in
-index 494f5cb..d0c93a3 100644
+index 494f5cbef..d0c93a3e6 100644
 --- a/etc/systemd/system/zfs-share.service.in
 +++ b/etc/systemd/system/zfs-share.service.in
 @@ -1,5 +1,6 @@

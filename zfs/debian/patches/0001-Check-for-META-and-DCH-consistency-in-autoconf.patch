@@ -1,14 +1,15 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
 From: Debian ZFS on Linux maintainers
  <pkg-zfsonlinux-devel@alioth-lists.debian.net>
 Date: Wed, 30 Jan 2019 15:12:04 +0100
-Subject: Check-for-META-and-DCH-consistency-in-autoconf
+Subject: [PATCH] Check-for-META-and-DCH-consistency-in-autoconf
 
 ---
  config/zfs-meta.m4 | 34 +++++++++++++++++++++++++++++-----
  1 file changed, 29 insertions(+), 5 deletions(-)
 
 diff --git a/config/zfs-meta.m4 b/config/zfs-meta.m4
-index 3e1429d..b8e26c4 100644
+index 3e1429d99..b8e26c492 100644
 --- a/config/zfs-meta.m4
 +++ b/config/zfs-meta.m4
 @@ -1,9 +1,10 @@

@@ -1,8 +1,9 @@
-From: =?utf-8?q?Fabian_Gr=C3=BCnbichler?= <f.gruenbichler@proxmox.com>
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: =?UTF-8?q?Fabian=20Gr=C3=BCnbichler?= <f.gruenbichler@proxmox.com>
 Date: Mon, 24 Oct 2016 13:47:06 +0200
-Subject: import with -d /dev/disk/by-id in scan service
+Subject: [PATCH] import with -d /dev/disk/by-id in scan service
 MIME-Version: 1.0
-Content-Type: text/plain; charset="utf-8"
+Content-Type: text/plain; charset=UTF-8
 Content-Transfer-Encoding: 8bit
 
 Signed-off-by: Fabian Grünbichler <f.gruenbichler@proxmox.com>
@@ -12,13 +13,13 @@ Signed-off-by: Stoiko Ivanov <s.ivanov@proxmox.com>
  1 file changed, 1 insertion(+), 1 deletion(-)
 
 diff --git a/etc/systemd/system/zfs-import-scan.service.in b/etc/systemd/system/zfs-import-scan.service.in
-index fd66505..5cbfec8 100644
+index e7b1d8862..060540f63 100644
 --- a/etc/systemd/system/zfs-import-scan.service.in
 +++ b/etc/systemd/system/zfs-import-scan.service.in
-@@ -13,7 +13,7 @@ ConditionPathExists=!@sysconfdir@/zfs/zpool.cache
+@@ -12,7 +12,7 @@ ConditionPathExists=!@sysconfdir@/zfs/zpool.cache
+ [Service]
  Type=oneshot
  RemainAfterExit=yes
- ExecStartPre=-/sbin/modprobe zfs
 -ExecStart=@sbindir@/zpool import -aN -o cachefile=none
 +ExecStart=@sbindir@/zpool import -aN -d /dev/disk/by-id -o cachefile=none
  

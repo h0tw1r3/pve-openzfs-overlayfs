@@ -1,6 +1,7 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
 From: Colin Ian King <colin.king@canonical.com>
 Date: Tue, 31 Oct 2017 19:12:42 +0800
-Subject: increase-default-zcmd-allocation-to-256K
+Subject: [PATCH] increase-default-zcmd-allocation-to-256K
 
 Increase default zcmd allocation to 256K (LP: #567557)
 
@@ -60,10 +61,10 @@ Signed-off-by: Colin Ian King <colin.king@canonical.com>
  1 file changed, 1 insertion(+), 1 deletion(-)
 
 diff --git a/lib/libzfs/libzfs_util.c b/lib/libzfs/libzfs_util.c
-index bc51a76..8580415 100644
+index 9703f844f..0cfcf9c2f 100644
 --- a/lib/libzfs/libzfs_util.c
 +++ b/lib/libzfs/libzfs_util.c
-@@ -1354,7 +1354,7 @@ int
+@@ -1355,7 +1355,7 @@ int
  zcmd_alloc_dst_nvlist(libzfs_handle_t *hdl, zfs_cmd_t *zc, size_t len)
  {
  	if (len == 0)

@@ -1,8 +1,9 @@
-From: =?utf-8?q?Fabian_Gr=C3=BCnbichler?= <f.gruenbichler@proxmox.com>
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: =?UTF-8?q?Fabian=20Gr=C3=BCnbichler?= <f.gruenbichler@proxmox.com>
 Date: Thu, 12 Oct 2017 08:57:48 +0200
-Subject: fix install path of zpool.d scripts
+Subject: [PATCH] fix install path of zpool.d scripts
 MIME-Version: 1.0
-Content-Type: text/plain; charset="utf-8"
+Content-Type: text/plain; charset=UTF-8
 Content-Transfer-Encoding: 8bit
 
 Signed-off-by: Fabian Grünbichler <f.gruenbichler@proxmox.com>
@@ -11,7 +12,7 @@ Signed-off-by: Fabian Grünbichler <f.gruenbichler@proxmox.com>
  1 file changed, 3 insertions(+), 3 deletions(-)
 
 diff --git a/cmd/zpool/Makefile.am b/cmd/zpool/Makefile.am
-index d07f8d6..5d26f32 100644
+index d07f8d616..5d26f326e 100644
 --- a/cmd/zpool/Makefile.am
 +++ b/cmd/zpool/Makefile.am
 @@ -22,11 +22,11 @@ zpool_LDADD = \
