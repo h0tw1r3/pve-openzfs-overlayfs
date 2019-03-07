@@ -2,18 +2,17 @@ RELEASE=5.1
 
 # source form https://github.com/zfsonlinux/
 
-ZFSVER=0.7.12
-ZFSPKGREL=pve1~bpo1
-SPLPKGREL=pve1~bpo1
-ZFSPKGVER=${ZFSVER}-${ZFSPKGREL}
-SPLPKGVER=${ZFSVER}-${SPLPKGREL}
-
 SPLDIR=spl-linux_${ZFSVER}
 SPLSRC=spl/upstream
 SPLPKG=spl/debian
 ZFSDIR=zfs-linux_${ZFSVER}
 ZFSSRC=zfs/upstream
 ZFSPKG=zfs/debian
+
+ZFSVER != dpkg-parsechangelog -l ${ZFSPKG}/changelog -Sversion | cut -d- -f1
+
+ZFSPKGVER != dpkg-parsechangelog -l ${ZFSPKG}/changelog -Sversion
+SPLPKGVER != dpkg-parsechangelog -l ${SPLPKG}/changelog -Sversion
 
 SPL_DEB = 					\
 spl_${SPLPKGVER}_amd64.deb
