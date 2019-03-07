@@ -1,3 +1,10 @@
+spl-linux (0.7.13-pve1~bpo2) unstable; urgency=medium
+
+  * base spl-linux on upstream ZOL instead of debian
+  * update SPL to 0.7.13
+
+ -- Proxmox Support Team <support@proxmox.com>  Tue, 05 Mar 2019 20:07:15 +0100
+
 spl-linux (0.7.12-pve1~bpo1) unstable; urgency=medium
 
   * update SPL to 0.7.12
