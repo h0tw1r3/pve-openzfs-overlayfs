@@ -1,3 +1,9 @@
+zfs-linux (0.7.13-pve1~bpo2) unstable; urgency=medium
+
+  * remove conflict with insserv  (<< 1.18)
+
+ -- Proxmox Support Team <support@proxmox.com>  Wed, 27 Mar 2019 09:56:15 +0100
+
 zfs-linux (0.7.13-pve1~bpo1) unstable; urgency=medium
 
   * update ZFS to 0.7.13
