@@ -113,7 +113,7 @@ Recommends: lsb-base, zfs-zed
 Suggests: nfs-kernel-server,
           samba-common-bin (>= 3.0.23),
           zfs-initramfs
-Conflicts: zfs, zfs-fuse, insserv (<< 1.18)
+Conflicts: zfs, zfs-fuse
 Provides: zfsutils
 Description: command-line tools to manage OpenZFS filesystems
  The Z file system is a pooled filesystem designed for maximum data
