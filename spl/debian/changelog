@@ -1,3 +1,9 @@
+spl-linux (0.7.13-pve2~bpo2) pve pmg; urgency=medium
+
+  * rebuild for PVE 6.0 / Debian Buster
+
+ -- Proxmox Support Team <support@proxmox.com>  Tue, 21 May 2019 20:07:28 +0200
+
 spl-linux (0.7.13-pve1~bpo2) unstable; urgency=medium
 
   * update SPL to 0.7.13

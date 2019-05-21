@@ -1,3 +1,9 @@
+zfs-linux (0.7.13-pve2~bpo2) pve pmg; urgency=medium
+
+  * rebuild for PVE 6.0 / Debian Buster
+
+ -- Proxmox Support Team <support@proxmox.com>  Tue, 21 May 2019 20:08:45 +0200
+
 zfs-linux (0.7.13-pve1~bpo2) unstable; urgency=medium
 
   * remove conflict with insserv  (<< 1.18)
