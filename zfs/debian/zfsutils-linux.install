@@ -9,6 +9,7 @@ lib/systemd/system/zfs-import.target
 lib/systemd/system/zfs-mount.service
 lib/systemd/system/zfs-share.service
 lib/systemd/system/zfs.target
+lib/systemd/system-generators/zfs-mount-generator
 lib/udev/
 sbin/fsck.zfs
 sbin/mount.zfs
@@ -31,6 +32,8 @@ usr/share/man/man8/mount.zfs.8
 usr/share/man/man8/vdev_id.8
 usr/share/man/man8/zdb.8
 usr/share/man/man8/zfs.8
+usr/share/man/man8/zfs-mount-generator.8
+usr/share/man/man8/zfs-program.8
 usr/share/man/man8/zgenhostid.8
 usr/share/man/man8/zpool.8
 usr/share/man/man8/zstreamdump.8
