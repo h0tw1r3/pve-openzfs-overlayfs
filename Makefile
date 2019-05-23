@@ -3,8 +3,8 @@ RELEASE=5.1
 # source form https://github.com/zfsonlinux/
 
 ZFSDIR=zfs-linux_${ZFSVER}
-ZFSSRC=zfs/upstream
-ZFSPKG=zfs/debian
+ZFSSRC=upstream
+ZFSPKG=debian
 
 ZFSVER != dpkg-parsechangelog -l ${ZFSPKG}/changelog -Sversion | cut -d- -f1
 
