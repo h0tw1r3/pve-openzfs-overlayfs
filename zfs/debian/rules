@@ -2,15 +2,23 @@
 
 include /usr/share/dpkg/default.mk
 
+VERSION := $(DEB_VERSION_UPSTREAM)
+REVISION := $(shell echo $(DEB_VERSION) | cut -d- -f2)
+
 export DEB_BUILD_MAINT_OPTIONS = hardening=+all
 
 %:
 	dh $@ --with autoreconf,python3,systemd --parallel
 
-override_dh_autoreconf:
+adapt_meta_file:
 	@# Embed the downstream version in the module.
-	@sed -e 's/^Version:.*/Version:      $(DEB_VERSION_UPSTREAM)/' -i.orig META
+	@sed \
+	  -e 's/^Version:.*/Version:      $(VERSION)/' \
+	  -e 's/^Release:.*/Release:      $(REVISION)/' \
+	  -i.orig META
 
+
+override_dh_autoreconf: adapt_meta_file
 	dh_autoreconf
 
 override_dh_auto_configure:
