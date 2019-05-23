@@ -9,13 +9,17 @@ Build-Depends: autotools-dev,
                libattr1-dev,
                libblkid-dev,
                libselinux1-dev,
+               libssl-dev | libssl1.0-dev,
                libtool,
                lsb-release,
-               python3,
+               python3-cffi,
+               python3-setuptools,
+               python3-sphinx,
+               python3-all-dev,
                uuid-dev,
                zlib1g-dev
 Standards-Version: 4.1.2
-Homepage: http://www.zfsonlinux.org/
+Homepage: https://www.zfsonlinux.org/
 Vcs-Git: https://git.proxmox.com/git/zfsonlinux.git
 Vcs-Browser: https://git.proxmox.com/?p=zfsonlinux.git;a=summary
 
@@ -89,6 +93,51 @@ Description: OpenZFS pool library for Linux
  .
  This zpool library provides support for managing zpools.
 
+Package: python3-pyzfs
+Section: contrib/python
+Architecture: linux-any
+Depends: ${misc:Depends},
+         ${python3:Depends},
+         python3-cffi,
+         zfsutils-linux (= ${binary:Version})
+Description: wrapper for libzfs_core C library
+ libzfs_core is intended to be a stable interface for programmatic
+ administration of ZFS. This wrapper provides one-to-one wrappers for
+ libzfs_core API functions, but the signatures and types are more natural to
+ Python.
+ .
+ nvlists are wrapped as dictionaries or lists depending on their usage.
+ Some parameters have default values depending on typical use for
+ increased convenience. Enumerations and bit flags become strings and lists
+ of strings in Python. Errors are reported as exceptions rather than integer
+ errno-style error codes.  The wrapper takes care to provide one-to-many
+ mapping of the error codes to the exceptions by interpreting a context
+ in which the error code is produced.
+
+Package: pyzfs-doc
+Section: contrib/doc
+Architecture: all
+Depends:
+ ${sphinxdoc:Depends},
+ ${misc:Depends}
+Recommends:
+ python3-pyzfs
+Description: wrapper for libzfs_core C library (documentation)
+ libzfs_core is intended to be a stable interface for programmatic
+ administration of ZFS. This wrapper provides one-to-one wrappers for
+ libzfs_core API functions, but the signatures and types are more natural to
+ Python.
+ .
+ nvlists are wrapped as dictionaries or lists depending on their usage.
+ Some parameters have default values depending on typical use for
+ increased convenience. Enumerations and bit flags become strings and lists
+ of strings in Python. Errors are reported as exceptions rather than integer
+ errno-style error codes.  The wrapper takes care to provide one-to-many
+ mapping of the error codes to the exceptions by interpreting a context
+ in which the error code is produced.
+ .
+ This package contains the documentation.
+
 Package: zfs-initramfs
 Architecture: all
 Depends: busybox-initramfs | busybox-static | busybox,
@@ -146,7 +195,8 @@ Depends: acl,
          lsscsi,
          mdadm,
          parted,
-         python,
+         python3,
+         python3-pyzfs,
          sudo,
          sysstat,
          zfsutils-linux (>=${binary:Version}),

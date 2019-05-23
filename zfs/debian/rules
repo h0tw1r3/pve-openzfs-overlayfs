@@ -5,10 +5,12 @@ include /usr/share/dpkg/default.mk
 VERSION := $(DEB_VERSION_UPSTREAM)
 REVISION := $(shell echo $(DEB_VERSION) | cut -d- -f2)
 
+SPHINX_BUILD = $(shell dpkg -L python3-sphinx | grep "sphinx-build$$")
+
 export DEB_BUILD_MAINT_OPTIONS = hardening=+all
 
 %:
-	dh $@ --with autoreconf,python3,systemd --parallel
+	dh $@ --with autoreconf,python3,systemd,sphinxdoc --parallel
 
 adapt_meta_file:
 	@# Embed the downstream version in the module.
@@ -30,6 +32,7 @@ override_dh_auto_configure:
 	  --with-udevdir=/lib/udev \
 	  --with-zfsexecdir=/usr/lib/zfs-linux \
 	  --enable-systemd \
+	  --enable-pyzfs \
 	  --with-systemdunitdir=/lib/systemd/system \
 	  --with-systemdpresetdir=/lib/systemd/system-preset \
 	  --with-systemdgeneratordir=/lib/systemd/system-generators \
@@ -68,6 +71,9 @@ override_dh_auto_install:
 	chmod a-x '$(CURDIR)/debian/tmp/etc/default/zfs'
 	chmod a-x '$(CURDIR)/debian/tmp/usr/share/bash-completion/completions/zfs'
 
+override_dh_python3:
+	dh_python3 -p python3-pyzfs
+
 override_dh_makeshlibs:
 	dh_makeshlibs -a -V
 ifeq ($(BUILD_UDEB), true)
@@ -90,6 +96,12 @@ override_dh_auto_clean:
 override_dh_install:
 	find . -name lib*.la -delete
 	dh_install --fail-missing
+
+override_dh_installdocs:
+	dh_installdocs
+ifeq (,$(findstring nodoc, $(DEB_BUILD_OPTIONS)))
+	http_proxy='127.0.0.1:9' $(SPHINX_BUILD) -N -bhtml "$(CURDIR)/contrib/pyzfs/docs/source/" debian/pyzfs-doc/usr/share/doc/pyzfs-doc/html/
+endif
 
 # ------------
 
