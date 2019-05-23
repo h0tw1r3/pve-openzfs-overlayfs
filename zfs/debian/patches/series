@@ -1,10 +1,6 @@
 0001-Check-for-META-and-DCH-consistency-in-autoconf.patch
-0002-Add-libuutil-to-LIBADD-for-libzfs-and-libzfs_core.patch
-0003-add-man-page-reference-to-systemd-units.patch
-0004-always-load-ZFS-module-on-boot.patch
-0006-Use-python3-for-arcstat.py-arc_summary.py-dbufstat.p.patch
-0007-Fix-the-path-to-the-zed-binary-on-the-systemd-unit.patch
-0008-increase-default-zcmd-allocation-to-256K.patch
-0009-import-with-d-dev-disk-by-id-in-scan-service.patch
-0010-Fix-deadlock-between-zfs-umount-snapentry_expire.patch
-0011-Enable-zed-emails.patch
+0002-always-load-ZFS-module-on-boot.patch
+0003-Fix-the-path-to-the-zed-binary-on-the-systemd-unit.patch
+0004-increase-default-zcmd-allocation-to-256K.patch
+0005-import-with-d-dev-disk-by-id-in-scan-service.patch
+0006-Enable-zed-emails.patch

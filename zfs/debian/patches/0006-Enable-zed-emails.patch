@@ -11,7 +11,7 @@ behavior of mdadm.
  1 file changed, 2 insertions(+), 2 deletions(-)
 
 diff --git a/cmd/zed/zed.d/zed.rc b/cmd/zed/zed.d/zed.rc
-index 35a4d1275..c6c106b06 100644
+index 0ef706849..50632bfcb 100644
 --- a/cmd/zed/zed.d/zed.rc
 +++ b/cmd/zed/zed.d/zed.rc
 @@ -15,7 +15,7 @@

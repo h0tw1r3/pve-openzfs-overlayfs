@@ -11,11 +11,11 @@ they ship their own zfs-zed unit.
  1 file changed, 1 insertion(+), 1 deletion(-)
 
 diff --git a/etc/systemd/system/zfs-zed.service.in b/etc/systemd/system/zfs-zed.service.in
-index e3dec3dca..0b85f169a 100644
+index f4313625e..444e776fd 100644
 --- a/etc/systemd/system/zfs-zed.service.in
 +++ b/etc/systemd/system/zfs-zed.service.in
-@@ -5,7 +5,7 @@ After=zfs-import-cache.service
- After=zfs-import-scan.service
+@@ -3,7 +3,7 @@ Description=ZFS Event Daemon (zed)
+ Documentation=man:zed(8)
  
  [Service]
 -ExecStart=@sbindir@/zed -F

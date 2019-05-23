@@ -61,10 +61,10 @@ Signed-off-by: Colin Ian King <colin.king@canonical.com>
  1 file changed, 1 insertion(+), 1 deletion(-)
 
 diff --git a/lib/libzfs/libzfs_util.c b/lib/libzfs/libzfs_util.c
-index 9703f844f..0cfcf9c2f 100644
+index 19bb57ad4..2a069ffe6 100644
 --- a/lib/libzfs/libzfs_util.c
 +++ b/lib/libzfs/libzfs_util.c
-@@ -1355,7 +1355,7 @@ int
+@@ -1134,7 +1134,7 @@ int
  zcmd_alloc_dst_nvlist(libzfs_handle_t *hdl, zfs_cmd_t *zc, size_t len)
  {
  	if (len == 0)

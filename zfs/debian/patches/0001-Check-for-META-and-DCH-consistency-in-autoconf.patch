@@ -9,7 +9,7 @@ Subject: [PATCH] Check-for-META-and-DCH-consistency-in-autoconf
  1 file changed, 29 insertions(+), 5 deletions(-)
 
 diff --git a/config/zfs-meta.m4 b/config/zfs-meta.m4
-index 3e1429d99..b8e26c492 100644
+index aa0fc1420..f525e2010 100644
 --- a/config/zfs-meta.m4
 +++ b/config/zfs-meta.m4
 @@ -1,9 +1,10 @@
@@ -35,7 +35,7 @@ index 3e1429d99..b8e26c492 100644
  
  		ZFS_META_NAME=_ZFS_AC_META_GETVAL([(Name|Project|Package)]);
  		if test -n "$ZFS_META_NAME"; then
-@@ -66,8 +68,30 @@ AC_DEFUN([ZFS_AC_META], [
+@@ -69,8 +71,30 @@ AC_DEFUN([ZFS_AC_META], [
  			AC_SUBST([ZFS_META_VERSION])
  		fi
  
