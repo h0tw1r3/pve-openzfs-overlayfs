@@ -182,3 +182,22 @@ Description: Debugging symbols for OpenZFS userland libraries and tools
  .
  This package contains the debugging symbols for libzpool2linux, libzfs2linux,
  libnvpair1linux, libuutil1linux, zfs-zed and zfsutils-linux.
+
+Package: spl
+Section: contrib/metapackages
+Architecture: all
+Depends: ${misc:Depends},
+Suggests: zfs-test
+Description: Solaris Porting Layer user-space utilities for Linux (dummy)
+ The Solaris Porting Layer (SPL) is a Linux kernel module which provides
+ many of the Solaris kernel APIs. This shim layer makes it possible to
+ run Solaris kernel code in the Linux kernel with relatively minimal
+ modification. The Solaris Porting LAyer Tests (SPLAT) is a Linux kernel
+ module which provides a testing harness for the SPL module.
+ .
+ SPL can be particularly useful when you want to track upstream Illumos
+ (or any other OpenSolaris fork) development closely and don't want the
+ overhead of maintaining a large patch which converts Solaris primitives
+ to Linux primitives.
+ .
+ This is a transitional dummy package. It can safely be removed.
