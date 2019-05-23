@@ -101,4 +101,4 @@ distclean: clean
 
 .PHONY: upload
 upload: ${DEBS}
-	tar -cf - ${DEBS} | ssh repoman@repo.proxmox.com -- upload --product pve,pmg --dist stretch --arch amd64
+	tar -cf - ${DEBS} | ssh repoman@repo.proxmox.com -- upload --product pve,pmg --dist buster --arch amd64
