@@ -1,0 +1,24 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Stoiko Ivanov <s.ivanov@proxmox.com>
+Date: Tue, 21 May 2019 18:19:01 +0200
+Subject: [PATCH] Fix ksh-path for random_readwrite_fixed.ksh
+
+The test in zfs-tests/tests/perf/regression/random_readwrite_fixed.ksh
+is the only file to use /usr/bin/ksh in the shebang.
+Change it to /bin/ksh for consistency.
+
+Signed-off-by: Stoiko Ivanov <s.ivanov@proxmox.com>
+---
+ tests/zfs-tests/tests/perf/regression/random_readwrite_fixed.ksh | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+
+diff --git a/tests/zfs-tests/tests/perf/regression/random_readwrite_fixed.ksh b/tests/zfs-tests/tests/perf/regression/random_readwrite_fixed.ksh
+index 38c0669f6..e368ed236 100755
+--- a/tests/zfs-tests/tests/perf/regression/random_readwrite_fixed.ksh
++++ b/tests/zfs-tests/tests/perf/regression/random_readwrite_fixed.ksh
+@@ -1,4 +1,4 @@
+-#!/usr/bin/ksh
++#!/bin/ksh
+ # file and its contents are supplied under the terms of the
+ # Common Development and Distribution License ("CDDL"), version 1.0.
+ # You may only use this file in accordance with the terms of version
