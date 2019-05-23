@@ -154,7 +154,7 @@ Copyright: 2010, 2013, Aneurin Price <aneurin.price@gmail.com>
 License: Expat
 
 Files: debian/rules
-Copyright: OPENSOLARIS.LICENSE README.markdown
+Copyright: LICENSE README.markdown
 License: UNKNOWN
  Please fill license UNKNOWN from header of debian/rules
 
