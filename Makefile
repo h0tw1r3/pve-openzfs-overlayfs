@@ -38,7 +38,8 @@ dinstall: ${DEBS}
 
 .PHONY: submodule
 submodule:
-	test -f "${ZFSSRC}/README.markdown" || git submodule update --init
+	test -f "$(ZFSSRC)/README.md" || git submodule update --init
+$(ZFSSRC)/README.md: submodule
 
 .PHONY: zfs
 zfs: $(ZFS_DEBS)
@@ -52,7 +53,7 @@ ${ZFS_DSC}: ${ZFSDIR}
 	cd ${ZFSDIR}; dpkg-buildpackage -S -uc -us -d
 	lintian $@
 
-${ZFSDIR}: $(ZFSSRC) ${ZFSPKG}
+${ZFSDIR}: $(ZFSSRC)/README.md $(ZFSSRC) ${ZFSPKG}
 	rm -rf ${ZFSDIR}
 	mkdir ${ZFSDIR}
 	cp -a ${ZFSSRC}/* ${ZFSDIR}/
