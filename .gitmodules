@@ -1,6 +1,3 @@
 [submodule "zfs/upstream"]
 	path = zfs/upstream
 	url = ../mirror_zfs
-[submodule "spl/upstream"]
-	path = spl/upstream
-	url = ../mirror_spl

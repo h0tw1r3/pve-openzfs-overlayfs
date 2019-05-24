@@ -2,9 +2,6 @@ RELEASE=5.1
 
 # source form https://github.com/zfsonlinux/
 
-SPLDIR=spl-linux_${ZFSVER}
-SPLSRC=spl/upstream
-SPLPKG=spl/debian
 ZFSDIR=zfs-linux_${ZFSVER}
 ZFSSRC=zfs/upstream
 ZFSPKG=zfs/debian
@@ -12,11 +9,6 @@ ZFSPKG=zfs/debian
 ZFSVER != dpkg-parsechangelog -l ${ZFSPKG}/changelog -Sversion | cut -d- -f1
 
 ZFSPKGVER != dpkg-parsechangelog -l ${ZFSPKG}/changelog -Sversion
-SPLPKGVER != dpkg-parsechangelog -l ${SPLPKG}/changelog -Sversion
-
-SPL_DEB = 					\
-spl_${SPLPKGVER}_amd64.deb
-SPL_DSC = spl-linux_${SPLPKGVER}.dsc
 
 ZFS_DEB1= libnvpair1linux_${ZFSPKGVER}_amd64.deb
 ZFS_DEB2= 					\
@@ -32,19 +24,15 @@ zfsutils-linux_${ZFSPKGVER}_amd64.deb
 ZFS_DEBS= $(ZFS_DEB1) $(ZFS_DEB2)
 ZFS_DSC = zfs-linux_${ZFSPKGVER}.dsc
 
-DEBS=${SPL_DEB} ${ZFS_DEBS}
-DSCS=${SPL_DSC} ${ZFS_DSC}
-
 all: deb
 .PHONY: deb
-deb: ${DEBS}
+deb: ${ZFS_DEBS}
 .PHONY: dsc
-dsc: ${DSCS}
+dsc: ${ZFS_DSC}
 
 # called from pve-kernel's Makefile to get patched sources
 .PHONY: kernel
 kernel: dsc
-	dpkg-source -x ${SPL_DSC} ../pkg-spl
 	dpkg-source -x ${ZFS_DSC} ../pkg-zfs
 	$(MAKE) -C ../pkg-zfs -f debian/rules adapt_meta_file
 
@@ -55,24 +43,6 @@ dinstall: ${DEBS}
 .PHONY: submodule
 submodule:
 	test -f "${ZFSSRC}/README.markdown" || git submodule update --init
-	test -f "${SPLSRC}/README.markdown" || git submodule update --init
-
-.PHONY: spl
-spl: ${SPL_DEB}
-${SPL_DEB}: ${SPLDIR}
-	cd ${SPLDIR}; dpkg-buildpackage -b -uc -us
-	lintian ${SPL_DEB}
-
-${SPL_DSC}: ${SPLDIR}
-	tar czf spl-linux_${ZFSVER}.orig.tar.gz ${SPLDIR}
-	cd ${SPLDIR}; dpkg-buildpackage -S -uc -us -d
-	lintian $@
-
-${SPLDIR}: ${SPLSRC} ${SPLPKG}
-	rm -rf ${SPLDIR}
-	mkdir ${SPLDIR}
-	cp -a ${SPLSRC}/* ${SPLDIR}/
-	cp -a ${SPLPKG} ${SPLDIR}/debian
 
 .PHONY: zfs
 zfs: $(ZFS_DEBS)
@@ -95,7 +65,7 @@ ${ZFSDIR}: $(ZFSSRC) ${ZFSPKG}
 
 .PHONY: clean
 clean: 	
-	rm -rf *~ *.deb *.changes *.buildinfo *.dsc *.orig.tar.* *.debian.tar.* ${ZFSDIR} ${SPLDIR}
+	rm -rf *~ *.deb *.changes *.buildinfo *.dsc *.orig.tar.* *.debian.tar.* ${ZFSDIR}
 
 .PHONY: distclean
 distclean: clean
