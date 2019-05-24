@@ -1,14 +1,10 @@
-RELEASE=5.1
-
 # source form https://github.com/zfsonlinux/
 
+ZFSPKG=debian
+ZFSVER != dpkg-parsechangelog -l ${ZFSPKG}/changelog -Sversion | cut -d- -f1
+ZFSPKGVER != dpkg-parsechangelog -l ${ZFSPKG}/changelog -Sversion
 ZFSDIR=zfs-linux_${ZFSVER}
 ZFSSRC=upstream
-ZFSPKG=debian
-
-ZFSVER != dpkg-parsechangelog -l ${ZFSPKG}/changelog -Sversion | cut -d- -f1
-
-ZFSPKGVER != dpkg-parsechangelog -l ${ZFSPKG}/changelog -Sversion
 
 ZFS_DEB1= libnvpair1linux_${ZFSPKGVER}_amd64.deb
 ZFS_DEB2= 					\
