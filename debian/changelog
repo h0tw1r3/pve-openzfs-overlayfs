@@ -1,3 +1,18 @@
+zfs-linux (0.8.0-pve1) pve pmg; urgency=medium
+
+  * update ZFS to 0.8.0
+
+  * SPL is now included in upstream ZFS packaging.
+    Build dummy spl and spl-dkms packages to ease transition on upgrades.
+
+  * Build pyzfs+documentation package
+
+  * Use arc_summary3.py to provide arc_summary.
+
+  * shipped python scripts now use python3
+
+ -- Proxmox Support Team <support@proxmox.com>  Fri, 24 May 2019 12:05:22 +0200
+
 zfs-linux (0.7.13-pve2~bpo2) pve pmg; urgency=medium
 
   * rebuild for PVE 6.0 / Debian Buster
