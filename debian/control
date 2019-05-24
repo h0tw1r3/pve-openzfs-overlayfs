@@ -2,9 +2,7 @@ Source: zfs-linux
 Section: contrib/kernel
 Priority: optional
 Maintainer: Proxmox Support Team <support@proxmox.com>
-Build-Depends: autotools-dev,
-               debhelper (>= 10~),
-               dh-autoreconf,
+Build-Depends: debhelper (>= 10~),
                dh-python,
                libattr1-dev,
                libblkid-dev,
