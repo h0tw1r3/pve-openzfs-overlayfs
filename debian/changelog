@@ -1,3 +1,9 @@
+zfs-linux (0.8.1-pve1) pve pmg; urgency=medium
+
+  * update ZFS to 0.8.1
+
+ -- Proxmox Support Team <support@proxmox.com>  Fri, 14 Jun 2019 20:43:10 +0200
+
 zfs-linux (0.8.0-pve1) pve pmg; urgency=medium
 
   * update ZFS to 0.8.0
