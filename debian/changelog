@@ -1,3 +1,11 @@
+zfs-linux (0.8.1-pve2) pve pmg; urgency=medium
+
+  * cherry-pick parallel mount fix
+
+  * cherry-pick SIMD compat patches
+
+ -- Proxmox Support Team <support@proxmox.com>  Tue, 20 Aug 2019 17:10:11 +0200
+
 zfs-linux (0.8.1-pve1) pve pmg; urgency=medium
 
   * update ZFS to 0.8.1
