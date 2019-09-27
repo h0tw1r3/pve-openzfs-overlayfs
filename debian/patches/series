@@ -7,3 +7,4 @@
 0007-Fix-race-in-parallel-mount-s-thread-dispatching-algo.patch
 0008-Linux-5.0-compat-SIMD-compatibility.patch
 0009-Fix-CONFIG_X86_DEBUG_FPU-build-failure.patch
+0010-SIMD-FPU-register-save-restore-is-also-required-on-5.patch
