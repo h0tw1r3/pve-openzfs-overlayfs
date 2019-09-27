@@ -1,3 +1,10 @@
+zfs-linux (0.8.1-pve3) pve pmg; urgency=medium
+
+  * [SIMD]: FPU register save/restore is also required on 5.0 kernel.
+    strict kernel module release, user space tooling is not touched
+
+ -- Proxmox Support Team <support@proxmox.com>  Fri, 27 Sep 2019 14:37:32 +0200
+
 zfs-linux (0.8.1-pve2) pve pmg; urgency=medium
 
   * cherry-pick parallel mount fix
