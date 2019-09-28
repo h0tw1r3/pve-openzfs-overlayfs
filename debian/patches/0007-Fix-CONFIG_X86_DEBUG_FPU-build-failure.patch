@@ -18,15 +18,16 @@ Closes #9041
 Closes #9049
 (cherry picked from commit 095b5412b31c07cad5cec74a4eb5ace011c92b27)
 Signed-off-by: Fabian Grünbichler <f.gruenbichler@proxmox.com>
+Signed-off-by: Thomas Lamprecht <t.lamprecht@proxmox.com>
 ---
  include/linux/simd_x86.h | 9 +++++++++
  1 file changed, 9 insertions(+)
 
 diff --git a/include/linux/simd_x86.h b/include/linux/simd_x86.h
-index 2d7a1c3a5..5f243e0cc 100644
+index 641f43955..edd456098 100644
 --- a/include/linux/simd_x86.h
 +++ b/include/linux/simd_x86.h
-@@ -82,6 +82,15 @@
+@@ -84,6 +84,15 @@
  
  #if defined(_KERNEL)
  

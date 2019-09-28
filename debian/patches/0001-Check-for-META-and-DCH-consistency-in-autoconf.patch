@@ -4,6 +4,7 @@ From: Debian ZFS on Linux maintainers
 Date: Wed, 30 Jan 2019 15:12:04 +0100
 Subject: [PATCH] Check-for-META-and-DCH-consistency-in-autoconf
 
+Signed-off-by: Thomas Lamprecht <t.lamprecht@proxmox.com>
 ---
  config/zfs-meta.m4 | 34 +++++++++++++++++++++++++++++-----
  1 file changed, 29 insertions(+), 5 deletions(-)

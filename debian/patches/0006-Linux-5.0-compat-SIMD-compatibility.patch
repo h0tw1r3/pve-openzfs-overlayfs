@@ -61,20 +61,22 @@ Closes #8793
 Closes #8965
 (cherry picked from commit e5db31349484e5e859c7a942eb15b98d68ce5b4d)
 Signed-off-by: Fabian Grünbichler <f.gruenbichler@proxmox.com>
+Signed-off-by: Thomas Lamprecht <t.lamprecht@proxmox.com>
 ---
+ cmd/ztest/ztest.c                           |   3 +
+ config/kernel-fpu.m4                        |  46 ++++-
  include/linux/Makefile.am                   |   1 +
  include/linux/simd.h                        |  41 +++++
  include/linux/simd_aarch64.h                |  18 +-
  include/linux/simd_x86.h                    | 192 +++++++++++++-------
  include/sys/vdev_raidz.h                    |   2 +-
  include/sys/vdev_raidz_impl.h               |   2 +-
- module/icp/include/aes/aes_impl.h           |   6 +-
- module/icp/include/modes/gcm_impl.h         |   6 +-
- cmd/ztest/ztest.c                           |   3 +
  module/icp/algs/aes/aes_impl.c              |  34 ++--
  module/icp/algs/aes/aes_impl_aesni.c        |   2 +-
  module/icp/algs/modes/gcm.c                 |  41 +++--
  module/icp/algs/modes/gcm_pclmulqdq.c       |   2 +-
+ module/icp/include/aes/aes_impl.h           |   6 +-
+ module/icp/include/modes/gcm_impl.h         |   6 +-
  module/icp/io/aes.c                         |  32 +++-
  module/spl/spl-taskq.c                      |   2 +
  module/spl/spl-thread.c                     |   2 +
@@ -91,10 +93,95 @@ Signed-off-by: Fabian Grünbichler <f.gruenbichler@proxmox.com>
  module/zfs/vdev_raidz_math_avx512f.c        |   5 +-
  module/zfs/vdev_raidz_math_sse2.c           |   2 +-
  module/zfs/vdev_raidz_math_ssse3.c          |   4 +-
- config/kernel-fpu.m4                        |  46 ++++-
  30 files changed, 454 insertions(+), 204 deletions(-)
  create mode 100644 include/linux/simd.h
 
+diff --git a/cmd/ztest/ztest.c b/cmd/ztest/ztest.c
+index 3bf840d88..dc22faef7 100644
+--- a/cmd/ztest/ztest.c
++++ b/cmd/ztest/ztest.c
+@@ -107,6 +107,7 @@
+ #include <sys/vdev_impl.h>
+ #include <sys/vdev_file.h>
+ #include <sys/vdev_initialize.h>
++#include <sys/vdev_raidz.h>
+ #include <sys/vdev_trim.h>
+ #include <sys/spa_impl.h>
+ #include <sys/metaslab_impl.h>
+@@ -7110,6 +7111,8 @@ ztest_run(ztest_shared_t *zs)
+ 	metaslab_preload_limit = ztest_random(20) + 1;
+ 	ztest_spa = spa;
+ 
++	VERIFY0(vdev_raidz_impl_set("cycle"));
++
+ 	dmu_objset_stats_t dds;
+ 	VERIFY0(ztest_dmu_objset_own(ztest_opts.zo_pool,
+ 	    DMU_OST_ANY, B_TRUE, B_TRUE, FTAG, &os));
+diff --git a/config/kernel-fpu.m4 b/config/kernel-fpu.m4
+index ebb02fb09..0e622e859 100644
+--- a/config/kernel-fpu.m4
++++ b/config/kernel-fpu.m4
+@@ -2,8 +2,15 @@ dnl #
+ dnl # Handle differences in kernel FPU code.
+ dnl #
+ dnl # Kernel
+-dnl # 5.0:	All kernel fpu functions are GPL only, so we can't use them.
+-dnl #		(nothing defined)
++dnl # 5.2:	The fpu->initialized flag was replaced by TIF_NEED_FPU_LOAD.
++dnl #		HAVE_KERNEL_TIF_NEED_FPU_LOAD
++dnl #
++dnl # 5.0:	As an optimization SIMD operations performed by kernel
++dnl #		threads can skip saving and restoring their FPU context.
++dnl #		Wrappers have been introduced to determine the running
++dnl #		context and use either the SIMD or generic implementation.
++dnl #		This change was made to the 4.19.38 and 4.14.120 LTS kernels.
++dnl #		HAVE_KERNEL_FPU_INITIALIZED
+ dnl #
+ dnl # 4.2:	Use __kernel_fpu_{begin,end}()
+ dnl #		HAVE_UNDERSCORE_KERNEL_FPU & KERNEL_EXPORTS_X86_FPU
+@@ -59,10 +66,39 @@ AC_DEFUN([ZFS_AC_KERNEL_FPU], [
+ 			__kernel_fpu_end();
+ 		], [__kernel_fpu_begin], [arch/x86/kernel/fpu/core.c arch/x86/kernel/i387.c], [
+ 			AC_MSG_RESULT(__kernel_fpu_*)
+-			AC_DEFINE(HAVE_UNDERSCORE_KERNEL_FPU, 1, [kernel has __kernel_fpu_* functions])
+-			AC_DEFINE(KERNEL_EXPORTS_X86_FPU, 1, [kernel exports FPU functions])
++			AC_DEFINE(HAVE_UNDERSCORE_KERNEL_FPU, 1,
++			    [kernel has __kernel_fpu_* functions])
++			AC_DEFINE(KERNEL_EXPORTS_X86_FPU, 1,
++			    [kernel exports FPU functions])
+ 		],[
+-			AC_MSG_RESULT(not exported)
++			ZFS_LINUX_TRY_COMPILE([
++				#include <linux/module.h>
++				#include <linux/sched.h>
++			],[
++				struct fpu *fpu = &current->thread.fpu;
++				if (fpu->initialized) { return (0); };
++			],[
++				AC_MSG_RESULT(fpu.initialized)
++				AC_DEFINE(HAVE_KERNEL_FPU_INITIALIZED, 1,
++				    [kernel fpu.initialized exists])
++			],[
++				ZFS_LINUX_TRY_COMPILE([
++					#include <linux/module.h>
++					#include <asm/thread_info.h>
++
++					#if !defined(TIF_NEED_FPU_LOAD)
++					#error "TIF_NEED_FPU_LOAD undefined"
++					#endif
++				],[
++				],[
++					AC_MSG_RESULT(TIF_NEED_FPU_LOAD)
++					AC_DEFINE(
++					    HAVE_KERNEL_TIF_NEED_FPU_LOAD, 1,
++					    [kernel TIF_NEED_FPU_LOAD exists])
++				],[
++					AC_MSG_RESULT(unavailable)
++				])
++			])
+ 		])
+ 	])
+ ])
 diff --git a/include/linux/Makefile.am b/include/linux/Makefile.am
 index efb49520e..2455759e8 100644
 --- a/include/linux/Makefile.am
@@ -155,10 +242,10 @@ index 000000000..d2b60996a
 +#endif
 +#endif /* _SIMD_H */
 diff --git a/include/linux/simd_aarch64.h b/include/linux/simd_aarch64.h
-index 155ef6205..1cfcd01e4 100644
+index 56153a160..b45d31c48 100644
 --- a/include/linux/simd_aarch64.h
 +++ b/include/linux/simd_aarch64.h
-@@ -41,20 +41,18 @@
+@@ -43,20 +43,18 @@
  
  #if defined(_KERNEL)
  #include <asm/neon.h>
@@ -188,10 +275,10 @@ index 155ef6205..1cfcd01e4 100644
  
  #endif /* __aarch64__ */
 diff --git a/include/linux/simd_x86.h b/include/linux/simd_x86.h
-index 12cd74677..2d7a1c3a5 100644
+index 0489bfaa3..641f43955 100644
 --- a/include/linux/simd_x86.h
 +++ b/include/linux/simd_x86.h
-@@ -90,33 +90,135 @@
+@@ -92,33 +92,135 @@
  #include <asm/xcr.h>
  #endif
  
@@ -342,7 +429,7 @@ index 12cd74677..2d7a1c3a5 100644
  #endif /* defined(_KERNEL) */
  
  /*
-@@ -298,7 +400,7 @@ __simd_state_enabled(const uint64_t state)
+@@ -300,7 +402,7 @@ __simd_state_enabled(const uint64_t state)
  	uint64_t xcr0;
  
  #if defined(_KERNEL)
@@ -351,7 +438,7 @@ index 12cd74677..2d7a1c3a5 100644
  	has_osxsave = !!boot_cpu_has(X86_FEATURE_OSXSAVE);
  #else
  	has_osxsave = B_FALSE;
-@@ -328,11 +430,7 @@ static inline boolean_t
+@@ -330,11 +432,7 @@ static inline boolean_t
  zfs_sse_available(void)
  {
  #if defined(_KERNEL)
@@ -363,7 +450,7 @@ index 12cd74677..2d7a1c3a5 100644
  #elif !defined(_KERNEL)
  	return (__cpuid_has_sse());
  #endif
-@@ -345,11 +443,7 @@ static inline boolean_t
+@@ -347,11 +445,7 @@ static inline boolean_t
  zfs_sse2_available(void)
  {
  #if defined(_KERNEL)
@@ -375,7 +462,7 @@ index 12cd74677..2d7a1c3a5 100644
  #elif !defined(_KERNEL)
  	return (__cpuid_has_sse2());
  #endif
-@@ -362,11 +456,7 @@ static inline boolean_t
+@@ -364,11 +458,7 @@ static inline boolean_t
  zfs_sse3_available(void)
  {
  #if defined(_KERNEL)
@@ -387,7 +474,7 @@ index 12cd74677..2d7a1c3a5 100644
  #elif !defined(_KERNEL)
  	return (__cpuid_has_sse3());
  #endif
-@@ -379,11 +469,7 @@ static inline boolean_t
+@@ -381,11 +471,7 @@ static inline boolean_t
  zfs_ssse3_available(void)
  {
  #if defined(_KERNEL)
@@ -399,7 +486,7 @@ index 12cd74677..2d7a1c3a5 100644
  #elif !defined(_KERNEL)
  	return (__cpuid_has_ssse3());
  #endif
-@@ -396,11 +482,7 @@ static inline boolean_t
+@@ -398,11 +484,7 @@ static inline boolean_t
  zfs_sse4_1_available(void)
  {
  #if defined(_KERNEL)
@@ -411,7 +498,7 @@ index 12cd74677..2d7a1c3a5 100644
  #elif !defined(_KERNEL)
  	return (__cpuid_has_sse4_1());
  #endif
-@@ -413,11 +495,7 @@ static inline boolean_t
+@@ -415,11 +497,7 @@ static inline boolean_t
  zfs_sse4_2_available(void)
  {
  #if defined(_KERNEL)
@@ -423,7 +510,7 @@ index 12cd74677..2d7a1c3a5 100644
  #elif !defined(_KERNEL)
  	return (__cpuid_has_sse4_2());
  #endif
-@@ -431,11 +509,7 @@ zfs_avx_available(void)
+@@ -433,11 +511,7 @@ zfs_avx_available(void)
  {
  	boolean_t has_avx;
  #if defined(_KERNEL)
@@ -435,7 +522,7 @@ index 12cd74677..2d7a1c3a5 100644
  #elif !defined(_KERNEL)
  	has_avx = __cpuid_has_avx();
  #endif
-@@ -451,11 +525,7 @@ zfs_avx2_available(void)
+@@ -453,11 +527,7 @@ zfs_avx2_available(void)
  {
  	boolean_t has_avx2;
  #if defined(_KERNEL)
@@ -447,7 +534,7 @@ index 12cd74677..2d7a1c3a5 100644
  #elif !defined(_KERNEL)
  	has_avx2 = __cpuid_has_avx2();
  #endif
-@@ -470,7 +540,7 @@ static inline boolean_t
+@@ -472,7 +542,7 @@ static inline boolean_t
  zfs_bmi1_available(void)
  {
  #if defined(_KERNEL)
@@ -456,7 +543,7 @@ index 12cd74677..2d7a1c3a5 100644
  	return (!!boot_cpu_has(X86_FEATURE_BMI1));
  #else
  	return (B_FALSE);
-@@ -487,7 +557,7 @@ static inline boolean_t
+@@ -489,7 +559,7 @@ static inline boolean_t
  zfs_bmi2_available(void)
  {
  #if defined(_KERNEL)
@@ -465,7 +552,7 @@ index 12cd74677..2d7a1c3a5 100644
  	return (!!boot_cpu_has(X86_FEATURE_BMI2));
  #else
  	return (B_FALSE);
-@@ -504,7 +574,7 @@ static inline boolean_t
+@@ -506,7 +576,7 @@ static inline boolean_t
  zfs_aes_available(void)
  {
  #if defined(_KERNEL)
@@ -474,7 +561,7 @@ index 12cd74677..2d7a1c3a5 100644
  	return (!!boot_cpu_has(X86_FEATURE_AES));
  #else
  	return (B_FALSE);
-@@ -521,7 +591,7 @@ static inline boolean_t
+@@ -523,7 +593,7 @@ static inline boolean_t
  zfs_pclmulqdq_available(void)
  {
  #if defined(_KERNEL)
@@ -483,7 +570,7 @@ index 12cd74677..2d7a1c3a5 100644
  	return (!!boot_cpu_has(X86_FEATURE_PCLMULQDQ));
  #else
  	return (B_FALSE);
-@@ -555,7 +625,7 @@ zfs_avx512f_available(void)
+@@ -557,7 +627,7 @@ zfs_avx512f_available(void)
  	boolean_t has_avx512 = B_FALSE;
  
  #if defined(_KERNEL)
@@ -492,7 +579,7 @@ index 12cd74677..2d7a1c3a5 100644
  	has_avx512 = !!boot_cpu_has(X86_FEATURE_AVX512F);
  #else
  	has_avx512 = B_FALSE;
-@@ -574,7 +644,7 @@ zfs_avx512cd_available(void)
+@@ -576,7 +646,7 @@ zfs_avx512cd_available(void)
  	boolean_t has_avx512 = B_FALSE;
  
  #if defined(_KERNEL)
@@ -501,7 +588,7 @@ index 12cd74677..2d7a1c3a5 100644
  	has_avx512 = boot_cpu_has(X86_FEATURE_AVX512F) &&
  	    boot_cpu_has(X86_FEATURE_AVX512CD);
  #else
-@@ -594,7 +664,7 @@ zfs_avx512er_available(void)
+@@ -596,7 +666,7 @@ zfs_avx512er_available(void)
  	boolean_t has_avx512 = B_FALSE;
  
  #if defined(_KERNEL)
@@ -510,7 +597,7 @@ index 12cd74677..2d7a1c3a5 100644
  	has_avx512 = boot_cpu_has(X86_FEATURE_AVX512F) &&
  	    boot_cpu_has(X86_FEATURE_AVX512ER);
  #else
-@@ -614,7 +684,7 @@ zfs_avx512pf_available(void)
+@@ -616,7 +686,7 @@ zfs_avx512pf_available(void)
  	boolean_t has_avx512 = B_FALSE;
  
  #if defined(_KERNEL)
@@ -519,7 +606,7 @@ index 12cd74677..2d7a1c3a5 100644
  	has_avx512 = boot_cpu_has(X86_FEATURE_AVX512F) &&
  	    boot_cpu_has(X86_FEATURE_AVX512PF);
  #else
-@@ -634,7 +704,7 @@ zfs_avx512bw_available(void)
+@@ -636,7 +706,7 @@ zfs_avx512bw_available(void)
  	boolean_t has_avx512 = B_FALSE;
  
  #if defined(_KERNEL)
@@ -528,7 +615,7 @@ index 12cd74677..2d7a1c3a5 100644
  	has_avx512 = boot_cpu_has(X86_FEATURE_AVX512F) &&
  	    boot_cpu_has(X86_FEATURE_AVX512BW);
  #else
-@@ -654,7 +724,7 @@ zfs_avx512dq_available(void)
+@@ -656,7 +726,7 @@ zfs_avx512dq_available(void)
  	boolean_t has_avx512 = B_FALSE;
  
  #if defined(_KERNEL)
@@ -537,7 +624,7 @@ index 12cd74677..2d7a1c3a5 100644
  	has_avx512 = boot_cpu_has(X86_FEATURE_AVX512F) &&
  	    boot_cpu_has(X86_FEATURE_AVX512DQ);
  #else
-@@ -674,7 +744,7 @@ zfs_avx512vl_available(void)
+@@ -676,7 +746,7 @@ zfs_avx512vl_available(void)
  	boolean_t has_avx512 = B_FALSE;
  
  #if defined(_KERNEL)
@@ -546,7 +633,7 @@ index 12cd74677..2d7a1c3a5 100644
  	has_avx512 = boot_cpu_has(X86_FEATURE_AVX512F) &&
  	    boot_cpu_has(X86_FEATURE_AVX512VL);
  #else
-@@ -694,7 +764,7 @@ zfs_avx512ifma_available(void)
+@@ -696,7 +766,7 @@ zfs_avx512ifma_available(void)
  	boolean_t has_avx512 = B_FALSE;
  
  #if defined(_KERNEL)
@@ -555,7 +642,7 @@ index 12cd74677..2d7a1c3a5 100644
  	has_avx512 = boot_cpu_has(X86_FEATURE_AVX512F) &&
  	    boot_cpu_has(X86_FEATURE_AVX512IFMA);
  #else
-@@ -714,7 +784,7 @@ zfs_avx512vbmi_available(void)
+@@ -716,7 +786,7 @@ zfs_avx512vbmi_available(void)
  	boolean_t has_avx512 = B_FALSE;
  
  #if defined(_KERNEL)
@@ -590,69 +677,8 @@ index 0799ed19d..4969d110b 100644
  	raidz_col_t rm_col[1];		/* Flexible array of I/O columns */
  } raidz_map_t;
  
-diff --git a/module/icp/include/aes/aes_impl.h b/module/icp/include/aes/aes_impl.h
-index 95cfddf9e..9fd9c1bd1 100644
---- a/module/icp/include/aes/aes_impl.h
-+++ b/module/icp/include/aes/aes_impl.h
-@@ -198,12 +198,12 @@ extern const aes_impl_ops_t aes_aesni_impl;
- /*
-  * Initializes fastest implementation
-  */
--void aes_impl_init(void);
-+void aes_impl_init(void *arg);
- 
- /*
-- * Get selected aes implementation
-+ * Returns optimal allowed AES implementation
-  */
--struct aes_impl_ops *aes_impl_get_ops(void);
-+const struct aes_impl_ops *aes_impl_get_ops(void);
- 
- #ifdef	__cplusplus
- }
-diff --git a/module/icp/include/modes/gcm_impl.h b/module/icp/include/modes/gcm_impl.h
-index cbb904c05..138090487 100644
---- a/module/icp/include/modes/gcm_impl.h
-+++ b/module/icp/include/modes/gcm_impl.h
-@@ -61,12 +61,12 @@ extern const gcm_impl_ops_t gcm_pclmulqdq_impl;
- /*
-  * Initializes fastest implementation
-  */
--void gcm_impl_init(void);
-+void gcm_impl_init(void *arg);
- 
- /*
-- * Get selected aes implementation
-+ * Returns optimal allowed GCM implementation
-  */
--struct gcm_impl_ops *gcm_impl_get_ops(void);
-+const struct gcm_impl_ops *gcm_impl_get_ops(void);
- 
- #ifdef	__cplusplus
- }
-diff --git a/cmd/ztest/ztest.c b/cmd/ztest/ztest.c
-index 9c2cf9501..815462443 100644
---- a/cmd/ztest/ztest.c
-+++ b/cmd/ztest/ztest.c
-@@ -107,6 +107,7 @@
- #include <sys/vdev_impl.h>
- #include <sys/vdev_file.h>
- #include <sys/vdev_initialize.h>
-+#include <sys/vdev_raidz.h>
- #include <sys/vdev_trim.h>
- #include <sys/spa_impl.h>
- #include <sys/metaslab_impl.h>
-@@ -7094,6 +7095,8 @@ ztest_run(ztest_shared_t *zs)
- 	metaslab_preload_limit = ztest_random(20) + 1;
- 	ztest_spa = spa;
- 
-+	VERIFY0(vdev_raidz_impl_set("cycle"));
-+
- 	dmu_objset_stats_t dds;
- 	VERIFY0(ztest_dmu_objset_own(ztest_opts.zo_pool,
- 	    DMU_OST_ANY, B_TRUE, B_TRUE, FTAG, &os));
 diff --git a/module/icp/algs/aes/aes_impl.c b/module/icp/algs/aes/aes_impl.c
-index e15050635..457b9e45c 100644
+index 36e0686a5..0f11f9999 100644
 --- a/module/icp/algs/aes/aes_impl.c
 +++ b/module/icp/algs/aes/aes_impl.c
 @@ -27,6 +27,7 @@
@@ -750,7 +776,7 @@ index 97f7c3a47..222c176aa 100644
  
  const aes_impl_ops_t aes_aesni_impl = {
 diff --git a/module/icp/algs/modes/gcm.c b/module/icp/algs/modes/gcm.c
-index 13bceef0f..f6f8434de 100644
+index 0afd957f0..423b70e2c 100644
 --- a/module/icp/algs/modes/gcm.c
 +++ b/module/icp/algs/modes/gcm.c
 @@ -29,6 +29,7 @@
@@ -875,7 +901,7 @@ index 13bceef0f..f6f8434de 100644
 +	 * hardware accelerated version is the fastest.
 +	 */
  #if defined(__x86_64) && defined(HAVE_PCLMULQDQ)
- 	if (gcm_pclmulqdq_impl.is_supported())
+ 	if (gcm_pclmulqdq_impl.is_supported()) {
  		memcpy(&gcm_fastest_impl, &gcm_pclmulqdq_impl,
 diff --git a/module/icp/algs/modes/gcm_pclmulqdq.c b/module/icp/algs/modes/gcm_pclmulqdq.c
 index be00ba37b..8a43ba33a 100644
@@ -890,6 +916,46 @@ index be00ba37b..8a43ba33a 100644
  }
  
  const gcm_impl_ops_t gcm_pclmulqdq_impl = {
+diff --git a/module/icp/include/aes/aes_impl.h b/module/icp/include/aes/aes_impl.h
+index 3a3de91cf..329e32a8e 100644
+--- a/module/icp/include/aes/aes_impl.h
++++ b/module/icp/include/aes/aes_impl.h
+@@ -198,12 +198,12 @@ extern const aes_impl_ops_t aes_aesni_impl;
+ /*
+  * Initializes fastest implementation
+  */
+-void aes_impl_init(void);
++void aes_impl_init(void *arg);
+ 
+ /*
+- * Get selected aes implementation
++ * Returns optimal allowed AES implementation
+  */
+-struct aes_impl_ops *aes_impl_get_ops(void);
++const struct aes_impl_ops *aes_impl_get_ops(void);
+ 
+ #ifdef	__cplusplus
+ }
+diff --git a/module/icp/include/modes/gcm_impl.h b/module/icp/include/modes/gcm_impl.h
+index b78cc8aab..dff372ef8 100644
+--- a/module/icp/include/modes/gcm_impl.h
++++ b/module/icp/include/modes/gcm_impl.h
+@@ -61,12 +61,12 @@ extern const gcm_impl_ops_t gcm_pclmulqdq_impl;
+ /*
+  * Initializes fastest implementation
+  */
+-void gcm_impl_init(void);
++void gcm_impl_init(void *arg);
+ 
+ /*
+- * Get selected aes implementation
++ * Returns optimal allowed GCM implementation
+  */
+-struct gcm_impl_ops *gcm_impl_get_ops(void);
++const struct gcm_impl_ops *gcm_impl_get_ops(void);
+ 
+ #ifdef	__cplusplus
+ }
 diff --git a/module/icp/io/aes.c b/module/icp/io/aes.c
 index 53b193693..51538bc60 100644
 --- a/module/icp/io/aes.c
@@ -934,10 +1000,10 @@ index 53b193693..51538bc60 100644
  	if ((ret = mod_install(&modlinkage)) != 0)
  		return (ret);
 diff --git a/module/spl/spl-taskq.c b/module/spl/spl-taskq.c
-index 7684257be..de0e45190 100644
+index a39f94e4c..69d591ff7 100644
 --- a/module/spl/spl-taskq.c
 +++ b/module/spl/spl-taskq.c
-@@ -27,6 +27,7 @@
+@@ -28,6 +28,7 @@
  #include <sys/taskq.h>
  #include <sys/kmem.h>
  #include <sys/tsd.h>
@@ -945,7 +1011,7 @@ index 7684257be..de0e45190 100644
  
  int spl_taskq_thread_bind = 0;
  module_param(spl_taskq_thread_bind, int, 0644);
-@@ -869,6 +870,7 @@ taskq_thread(void *args)
+@@ -853,6 +854,7 @@ taskq_thread(void *args)
  	sigfillset(&blocked);
  	sigprocmask(SIG_BLOCK, &blocked, NULL);
  	flush_signals(current);
@@ -954,7 +1020,7 @@ index 7684257be..de0e45190 100644
  	tsd_set(taskq_tsd, tq);
  	spin_lock_irqsave_nested(&tq->tq_lock, flags, tq->tq_lock_class);
 diff --git a/module/spl/spl-thread.c b/module/spl/spl-thread.c
-index d441ad65f..c4977bcf2 100644
+index 0352a31ea..07e3a1bff 100644
 --- a/module/spl/spl-thread.c
 +++ b/module/spl/spl-thread.c
 @@ -27,6 +27,7 @@
@@ -974,7 +1040,7 @@ index d441ad65f..c4977bcf2 100644
  	kmem_free(tp, sizeof (thread_priv_t));
  
 diff --git a/module/zcommon/zfs_fletcher.c b/module/zcommon/zfs_fletcher.c
-index 5a991ba60..b75d8ab00 100644
+index f712ce40c..9187a7c1e 100644
 --- a/module/zcommon/zfs_fletcher.c
 +++ b/module/zcommon/zfs_fletcher.c
 @@ -140,6 +140,7 @@
@@ -1054,7 +1120,7 @@ index 5a991ba60..b75d8ab00 100644
  		ops = fletcher_4_supp_impls[impl];
  		break;
  	}
-@@ -658,6 +661,7 @@ fletcher_4_kstat_addr(kstat_t *ksp, loff_t n)
+@@ -659,6 +662,7 @@ fletcher_4_kstat_addr(kstat_t *ksp, loff_t n)
  typedef void fletcher_checksum_func_t(const void *, uint64_t, const void *,
  					zio_cksum_t *);
  
@@ -1221,7 +1287,7 @@ index a0b42e5f5..e6389d6e5 100644
  
  const fletcher_4_ops_t fletcher_4_ssse3_ops = {
 diff --git a/module/zfs/vdev_raidz_math.c b/module/zfs/vdev_raidz_math.c
-index e6112bc02..e7a39015c 100644
+index 3ef67768f..ef514e9e1 100644
 --- a/module/zfs/vdev_raidz_math.c
 +++ b/module/zfs/vdev_raidz_math.c
 @@ -27,9 +27,9 @@
@@ -1348,7 +1414,7 @@ index e6112bc02..e7a39015c 100644
 +	raidz_map_t *bench_rm = NULL;
 +	uint64_t bench_parity;
  
- 	/* Fake an zio and run the benchmark on a warmed up buffer */
+ 	/* Fake a zio and run the benchmark on a warmed up buffer */
  	bench_zio = kmem_zalloc(sizeof (zio_t), KM_SLEEP);
 @@ -480,7 +476,7 @@ vdev_raidz_math_init(void)
  	memset(abd_to_buf(bench_zio->io_abd), 0xAA, BENCH_ZIO_SIZE);
@@ -1548,68 +1614,3 @@ index 047a48d54..62247cf8e 100644
  }
  
  const raidz_impl_ops_t vdev_raidz_ssse3_impl = {
-diff --git a/config/kernel-fpu.m4 b/config/kernel-fpu.m4
-index 5fff79a74..31bf35f83 100644
---- a/config/kernel-fpu.m4
-+++ b/config/kernel-fpu.m4
-@@ -2,8 +2,15 @@ dnl #
- dnl # Handle differences in kernel FPU code.
- dnl #
- dnl # Kernel
--dnl # 5.0:	All kernel fpu functions are GPL only, so we can't use them.
--dnl #		(nothing defined)
-+dnl # 5.2:	The fpu->initialized flag was replaced by TIF_NEED_FPU_LOAD.
-+dnl #		HAVE_KERNEL_TIF_NEED_FPU_LOAD
-+dnl #
-+dnl # 5.0:	As an optimization SIMD operations performed by kernel
-+dnl #		threads can skip saving and restoring their FPU context.
-+dnl #		Wrappers have been introduced to determine the running
-+dnl #		context and use either the SIMD or generic implementation.
-+dnl #		This change was made to the 4.19.38 and 4.14.120 LTS kernels.
-+dnl #		HAVE_KERNEL_FPU_INITIALIZED
- dnl #
- dnl # 4.2:	Use __kernel_fpu_{begin,end}()
- dnl #		HAVE_UNDERSCORE_KERNEL_FPU & KERNEL_EXPORTS_X86_FPU
-@@ -56,10 +63,39 @@ AC_DEFUN([ZFS_AC_KERNEL_FPU], [
- 			__kernel_fpu_end();
- 		], [__kernel_fpu_begin], [arch/x86/kernel/fpu/core.c arch/x86/kernel/i387.c], [
- 			AC_MSG_RESULT(__kernel_fpu_*)
--			AC_DEFINE(HAVE_UNDERSCORE_KERNEL_FPU, 1, [kernel has __kernel_fpu_* functions])
--			AC_DEFINE(KERNEL_EXPORTS_X86_FPU, 1, [kernel exports FPU functions])
-+			AC_DEFINE(HAVE_UNDERSCORE_KERNEL_FPU, 1,
-+			    [kernel has __kernel_fpu_* functions])
-+			AC_DEFINE(KERNEL_EXPORTS_X86_FPU, 1,
-+			    [kernel exports FPU functions])
- 		],[
--			AC_MSG_RESULT(not exported)
-+			ZFS_LINUX_TRY_COMPILE([
-+				#include <linux/module.h>
-+				#include <linux/sched.h>
-+			],[
-+				struct fpu *fpu = &current->thread.fpu;
-+				if (fpu->initialized) { return (0); };
-+			],[
-+				AC_MSG_RESULT(fpu.initialized)
-+				AC_DEFINE(HAVE_KERNEL_FPU_INITIALIZED, 1,
-+				    [kernel fpu.initialized exists])
-+			],[
-+				ZFS_LINUX_TRY_COMPILE([
-+					#include <linux/module.h>
-+					#include <asm/thread_info.h>
-+
-+					#if !defined(TIF_NEED_FPU_LOAD)
-+					#error "TIF_NEED_FPU_LOAD undefined"
-+					#endif
-+				],[
-+				],[
-+					AC_MSG_RESULT(TIF_NEED_FPU_LOAD)
-+					AC_DEFINE(
-+					    HAVE_KERNEL_TIF_NEED_FPU_LOAD, 1,
-+					    [kernel TIF_NEED_FPU_LOAD exists])
-+				],[
-+					AC_MSG_RESULT(unavailable)
-+				])
-+			])
- 		])
- 	])
- ])

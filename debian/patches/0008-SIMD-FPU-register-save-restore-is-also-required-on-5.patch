@@ -14,10 +14,10 @@ Signed-off-by: Thomas Lamprecht <t.lamprecht@proxmox.com>
  1 file changed, 1 insertion(+), 10 deletions(-)
 
 diff --git a/include/linux/simd_x86.h b/include/linux/simd_x86.h
-index 5f243e0cc..aac63d964 100644
+index edd456098..13aa77345 100644
 --- a/include/linux/simd_x86.h
 +++ b/include/linux/simd_x86.h
-@@ -179,7 +179,6 @@ kfpu_begin(void)
+@@ -181,7 +181,6 @@ kfpu_begin(void)
  	preempt_disable();
  	local_irq_disable();
  
@@ -25,7 +25,7 @@ index 5f243e0cc..aac63d964 100644
  	/*
  	 * The current FPU registers need to be preserved by kfpu_begin()
  	 * and restored by kfpu_end().  This is required because we can
-@@ -188,20 +187,13 @@ kfpu_begin(void)
+@@ -190,20 +189,13 @@ kfpu_begin(void)
  	 * context switch.
  	 */
  	copy_fpregs_to_fpstate(&current->thread.fpu);
@@ -47,7 +47,7 @@ index 5f243e0cc..aac63d964 100644
  	union fpregs_state *state = &current->thread.fpu.state;
  	int error;
  
-@@ -213,7 +205,6 @@ kfpu_end(void)
+@@ -215,7 +207,6 @@ kfpu_end(void)
  		error = copy_kernel_to_fregs_err(&state->fsave);
  	}
  	WARN_ON_ONCE(error);

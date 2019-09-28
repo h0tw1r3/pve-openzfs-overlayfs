@@ -6,6 +6,8 @@ Subject: [PATCH] Enable zed emails
 The OpenZFS event daemon monitors pools. This patch enables the email sending
 function by default (if zed is installed). This is consistent with the default
 behavior of mdadm.
+
+Signed-off-by: Thomas Lamprecht <t.lamprecht@proxmox.com>
 ---
  cmd/zed/zed.d/zed.rc | 4 ++--
  1 file changed, 2 insertions(+), 2 deletions(-)
