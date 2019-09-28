@@ -93,9 +93,9 @@ override_dh_auto_clean:
 	dh_auto_clean
 	@if test -e META.orig; then mv META.orig META; fi
 
-override_dh_install:
+override_dh_missing:
 	find . -name lib*.la -delete
-	dh_install --fail-missing
+	dh_missing --fail-missing
 
 override_dh_installdocs:
 	dh_installdocs
