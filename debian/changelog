@@ -1,3 +1,9 @@
+zfs-linux (0.8.2-pve1) pve pmg; urgency=medium
+
+  * update to new 0.8.2 upstream stable release
+
+ -- Proxmox Support Team <support@proxmox.com>  Sat, 28 Sep 2019 08:34:53 +0200
+
 zfs-linux (0.8.1-pve3) pve pmg; urgency=medium
 
   * [SIMD]: FPU register save/restore is also required on 5.0 kernel.
