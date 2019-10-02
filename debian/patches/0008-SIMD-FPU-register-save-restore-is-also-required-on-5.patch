@@ -5,16 +5,16 @@ Subject: [PATCH] [SIMD]: FPU register save/restore is also required on 5.0
  kernels
 
 NOTE: the kernel needs to have the copy_kernel_to_xregs_err,
-copy_kernel_to_fxregs_err and copy_kernel_to_fregs_err funcitons
+copy_kernel_to_fxregs_err and copy_kernel_to_fregs_err functions
 backported for this to work.
 
 Signed-off-by: Thomas Lamprecht <t.lamprecht@proxmox.com>
 ---
- include/linux/simd_x86.h | 11 +----------
- 1 file changed, 1 insertion(+), 10 deletions(-)
+ include/linux/simd_x86.h | 11 ++++-------
+ 1 file changed, 4 insertions(+), 7 deletions(-)
 
 diff --git a/include/linux/simd_x86.h b/include/linux/simd_x86.h
-index edd456098..13aa77345 100644
+index edd456098..98503a29e 100644
 --- a/include/linux/simd_x86.h
 +++ b/include/linux/simd_x86.h
 @@ -181,7 +181,6 @@ kfpu_begin(void)
@@ -25,21 +25,23 @@ index edd456098..13aa77345 100644
  	/*
  	 * The current FPU registers need to be preserved by kfpu_begin()
  	 * and restored by kfpu_end().  This is required because we can
-@@ -190,20 +189,13 @@ kfpu_begin(void)
+@@ -190,11 +189,11 @@ kfpu_begin(void)
  	 * context switch.
  	 */
  	copy_fpregs_to_fpstate(&current->thread.fpu);
 -#elif defined(HAVE_KERNEL_FPU_INITIALIZED)
--	/*
++
++
++#if defined(HAVE_KERNEL_FPU_INITIALIZED)
+ 	/*
 -	 * There is no need to preserve and restore the FPU registers.
 -	 * They will always be restored from the task's stored FPU state
 -	 * when switching contexts.
--	 */
-+
++	 * Was removed with 5.2 as it was always set to 1 there
+ 	 */
  	WARN_ON_ONCE(current->thread.fpu.initialized == 0);
--#endif
- }
- 
+ #endif
+@@ -203,7 +202,6 @@ kfpu_begin(void)
  static inline void
  kfpu_end(void)
  {
@@ -47,7 +49,7 @@ index edd456098..13aa77345 100644
  	union fpregs_state *state = &current->thread.fpu.state;
  	int error;
  
-@@ -215,7 +207,6 @@ kfpu_end(void)
+@@ -215,7 +213,6 @@ kfpu_end(void)
  		error = copy_kernel_to_fregs_err(&state->fsave);
  	}
  	WARN_ON_ONCE(error);
