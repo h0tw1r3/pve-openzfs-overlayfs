@@ -54,10 +54,10 @@ ${ZFS_DSC}: ${ZFSDIR}
 	lintian $@
 
 ${ZFSDIR}: $(ZFSSRC)/README.md $(ZFSSRC) ${ZFSPKG}
-	rm -rf ${ZFSDIR}
-	mkdir ${ZFSDIR}
-	cp -a ${ZFSSRC}/* ${ZFSDIR}/
-	cp -a ${ZFSPKG} ${ZFSDIR}/debian
+	rm -rf ${ZFSDIR} ${ZFSDIR}.tmp
+	cp -a ${ZFSSRC} ${ZFSDIR}.tmp
+	cp -a ${ZFSPKG} ${ZFSDIR}.tmp/debian
+	mv ${ZFSDIR}.tmp ${ZFSDIR}
 
 
 .PHONY: clean
