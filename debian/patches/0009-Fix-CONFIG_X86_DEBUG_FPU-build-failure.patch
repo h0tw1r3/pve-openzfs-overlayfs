@@ -2,9 +2,6 @@ From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
 From: Brian Behlendorf <behlendorf1@llnl.gov>
 Date: Wed, 17 Jul 2019 09:14:36 -0700
 Subject: [PATCH] Fix CONFIG_X86_DEBUG_FPU build failure
-MIME-Version: 1.0
-Content-Type: text/plain; charset=UTF-8
-Content-Transfer-Encoding: 8bit
 
 When CONFIG_X86_DEBUG_FPU is defined the alternatives_patched symbol
 is pulled in as a dependency which results in a build failure.  To
@@ -16,15 +13,13 @@ Reviewed-by: Tony Hutter <hutter2@llnl.gov>
 Signed-off-by: Brian Behlendorf <behlendorf1@llnl.gov>
 Closes #9041
 Closes #9049
-(cherry picked from commit 095b5412b31c07cad5cec74a4eb5ace011c92b27)
-Signed-off-by: Fabian Grünbichler <f.gruenbichler@proxmox.com>
 Signed-off-by: Thomas Lamprecht <t.lamprecht@proxmox.com>
 ---
  include/linux/simd_x86.h | 9 +++++++++
  1 file changed, 9 insertions(+)
 
 diff --git a/include/linux/simd_x86.h b/include/linux/simd_x86.h
-index 641f43955..edd456098 100644
+index d1ded3af2..b32bccc41 100644
 --- a/include/linux/simd_x86.h
 +++ b/include/linux/simd_x86.h
 @@ -84,6 +84,15 @@

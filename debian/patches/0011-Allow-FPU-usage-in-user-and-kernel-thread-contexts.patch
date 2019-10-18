@@ -1,0 +1,327 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Brian Behlendorf <behlendorf1@llnl.gov>
+Date: Wed, 9 Oct 2019 22:36:19 +0000
+Subject: [PATCH] Allow FPU usage in user and kernel thread contexts
+
+Even for dedicated kernel threads we apparently cannot be
+guaranteed that the kernel won't modify the FPU state which
+we saved in the task struck.  Allocate our own per-cpu state
+to preserve the saved register state.  Aside from correctness,
+this allows use of the FPU in user threads again.
+
+Signed-off-by: Brian Behlendorf <behlendorf1@llnl.gov>
+(cherry picked from commit 11170d9073edcbb613f5a4c992293cbb4e3c8e31)
+Signed-off-by: Thomas Lamprecht <t.lamprecht@proxmox.com>
+---
+ config/kernel-fpu.m4                         |  7 --
+ include/os/linux/kernel/linux/simd.h         |  1 -
+ include/os/linux/kernel/linux/simd_aarch64.h |  2 -
+ include/os/linux/kernel/linux/simd_x86.h     | 87 +++++++++++++-------
+ module/spl/spl-taskq.c                       |  2 -
+ module/spl/spl-thread.c                      |  2 -
+ module/zcommon/zfs_prop.c                    | 18 ++++
+ 7 files changed, 73 insertions(+), 46 deletions(-)
+
+diff --git a/config/kernel-fpu.m4 b/config/kernel-fpu.m4
+index 9ed9b14ad..15bea3c22 100644
+--- a/config/kernel-fpu.m4
++++ b/config/kernel-fpu.m4
+@@ -67,12 +67,6 @@ AC_DEFUN([ZFS_AC_KERNEL_SRC_FPU], [
+ 		#error Unsupported architecture
+ 		#endif
+ 
+-		#include <linux/sched.h>
+-
+-		#if !defined(PF_KTHREAD)
+-		#error PF_KTHREAD not defined
+-		#endif
+-
+ 		#ifdef HAVE_KERNEL_FPU_API_HEADER
+ 		#include <asm/fpu/api.h>
+ 		#include <asm/fpu/internal.h>
+@@ -94,7 +88,6 @@ AC_DEFUN([ZFS_AC_KERNEL_SRC_FPU], [
+ 		struct fregs_state *fr __attribute__ ((unused)) = &st->fsave;
+ 		struct fxregs_state *fxr __attribute__ ((unused)) = &st->fxsave;
+ 		struct xregs_state *xr __attribute__ ((unused)) = &st->xsave;
+-		fpu->last_cpu = -1;
+ 	])
+ ])
+ 
+diff --git a/include/os/linux/kernel/linux/simd.h b/include/os/linux/kernel/linux/simd.h
+index 1f6574a90..5138a908b 100644
+--- a/include/os/linux/kernel/linux/simd.h
++++ b/include/os/linux/kernel/linux/simd.h
+@@ -33,7 +33,6 @@
+ #else
+ 
+ #define	kfpu_allowed()		0
+-#define	kfpu_initialize(tsk)	do {} while (0)
+ #define	kfpu_begin()		do {} while (0)
+ #define	kfpu_end()		do {} while (0)
+ 
+diff --git a/include/os/linux/kernel/linux/simd_aarch64.h b/include/os/linux/kernel/linux/simd_aarch64.h
+index ac530d920..f6cf3c377 100644
+--- a/include/os/linux/kernel/linux/simd_aarch64.h
++++ b/include/os/linux/kernel/linux/simd_aarch64.h
+@@ -27,7 +27,6 @@
+  *
+  * Kernel fpu methods:
+  *	kfpu_allowed()
+- *	kfpu_initialize()
+  *	kfpu_begin()
+  *	kfpu_end()
+  */
+@@ -43,7 +42,6 @@
+ #include <asm/neon.h>
+ 
+ #define	kfpu_allowed()		1
+-#define	kfpu_initialize(tsk)	do {} while (0)
+ #define	kfpu_begin()		kernel_neon_begin()
+ #define	kfpu_end()		kernel_neon_end()
+ 
+diff --git a/include/os/linux/kernel/linux/simd_x86.h b/include/os/linux/kernel/linux/simd_x86.h
+index 486e31845..c42ea918e 100644
+--- a/include/os/linux/kernel/linux/simd_x86.h
++++ b/include/os/linux/kernel/linux/simd_x86.h
+@@ -27,7 +27,6 @@
+  *
+  * Kernel fpu methods:
+  *	kfpu_allowed()
+- *	kfpu_initialize()
+  *	kfpu_begin()
+  *	kfpu_end()
+  *
+@@ -99,7 +98,6 @@
+ #if defined(KERNEL_EXPORTS_X86_FPU)
+ 
+ #define	kfpu_allowed()		1
+-#define	kfpu_initialize(tsk)	do {} while (0)
+ 
+ #if defined(HAVE_UNDERSCORE_KERNEL_FPU)
+ #define	kfpu_begin()		\
+@@ -129,16 +127,52 @@
+ 
+ /*
+  * When the kernel_fpu_* symbols are unavailable then provide our own
+- * versions which allow the FPU to be safely used in kernel threads.
+- * In practice, this is not a significant restriction for ZFS since the
+- * vast majority of SIMD operations are performed by the IO pipeline.
++ * versions which allow the FPU to be safely used.
+  */
+ #if defined(HAVE_KERNEL_FPU_INTERNAL)
+ 
++extern struct fpu **zfs_kfpu_fpregs;
++
+ /*
+- * FPU usage only allowed in dedicated kernel threads.
++ * Initialize per-cpu variables to store FPU state.
+  */
+-#define	kfpu_allowed()		(current->flags & PF_KTHREAD)
++static inline void
++kfpu_fini(void)
++{
++	int cpu;
++
++	for_each_possible_cpu(cpu) {
++		if (zfs_kfpu_fpregs[cpu] != NULL) {
++			kfree(zfs_kfpu_fpregs[cpu]);
++		}
++	}
++
++	kfree(zfs_kfpu_fpregs);
++}
++
++static inline int
++kfpu_init(void)
++{
++	int cpu;
++
++	zfs_kfpu_fpregs = kzalloc(num_possible_cpus() *
++	    sizeof (struct fpu *), GFP_KERNEL);
++	if (zfs_kfpu_fpregs == NULL)
++		return (ENOMEM);
++
++	for_each_possible_cpu(cpu) {
++		zfs_kfpu_fpregs[cpu] = kmalloc_node(sizeof (struct fpu),
++		    GFP_KERNEL, cpu_to_node(cpu));
++		if (zfs_kfpu_fpregs[cpu] == NULL) {
++			kfpu_fini();
++			return (ENOMEM);
++		}
++	}
++
++	return (0);
++}
++
++#define	kfpu_allowed()		1
+ #define	ex_handler_fprestore	ex_handler_default
+ 
+ /*
+@@ -154,15 +188,6 @@
+ #define	kfpu_fxsr_clean(rval)	__asm("fnclex; emms; fildl %P[addr]" \
+ 				    : : [addr] "m" (rval));
+ 
+-static inline void
+-kfpu_initialize(void)
+-{
+-	WARN_ON_ONCE(!(current->flags & PF_KTHREAD));
+-
+-	/* Invalidate the task's FPU state */
+-	current->thread.fpu.last_cpu = -1;
+-}
+-
+ static inline void
+ kfpu_save_xsave(struct xregs_state *addr, uint64_t mask)
+ {
+@@ -193,8 +218,6 @@ kfpu_save_fsave(struct fregs_state *addr)
+ static inline void
+ kfpu_begin(void)
+ {
+-	WARN_ON_ONCE(!kfpu_allowed());
+-
+ 	/*
+ 	 * Preemption and interrupts must be disabled for the critical
+ 	 * region where the FPU state is being modified.
+@@ -204,20 +227,18 @@ kfpu_begin(void)
+ 
+ 	/*
+ 	 * The current FPU registers need to be preserved by kfpu_begin()
+-	 * and restored by kfpu_end().  This is always required because we
+-	 * can not call __cpu_invalidate_fpregs_state() to invalidate the
+-	 * per-cpu FPU state and force them to be restored.  Furthermore,
+-	 * this implementation relies on the space provided in the task
+-	 * structure to store the user FPU state.  As such, it can only
+-	 * be used with dedicated kernels which by definition will never
+-	 * store user FPU state.
++	 * and restored by kfpu_end().  They are stored in a dedicated
++	 * per-cpu variable, not in the task struct, this allows any user
++	 * FPU state to be correctly preserved and restored.
+ 	 */
++	struct fpu *fpu = zfs_kfpu_fpregs[smp_processor_id()];
++
+ 	if (static_cpu_has(X86_FEATURE_XSAVE)) {
+-		kfpu_save_xsave(&current->thread.fpu.state.xsave, ~0);
++		kfpu_save_xsave(&fpu->state.xsave, ~0);
+ 	} else if (static_cpu_has(X86_FEATURE_FXSR)) {
+-		kfpu_save_fxsr(&current->thread.fpu.state.fxsave);
++		kfpu_save_fxsr(&fpu->state.fxsave);
+ 	} else {
+-		kfpu_save_fsave(&current->thread.fpu.state.fsave);
++		kfpu_save_fsave(&fpu->state.fsave);
+ 	}
+ }
+ 
+@@ -258,12 +279,14 @@ kfpu_restore_fsave(struct fregs_state *addr)
+ static inline void
+ kfpu_end(void)
+ {
++	struct fpu *fpu = zfs_kfpu_fpregs[smp_processor_id()];
++
+ 	if (static_cpu_has(X86_FEATURE_XSAVE)) {
+-		kfpu_restore_xsave(&current->thread.fpu.state.xsave, ~0);
++		kfpu_restore_xsave(&fpu->state.xsave, ~0);
+ 	} else if (static_cpu_has(X86_FEATURE_FXSR)) {
+-		kfpu_restore_fxsr(&current->thread.fpu.state.fxsave);
++		kfpu_restore_fxsr(&fpu->state.fxsave);
+ 	} else {
+-		kfpu_restore_fsave(&current->thread.fpu.state.fsave);
++		kfpu_restore_fsave(&fpu->state.fsave);
+ 	}
+ 
+ 	local_irq_enable();
+@@ -276,7 +299,6 @@ kfpu_end(void)
+  * FPU support is unavailable.
+  */
+ #define	kfpu_allowed()		0
+-#define	kfpu_initialize(tsk)	do {} while (0)
+ #define	kfpu_begin()		do {} while (0)
+ #define	kfpu_end()		do {} while (0)
+ 
+@@ -286,6 +308,7 @@ kfpu_end(void)
+ /*
+  * Linux kernel provides an interface for CPU feature testing.
+  */
++
+ /*
+  * Detect register set support
+  */
+diff --git a/module/spl/spl-taskq.c b/module/spl/spl-taskq.c
+index 90e1d0a4d..a39f94e4c 100644
+--- a/module/spl/spl-taskq.c
++++ b/module/spl/spl-taskq.c
+@@ -28,7 +28,6 @@
+ #include <sys/taskq.h>
+ #include <sys/kmem.h>
+ #include <sys/tsd.h>
+-#include <sys/simd.h>
+ 
+ int spl_taskq_thread_bind = 0;
+ module_param(spl_taskq_thread_bind, int, 0644);
+@@ -854,7 +853,6 @@ taskq_thread(void *args)
+ 	sigfillset(&blocked);
+ 	sigprocmask(SIG_BLOCK, &blocked, NULL);
+ 	flush_signals(current);
+-	kfpu_initialize();
+ 
+ 	tsd_set(taskq_tsd, tq);
+ 	spin_lock_irqsave_nested(&tq->tq_lock, flags, tq->tq_lock_class);
+diff --git a/module/spl/spl-thread.c b/module/spl/spl-thread.c
+index 29de9252a..0352a31ea 100644
+--- a/module/spl/spl-thread.c
++++ b/module/spl/spl-thread.c
+@@ -27,7 +27,6 @@
+ #include <sys/thread.h>
+ #include <sys/kmem.h>
+ #include <sys/tsd.h>
+-#include <sys/simd.h>
+ 
+ /*
+  * Thread interfaces
+@@ -55,7 +54,6 @@ thread_generic_wrapper(void *arg)
+ 	args = tp->tp_args;
+ 	set_current_state(tp->tp_state);
+ 	set_user_nice((kthread_t *)current, PRIO_TO_NICE(tp->tp_pri));
+-	kfpu_initialize();
+ 	kmem_free(tp->tp_name, tp->tp_name_size);
+ 	kmem_free(tp, sizeof (thread_priv_t));
+ 
+diff --git a/module/zcommon/zfs_prop.c b/module/zcommon/zfs_prop.c
+index dab749138..b5fa1c2f4 100644
+--- a/module/zcommon/zfs_prop.c
++++ b/module/zcommon/zfs_prop.c
+@@ -853,10 +853,27 @@ zfs_prop_align_right(zfs_prop_t prop)
+ #endif
+ 
+ #if defined(_KERNEL)
++
++#if defined(HAVE_KERNEL_FPU_INTERNAL)
++#include <linux/simd.h>
++
++struct fpu **zfs_kfpu_fpregs;
++EXPORT_SYMBOL(zfs_kfpu_fpregs);
++
++#else
++#define	kfpu_init()	0
++#define	kfpu_fini()	((void) 0)
++#endif /* HAVE_KERNEL_FPU_INTERNAL */
++
+ static int __init
+ zcommon_init(void)
+ {
++	int error = kfpu_init();
++	if (error)
++		return (-error);
++
+ 	fletcher_4_init();
++
+ 	return (0);
+ }
+ 
+@@ -864,6 +881,7 @@ static void __exit
+ zcommon_fini(void)
+ {
+ 	fletcher_4_fini();
++	kfpu_fini();
+ }
+ 
+ module_init(zcommon_init);

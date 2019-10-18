@@ -4,6 +4,8 @@
 0004-import-with-d-dev-disk-by-id-in-scan-service.patch
 0005-Enable-zed-emails.patch
 0006-Linux-5.0-compat-SIMD-compatibility.patch
-0007-Fix-CONFIG_X86_DEBUG_FPU-build-failure.patch
-0008-SIMD-FPU-register-save-restore-is-also-required-on-5.patch
-0009-Perform-KABI-checks-in-parallel.patch
+0007-Perform-KABI-checks-in-parallel.patch
+0008-Linux-4.14-4.19-5.0-compat-SIMD-save-restore.patch
+0009-Fix-CONFIG_X86_DEBUG_FPU-build-failure.patch
+0010-OpenZFS-restructuring-move-platform-specific-headers.patch
+0011-Allow-FPU-usage-in-user-and-kernel-thread-contexts.patch

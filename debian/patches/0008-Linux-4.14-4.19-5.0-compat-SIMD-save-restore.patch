@@ -1,0 +1,333 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Brian Behlendorf <behlendorf1@llnl.gov>
+Date: Thu, 3 Oct 2019 00:03:20 +0000
+Subject: [PATCH] Linux 4.14, 4.19, 5.0+ compat: SIMD save/restore
+
+Contrary to initial testing we cannot rely on these kernels to
+invalidate the per-cpu FPU state and restore the FPU registers.
+Therefore, the kfpu_begin() and kfpu_end() functions have been
+updated to unconditionally save and restore the FPU state.
+
+Signed-off-by: Brian Behlendorf <behlendorf1@llnl.gov>
+Issue #9346
+(cherry picked from commit 813fd014a90229127f80b970a8fef5049fd4c713)
+Signed-off-by: Thomas Lamprecht <t.lamprecht@proxmox.com>
+---
+ config/kernel-fpu.m4     |  82 +++++++++++----------
+ include/linux/simd_x86.h | 152 ++++++++++++++++++++++++++++-----------
+ 2 files changed, 155 insertions(+), 79 deletions(-)
+
+diff --git a/config/kernel-fpu.m4 b/config/kernel-fpu.m4
+index a2c47d65a..9ed9b14ad 100644
+--- a/config/kernel-fpu.m4
++++ b/config/kernel-fpu.m4
+@@ -2,15 +2,9 @@ dnl #
+ dnl # Handle differences in kernel FPU code.
+ dnl #
+ dnl # Kernel
+-dnl # 5.2:	The fpu->initialized flag was replaced by TIF_NEED_FPU_LOAD.
+-dnl #		HAVE_KERNEL_TIF_NEED_FPU_LOAD
+-dnl #
+-dnl # 5.0:	As an optimization SIMD operations performed by kernel
+-dnl #		threads can skip saving and restoring their FPU context.
+-dnl #		Wrappers have been introduced to determine the running
+-dnl #		context and use either the SIMD or generic implementation.
++dnl # 5.0:	Wrappers have been introduced to save/restore the FPU state.
+ dnl #		This change was made to the 4.19.38 and 4.14.120 LTS kernels.
+-dnl #		HAVE_KERNEL_FPU_INITIALIZED
++dnl #		HAVE_KERNEL_FPU_INTERNAL
+ dnl #
+ dnl # 4.2:	Use __kernel_fpu_{begin,end}()
+ dnl #		HAVE_UNDERSCORE_KERNEL_FPU & KERNEL_EXPORTS_X86_FPU
+@@ -61,22 +55,47 @@ AC_DEFUN([ZFS_AC_KERNEL_SRC_FPU], [
+ 		__kernel_fpu_end();
+ 	], [], [$ZFS_META_LICENSE])
+ 
+-	ZFS_LINUX_TEST_SRC([fpu_initialized], [
+-		#include <linux/module.h>
++	ZFS_LINUX_TEST_SRC([fpu_internal], [
++		#if defined(__x86_64) || defined(__x86_64__) || \
++		    defined(__i386) || defined(__i386__)
++		#if !defined(__x86)
++		#define __x86
++		#endif
++		#endif
++
++		#if !defined(__x86)
++		#error Unsupported architecture
++		#endif
++
+ 		#include <linux/sched.h>
+-	],[
+-		struct fpu *fpu = &current->thread.fpu;
+-		if (fpu->initialized) { return (0); };
+-	])
+ 
+-	ZFS_LINUX_TEST_SRC([tif_need_fpu_load], [
+-		#include <linux/module.h>
+-		#include <asm/thread_info.h>
++		#if !defined(PF_KTHREAD)
++		#error PF_KTHREAD not defined
++		#endif
+ 
+-		#if !defined(TIF_NEED_FPU_LOAD)
+-		#error "TIF_NEED_FPU_LOAD undefined"
++		#ifdef HAVE_KERNEL_FPU_API_HEADER
++		#include <asm/fpu/api.h>
++		#include <asm/fpu/internal.h>
++		#else
++		#include <asm/i387.h>
++		#include <asm/xcr.h>
++		#endif
++
++		#if !defined(XSTATE_XSAVE)
++		#error XSTATE_XSAVE not defined
++		#endif
++
++		#if !defined(XSTATE_XRESTORE)
++		#error XSTATE_XRESTORE not defined
+ 		#endif
+-	],[])
++	],[
++		struct fpu *fpu = &current->thread.fpu;
++		union fpregs_state *st = &fpu->state;
++		struct fregs_state *fr __attribute__ ((unused)) = &st->fsave;
++		struct fxregs_state *fxr __attribute__ ((unused)) = &st->fxsave;
++		struct xregs_state *xr __attribute__ ((unused)) = &st->xsave;
++		fpu->last_cpu = -1;
++	])
+ ])
+ 
+ AC_DEFUN([ZFS_AC_KERNEL_FPU], [
+@@ -104,25 +123,12 @@ AC_DEFUN([ZFS_AC_KERNEL_FPU], [
+ 			AC_DEFINE(KERNEL_EXPORTS_X86_FPU, 1,
+ 			    [kernel exports FPU functions])
+ 		],[
+-			dnl #
+-			dnl # Linux 5.0 kernel
+-			dnl #
+-			ZFS_LINUX_TEST_RESULT([fpu_initialized], [
+-				AC_MSG_RESULT(fpu.initialized)
+-				AC_DEFINE(HAVE_KERNEL_FPU_INITIALIZED, 1,
+-				    [kernel fpu.initialized exists])
++			ZFS_LINUX_TEST_RESULT([fpu_internal], [
++				AC_MSG_RESULT(internal)
++				AC_DEFINE(HAVE_KERNEL_FPU_INTERNAL, 1,
++				    [kernel fpu internal])
+ 			],[
+-				dnl #
+-				dnl # Linux 5.2 kernel
+-				dnl #
+-				ZFS_LINUX_TEST_RESULT([tif_need_fpu_load], [
+-					AC_MSG_RESULT(TIF_NEED_FPU_LOAD)
+-					AC_DEFINE(
+-					    HAVE_KERNEL_TIF_NEED_FPU_LOAD, 1,
+-					    [kernel TIF_NEED_FPU_LOAD exists])
+-				],[
+-					AC_MSG_RESULT(unavailable)
+-				])
++				AC_MSG_RESULT(unavailable)
+ 			])
+ 		])
+ 	])
+diff --git a/include/linux/simd_x86.h b/include/linux/simd_x86.h
+index 641f43955..d1ded3af2 100644
+--- a/include/linux/simd_x86.h
++++ b/include/linux/simd_x86.h
+@@ -126,38 +126,68 @@
+ #endif
+ 
+ #else /* defined(KERNEL_EXPORTS_X86_FPU) */
++
+ /*
+  * When the kernel_fpu_* symbols are unavailable then provide our own
+  * versions which allow the FPU to be safely used in kernel threads.
+  * In practice, this is not a significant restriction for ZFS since the
+  * vast majority of SIMD operations are performed by the IO pipeline.
+  */
++#if defined(HAVE_KERNEL_FPU_INTERNAL)
+ 
+ /*
+- * Returns non-zero if FPU operations are allowed in the current context.
++ * FPU usage only allowed in dedicated kernel threads.
+  */
+-#if defined(HAVE_KERNEL_TIF_NEED_FPU_LOAD)
+-#define	kfpu_allowed()		((current->flags & PF_KTHREAD) && \
+-				test_thread_flag(TIF_NEED_FPU_LOAD))
+-#elif defined(HAVE_KERNEL_FPU_INITIALIZED)
+-#define	kfpu_allowed()		((current->flags & PF_KTHREAD) && \
+-				current->thread.fpu.initialized)
+-#else
+-#define	kfpu_allowed()		0
+-#endif
++#define	kfpu_allowed()		(current->flags & PF_KTHREAD)
++#define	ex_handler_fprestore	ex_handler_default
++
++/*
++ * FPU save and restore instructions.
++ */
++#define	__asm			__asm__ __volatile__
++#define	kfpu_fxsave(addr)	__asm("fxsave %0" : "=m" (*(addr)))
++#define	kfpu_fxsaveq(addr)	__asm("fxsaveq %0" : "=m" (*(addr)))
++#define	kfpu_fnsave(addr)	__asm("fnsave %0; fwait" : "=m" (*(addr)))
++#define	kfpu_fxrstor(addr)	__asm("fxrstor %0" : : "m" (*(addr)))
++#define	kfpu_fxrstorq(addr)	__asm("fxrstorq %0" : : "m" (*(addr)))
++#define	kfpu_frstor(addr)	__asm("frstor %0" : : "m" (*(addr)))
++#define	kfpu_fxsr_clean(rval)	__asm("fnclex; emms; fildl %P[addr]" \
++				    : : [addr] "m" (rval));
+ 
+ static inline void
+ kfpu_initialize(void)
+ {
+ 	WARN_ON_ONCE(!(current->flags & PF_KTHREAD));
+ 
+-#if defined(HAVE_KERNEL_TIF_NEED_FPU_LOAD)
+-	__fpu_invalidate_fpregs_state(&current->thread.fpu);
+-	set_thread_flag(TIF_NEED_FPU_LOAD);
+-#elif defined(HAVE_KERNEL_FPU_INITIALIZED)
+-	__fpu_invalidate_fpregs_state(&current->thread.fpu);
+-	current->thread.fpu.initialized = 1;
+-#endif
++	/* Invalidate the task's FPU state */
++	current->thread.fpu.last_cpu = -1;
++}
++
++static inline void
++kfpu_save_xsave(struct xregs_state *addr, uint64_t mask)
++{
++	uint32_t low, hi;
++	int err;
++
++	low = mask;
++	hi = mask >> 32;
++	XSTATE_XSAVE(addr, low, hi, err);
++	WARN_ON_ONCE(err);
++}
++
++static inline void
++kfpu_save_fxsr(struct fxregs_state *addr)
++{
++	if (IS_ENABLED(CONFIG_X86_32))
++		kfpu_fxsave(addr);
++	else
++		kfpu_fxsaveq(addr);
++}
++
++static inline void
++kfpu_save_fsave(struct fregs_state *addr)
++{
++	kfpu_fnsave(addr);
+ }
+ 
+ static inline void
+@@ -172,46 +202,86 @@ kfpu_begin(void)
+ 	preempt_disable();
+ 	local_irq_disable();
+ 
+-#if defined(HAVE_KERNEL_TIF_NEED_FPU_LOAD)
+ 	/*
+ 	 * The current FPU registers need to be preserved by kfpu_begin()
+-	 * and restored by kfpu_end().  This is required because we can
+-	 * not call __cpu_invalidate_fpregs_state() to invalidate the
+-	 * per-cpu FPU state and force them to be restored during a
+-	 * context switch.
++	 * and restored by kfpu_end().  This is always required because we
++	 * can not call __cpu_invalidate_fpregs_state() to invalidate the
++	 * per-cpu FPU state and force them to be restored.  Furthermore,
++	 * this implementation relies on the space provided in the task
++	 * structure to store the user FPU state.  As such, it can only
++	 * be used with dedicated kernels which by definition will never
++	 * store user FPU state.
+ 	 */
+-	copy_fpregs_to_fpstate(&current->thread.fpu);
+-#elif defined(HAVE_KERNEL_FPU_INITIALIZED)
++	if (static_cpu_has(X86_FEATURE_XSAVE)) {
++		kfpu_save_xsave(&current->thread.fpu.state.xsave, ~0);
++	} else if (static_cpu_has(X86_FEATURE_FXSR)) {
++		kfpu_save_fxsr(&current->thread.fpu.state.fxsave);
++	} else {
++		kfpu_save_fsave(&current->thread.fpu.state.fsave);
++	}
++}
++
++static inline void
++kfpu_restore_xsave(struct xregs_state *addr, uint64_t mask)
++{
++	uint32_t low, hi;
++
++	low = mask;
++	hi = mask >> 32;
++	XSTATE_XRESTORE(addr, low, hi);
++}
++
++static inline void
++kfpu_restore_fxsr(struct fxregs_state *addr)
++{
+ 	/*
+-	 * There is no need to preserve and restore the FPU registers.
+-	 * They will always be restored from the task's stored FPU state
+-	 * when switching contexts.
++	 * On AuthenticAMD K7 and K8 processors the fxrstor instruction only
++	 * restores the _x87 FOP, FIP, and FDP registers when an exception
++	 * is pending.  Clean the _x87 state to force the restore.
+ 	 */
+-	WARN_ON_ONCE(current->thread.fpu.initialized == 0);
+-#endif
++	if (unlikely(static_cpu_has_bug(X86_BUG_FXSAVE_LEAK)))
++		kfpu_fxsr_clean(addr);
++
++	if (IS_ENABLED(CONFIG_X86_32)) {
++		kfpu_fxrstor(addr);
++	} else {
++		kfpu_fxrstorq(addr);
++	}
+ }
+ 
+ static inline void
+-kfpu_end(void)
++kfpu_restore_fsave(struct fregs_state *addr)
+ {
+-#if defined(HAVE_KERNEL_TIF_NEED_FPU_LOAD)
+-	union fpregs_state *state = &current->thread.fpu.state;
+-	int error;
++	kfpu_frstor(addr);
++}
+ 
+-	if (use_xsave()) {
+-		error = copy_kernel_to_xregs_err(&state->xsave, -1);
+-	} else if (use_fxsr()) {
+-		error = copy_kernel_to_fxregs_err(&state->fxsave);
++static inline void
++kfpu_end(void)
++{
++	if (static_cpu_has(X86_FEATURE_XSAVE)) {
++		kfpu_restore_xsave(&current->thread.fpu.state.xsave, ~0);
++	} else if (static_cpu_has(X86_FEATURE_FXSR)) {
++		kfpu_restore_fxsr(&current->thread.fpu.state.fxsave);
+ 	} else {
+-		error = copy_kernel_to_fregs_err(&state->fsave);
++		kfpu_restore_fsave(&current->thread.fpu.state.fsave);
+ 	}
+-	WARN_ON_ONCE(error);
+-#endif
+ 
+ 	local_irq_enable();
+ 	preempt_enable();
+ }
+-#endif /* defined(HAVE_KERNEL_FPU) */
++
++#else
++
++/*
++ * FPU support is unavailable.
++ */
++#define	kfpu_allowed()		0
++#define	kfpu_initialize(tsk)	do {} while (0)
++#define	kfpu_begin()		do {} while (0)
++#define	kfpu_end()		do {} while (0)
++
++#endif /* defined(HAVE_KERNEL_FPU_INTERNAL) */
++#endif /* defined(KERNEL_EXPORTS_X86_FPU) */
+ 
+ #else /* defined(_KERNEL) */
+ /*

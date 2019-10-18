@@ -2,9 +2,6 @@ From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
 From: Brian Behlendorf <behlendorf1@llnl.gov>
 Date: Fri, 12 Jul 2019 09:31:20 -0700
 Subject: [PATCH] Linux 5.0 compat: SIMD compatibility
-MIME-Version: 1.0
-Content-Type: text/plain; charset=UTF-8
-Content-Transfer-Encoding: 8bit
 
 Restore the SIMD optimization for 4.19.38 LTS, 4.14.120 LTS,
 and 5.0 and newer kernels.  This is accomplished by leveraging
@@ -59,8 +56,6 @@ Signed-off-by: Brian Behlendorf <behlendorf1@llnl.gov>
 Closes #8754
 Closes #8793
 Closes #8965
-(cherry picked from commit e5db31349484e5e859c7a942eb15b98d68ce5b4d)
-Signed-off-by: Fabian Grünbichler <f.gruenbichler@proxmox.com>
 Signed-off-by: Thomas Lamprecht <t.lamprecht@proxmox.com>
 ---
  cmd/ztest/ztest.c                           |   3 +

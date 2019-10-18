@@ -1,0 +1,2433 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Matthew Macy <mmacy@mattmacy.io>
+Date: Thu, 5 Sep 2019 09:34:54 -0700
+Subject: [PATCH] OpenZFS restructuring - move platform specific headers
+
+Move platform specific Linux headers under include/os/linux/.
+Update the build system accordingly to detect the platform.
+This lays some of the initial groundwork to supporting building
+for other platforms.
+
+As part of this change it was necessary to create both a user
+and kernel space sys/simd.h header which can be included in
+either context.  No functional change, the source has been
+refactored and the relevant #include's updated.
+
+Reviewed-by: Jorgen Lundman <lundman@lundman.net>
+Reviewed-by: Igor Kozhukhov <igor@dilos.org>
+Signed-off-by: Matthew Macy <mmacy@FreeBSD.org>
+Signed-off-by: Brian Behlendorf <behlendorf1@llnl.gov>
+Closes #9198
+(cherry picked from commit 006e9a40882468be68f276c946bae812b74ac35c)
+Signed-off-by: Thomas Lamprecht <t.lamprecht@proxmox.com>
+---
+ config/always-system.m4                       |  26 +
+ config/zfs-build.m4                           |   1 +
+ configure.ac                                  |  13 +-
+ copy-builtin                                  |   4 +-
+ include/.gitignore                            |   1 +
+ include/Makefile.am                           |   2 +-
+ include/linux/Makefile.am                     |  29 --
+ include/os/Makefile.am                        |   3 +
+ include/os/linux/Makefile.am                  |   1 +
+ include/os/linux/kernel/Makefile.am           |   1 +
+ include/os/linux/kernel/linux/Makefile.am     |  29 ++
+ .../linux/kernel}/linux/blkdev_compat.h       |   0
+ .../linux/kernel}/linux/compiler_compat.h     |   0
+ .../linux/kernel}/linux/dcache_compat.h       |   0
+ .../{ => os/linux/kernel}/linux/kmap_compat.h |   0
+ .../{ => os/linux/kernel}/linux/mod_compat.h  |   0
+ .../{ => os/linux/kernel}/linux/page_compat.h |   0
+ include/{ => os/linux/kernel}/linux/simd.h    |   8 +-
+ .../linux/kernel}/linux/simd_aarch64.h        |  18 +-
+ .../{ => os/linux/kernel}/linux/simd_x86.h    | 357 ++------------
+ .../linux/kernel}/linux/utsname_compat.h      |   0
+ .../{ => os/linux/kernel}/linux/vfs_compat.h  |   0
+ .../linux/kernel}/linux/xattr_compat.h        |   0
+ include/{ => os/linux}/spl/Makefile.am        |   0
+ include/{ => os/linux}/spl/rpc/Makefile.am    |   2 +-
+ include/{ => os/linux}/spl/rpc/xdr.h          |   0
+ include/os/linux/spl/sys/Makefile.am          |  62 +++
+ include/{ => os/linux}/spl/sys/acl.h          |   0
+ include/{ => os/linux}/spl/sys/atomic.h       |   0
+ include/{ => os/linux}/spl/sys/byteorder.h    |   0
+ include/{ => os/linux}/spl/sys/callb.h        |   0
+ include/{ => os/linux}/spl/sys/callo.h        |   0
+ include/{ => os/linux}/spl/sys/cmn_err.h      |   0
+ include/{ => os/linux}/spl/sys/condvar.h      |   0
+ include/{ => os/linux}/spl/sys/console.h      |   0
+ include/{ => os/linux}/spl/sys/cred.h         |   0
+ include/{ => os/linux}/spl/sys/ctype.h        |   0
+ include/{ => os/linux}/spl/sys/debug.h        |   0
+ include/{ => os/linux}/spl/sys/disp.h         |   0
+ include/{ => os/linux}/spl/sys/dkio.h         |   0
+ include/{ => os/linux}/spl/sys/errno.h        |   0
+ include/{ => os/linux}/spl/sys/fcntl.h        |   0
+ include/{ => os/linux}/spl/sys/file.h         |   0
+ include/{ => os/linux}/spl/sys/inttypes.h     |   0
+ include/{ => os/linux}/spl/sys/isa_defs.h     |   0
+ include/{ => os/linux}/spl/sys/kmem.h         |   0
+ include/{ => os/linux}/spl/sys/kmem_cache.h   |   0
+ include/{ => os/linux}/spl/sys/kobj.h         |   0
+ include/{ => os/linux}/spl/sys/kstat.h        |   0
+ include/{ => os/linux}/spl/sys/list.h         |   0
+ include/{ => os/linux}/spl/sys/mode.h         |   0
+ include/{ => os/linux}/spl/sys/mutex.h        |   0
+ include/{ => os/linux}/spl/sys/param.h        |   0
+ include/{ => os/linux}/spl/sys/proc.h         |   0
+ include/{ => os/linux}/spl/sys/processor.h    |   0
+ include/{ => os/linux}/spl/sys/procfs_list.h  |   0
+ include/{ => os/linux}/spl/sys/random.h       |   0
+ include/{ => os/linux}/spl/sys/rwlock.h       |   0
+ include/{ => os/linux}/spl/sys/shrinker.h     |   0
+ include/{ => os/linux}/spl/sys/sid.h          |   0
+ include/{ => os/linux}/spl/sys/signal.h       |   0
+ include/os/linux/spl/sys/simd.h               |  31 ++
+ include/{ => os/linux}/spl/sys/stat.h         |   0
+ include/{ => os/linux}/spl/sys/strings.h      |   0
+ include/{ => os/linux}/spl/sys/sunddi.h       |   0
+ include/{ => os/linux}/spl/sys/sysmacros.h    |   0
+ include/{ => os/linux}/spl/sys/systeminfo.h   |   0
+ include/{ => os/linux}/spl/sys/taskq.h        |   0
+ include/{ => os/linux}/spl/sys/thread.h       |   0
+ include/{ => os/linux}/spl/sys/time.h         |   0
+ include/{ => os/linux}/spl/sys/timer.h        |   0
+ include/{ => os/linux}/spl/sys/tsd.h          |   0
+ include/{ => os/linux}/spl/sys/types.h        |   0
+ include/{ => os/linux}/spl/sys/types32.h      |   0
+ include/{ => os/linux}/spl/sys/uio.h          |   0
+ include/{ => os/linux}/spl/sys/user.h         |   0
+ include/{ => os/linux}/spl/sys/vfs.h          |   0
+ include/{ => os/linux}/spl/sys/vmem.h         |   0
+ include/{ => os/linux}/spl/sys/vmsystm.h      |   0
+ include/{ => os/linux}/spl/sys/vnode.h        |   0
+ include/{ => os/linux}/spl/sys/wait.h         |   0
+ include/{ => os/linux}/spl/sys/zmod.h         |   0
+ include/{ => os/linux}/spl/sys/zone.h         |   0
+ include/os/linux/zfs/Makefile.am              |   1 +
+ include/os/linux/zfs/sys/Makefile.am          |  12 +
+ include/{ => os/linux/zfs}/sys/policy.h       |   0
+ include/{ => os/linux/zfs}/sys/zfs_ctldir.h   |   0
+ include/{ => os/linux/zfs}/sys/zfs_dir.h      |   0
+ include/{ => os/linux/zfs}/sys/zfs_vfsops.h   |   0
+ include/{ => os/linux/zfs}/sys/zfs_vnops.h    |   0
+ include/{ => os/linux/zfs}/sys/zpl.h          |   0
+ include/spl/sys/Makefile.am                   |  61 ---
+ include/sys/Makefile.am                       |   6 -
+ lib/libspl/include/sys/Makefile.am            |   1 +
+ lib/libspl/include/sys/simd.h                 | 448 ++++++++++++++++++
+ module/Makefile.in                            |   4 +-
+ module/icp/algs/aes/aes_impl.c                |   2 +-
+ module/icp/algs/aes/aes_impl_aesni.c          |   3 +-
+ module/icp/algs/aes/aes_impl_x86-64.c         |   2 +-
+ module/icp/algs/modes/gcm.c                   |   2 +-
+ module/icp/algs/modes/gcm_pclmulqdq.c         |   4 +-
+ module/icp/io/aes.c                           |   4 +-
+ module/spl/spl-taskq.c                        |   2 +-
+ module/spl/spl-thread.c                       |   2 +-
+ module/zcommon/zfs_fletcher.c                 |   4 +-
+ module/zcommon/zfs_fletcher_aarch64_neon.c    |   2 +-
+ module/zcommon/zfs_fletcher_avx512.c          |   2 +-
+ module/zcommon/zfs_fletcher_intel.c           |   2 +-
+ module/zcommon/zfs_fletcher_sse.c             |   2 +-
+ module/zfs/vdev_raidz_math.c                  |   2 +-
+ .../zfs/vdev_raidz_math_aarch64_neon_common.h |   2 +-
+ module/zfs/vdev_raidz_math_avx2.c             |   2 +-
+ module/zfs/vdev_raidz_math_avx512bw.c         |   2 +-
+ module/zfs/vdev_raidz_math_avx512f.c          |   2 +-
+ module/zfs/vdev_raidz_math_sse2.c             |   2 +-
+ module/zfs/vdev_raidz_math_ssse3.c            |   2 +-
+ 116 files changed, 699 insertions(+), 469 deletions(-)
+ create mode 100644 config/always-system.m4
+ delete mode 100644 include/linux/Makefile.am
+ create mode 100644 include/os/Makefile.am
+ create mode 100644 include/os/linux/Makefile.am
+ create mode 100644 include/os/linux/kernel/Makefile.am
+ create mode 100644 include/os/linux/kernel/linux/Makefile.am
+ rename include/{ => os/linux/kernel}/linux/blkdev_compat.h (100%)
+ rename include/{ => os/linux/kernel}/linux/compiler_compat.h (100%)
+ rename include/{ => os/linux/kernel}/linux/dcache_compat.h (100%)
+ rename include/{ => os/linux/kernel}/linux/kmap_compat.h (100%)
+ rename include/{ => os/linux/kernel}/linux/mod_compat.h (100%)
+ rename include/{ => os/linux/kernel}/linux/page_compat.h (100%)
+ rename include/{ => os/linux/kernel}/linux/simd.h (92%)
+ rename include/{ => os/linux/kernel}/linux/simd_aarch64.h (79%)
+ rename include/{ => os/linux/kernel}/linux/simd_x86.h (62%)
+ rename include/{ => os/linux/kernel}/linux/utsname_compat.h (100%)
+ rename include/{ => os/linux/kernel}/linux/vfs_compat.h (100%)
+ rename include/{ => os/linux/kernel}/linux/xattr_compat.h (100%)
+ rename include/{ => os/linux}/spl/Makefile.am (100%)
+ rename include/{ => os/linux}/spl/rpc/Makefile.am (72%)
+ rename include/{ => os/linux}/spl/rpc/xdr.h (100%)
+ create mode 100644 include/os/linux/spl/sys/Makefile.am
+ rename include/{ => os/linux}/spl/sys/acl.h (100%)
+ rename include/{ => os/linux}/spl/sys/atomic.h (100%)
+ rename include/{ => os/linux}/spl/sys/byteorder.h (100%)
+ rename include/{ => os/linux}/spl/sys/callb.h (100%)
+ rename include/{ => os/linux}/spl/sys/callo.h (100%)
+ rename include/{ => os/linux}/spl/sys/cmn_err.h (100%)
+ rename include/{ => os/linux}/spl/sys/condvar.h (100%)
+ rename include/{ => os/linux}/spl/sys/console.h (100%)
+ rename include/{ => os/linux}/spl/sys/cred.h (100%)
+ rename include/{ => os/linux}/spl/sys/ctype.h (100%)
+ rename include/{ => os/linux}/spl/sys/debug.h (100%)
+ rename include/{ => os/linux}/spl/sys/disp.h (100%)
+ rename include/{ => os/linux}/spl/sys/dkio.h (100%)
+ rename include/{ => os/linux}/spl/sys/errno.h (100%)
+ rename include/{ => os/linux}/spl/sys/fcntl.h (100%)
+ rename include/{ => os/linux}/spl/sys/file.h (100%)
+ rename include/{ => os/linux}/spl/sys/inttypes.h (100%)
+ rename include/{ => os/linux}/spl/sys/isa_defs.h (100%)
+ rename include/{ => os/linux}/spl/sys/kmem.h (100%)
+ rename include/{ => os/linux}/spl/sys/kmem_cache.h (100%)
+ rename include/{ => os/linux}/spl/sys/kobj.h (100%)
+ rename include/{ => os/linux}/spl/sys/kstat.h (100%)
+ rename include/{ => os/linux}/spl/sys/list.h (100%)
+ rename include/{ => os/linux}/spl/sys/mode.h (100%)
+ rename include/{ => os/linux}/spl/sys/mutex.h (100%)
+ rename include/{ => os/linux}/spl/sys/param.h (100%)
+ rename include/{ => os/linux}/spl/sys/proc.h (100%)
+ rename include/{ => os/linux}/spl/sys/processor.h (100%)
+ rename include/{ => os/linux}/spl/sys/procfs_list.h (100%)
+ rename include/{ => os/linux}/spl/sys/random.h (100%)
+ rename include/{ => os/linux}/spl/sys/rwlock.h (100%)
+ rename include/{ => os/linux}/spl/sys/shrinker.h (100%)
+ rename include/{ => os/linux}/spl/sys/sid.h (100%)
+ rename include/{ => os/linux}/spl/sys/signal.h (100%)
+ create mode 100644 include/os/linux/spl/sys/simd.h
+ rename include/{ => os/linux}/spl/sys/stat.h (100%)
+ rename include/{ => os/linux}/spl/sys/strings.h (100%)
+ rename include/{ => os/linux}/spl/sys/sunddi.h (100%)
+ rename include/{ => os/linux}/spl/sys/sysmacros.h (100%)
+ rename include/{ => os/linux}/spl/sys/systeminfo.h (100%)
+ rename include/{ => os/linux}/spl/sys/taskq.h (100%)
+ rename include/{ => os/linux}/spl/sys/thread.h (100%)
+ rename include/{ => os/linux}/spl/sys/time.h (100%)
+ rename include/{ => os/linux}/spl/sys/timer.h (100%)
+ rename include/{ => os/linux}/spl/sys/tsd.h (100%)
+ rename include/{ => os/linux}/spl/sys/types.h (100%)
+ rename include/{ => os/linux}/spl/sys/types32.h (100%)
+ rename include/{ => os/linux}/spl/sys/uio.h (100%)
+ rename include/{ => os/linux}/spl/sys/user.h (100%)
+ rename include/{ => os/linux}/spl/sys/vfs.h (100%)
+ rename include/{ => os/linux}/spl/sys/vmem.h (100%)
+ rename include/{ => os/linux}/spl/sys/vmsystm.h (100%)
+ rename include/{ => os/linux}/spl/sys/vnode.h (100%)
+ rename include/{ => os/linux}/spl/sys/wait.h (100%)
+ rename include/{ => os/linux}/spl/sys/zmod.h (100%)
+ rename include/{ => os/linux}/spl/sys/zone.h (100%)
+ create mode 100644 include/os/linux/zfs/Makefile.am
+ create mode 100644 include/os/linux/zfs/sys/Makefile.am
+ rename include/{ => os/linux/zfs}/sys/policy.h (100%)
+ rename include/{ => os/linux/zfs}/sys/zfs_ctldir.h (100%)
+ rename include/{ => os/linux/zfs}/sys/zfs_dir.h (100%)
+ rename include/{ => os/linux/zfs}/sys/zfs_vfsops.h (100%)
+ rename include/{ => os/linux/zfs}/sys/zfs_vnops.h (100%)
+ rename include/{ => os/linux/zfs}/sys/zpl.h (100%)
+ delete mode 100644 include/spl/sys/Makefile.am
+ create mode 100644 lib/libspl/include/sys/simd.h
+
+diff --git a/config/always-system.m4 b/config/always-system.m4
+new file mode 100644
+index 000000000..3225a52af
+--- /dev/null
++++ b/config/always-system.m4
+@@ -0,0 +1,26 @@
++dnl #
++dnl # Set the target system
++dnl #
++AC_DEFUN([ZFS_AC_CONFIG_ALWAYS_SYSTEM], [
++	AC_MSG_CHECKING([for system type ($host_os)])
++	case $host_os in
++		*linux*)
++			AC_DEFINE([SYSTEM_LINUX], [1],
++				[True if ZFS is to be compiled for a Linux system])
++			ac_system="Linux"
++			;;
++		*freebsd*)
++			AC_DEFINE([SYSTEM_FREEBSD], [1],
++				[True if ZFS is to be compiled for a FreeBSD system])
++			ac_system="FreeBSD"
++			;;
++		*)
++			ac_system="unknown"
++			;;
++	esac
++	AC_MSG_RESULT([$ac_system])
++	AC_SUBST([ac_system])
++
++	AM_CONDITIONAL([BUILD_LINUX], [test "x$ac_system" = "xLinux"])
++	AM_CONDITIONAL([BUILD_FREEBSD], [test "x$ac_system" = "xFreeBSD"])
++])
+diff --git a/config/zfs-build.m4 b/config/zfs-build.m4
+index d2c355425..f4cb97689 100644
+--- a/config/zfs-build.m4
++++ b/config/zfs-build.m4
+@@ -160,6 +160,7 @@ AC_DEFUN([ZFS_AC_CONFIG_ALWAYS], [
+ 	ZFS_AC_CONFIG_ALWAYS_CC_NO_OMIT_FRAME_POINTER
+ 	ZFS_AC_CONFIG_ALWAYS_CC_ASAN
+ 	ZFS_AC_CONFIG_ALWAYS_TOOLCHAIN_SIMD
++	ZFS_AC_CONFIG_ALWAYS_SYSTEM
+ 	ZFS_AC_CONFIG_ALWAYS_ARCH
+ 	ZFS_AC_CONFIG_ALWAYS_PYTHON
+ 	ZFS_AC_CONFIG_ALWAYS_PYZFS
+diff --git a/configure.ac b/configure.ac
+index a3ac134ff..4b51118ab 100644
+--- a/configure.ac
++++ b/configure.ac
+@@ -145,10 +145,15 @@ AC_CONFIG_FILES([
+ 	module/icp/Makefile
+ 	module/spl/Makefile
+ 	include/Makefile
+-	include/linux/Makefile
+-	include/spl/Makefile
+-	include/spl/rpc/Makefile
+-	include/spl/sys/Makefile
++	include/os/Makefile
++	include/os/linux/Makefile
++	include/os/linux/kernel/Makefile
++	include/os/linux/kernel/linux/Makefile
++	include/os/linux/spl/Makefile
++	include/os/linux/spl/rpc/Makefile
++	include/os/linux/spl/sys/Makefile
++	include/os/linux/zfs/Makefile
++	include/os/linux/zfs/sys/Makefile
+ 	include/sys/Makefile
+ 	include/sys/fs/Makefile
+ 	include/sys/fm/Makefile
+diff --git a/copy-builtin b/copy-builtin
+index 1dcfcb961..adb3bd544 100755
+--- a/copy-builtin
++++ b/copy-builtin
+@@ -62,7 +62,9 @@ EOF
+ {
+ 	cat <<-"EOF"
+ 	ZFS_MODULE_CFLAGS  = -I$(srctree)/include/zfs
+-	ZFS_MODULE_CFLAGS += -I$(srctree)/include/zfs/spl
++	ZFS_MODULE_CFLAGS += -I$(srctree)/include/zfs/os/linux/spl
++	ZFS_MODULE_CFLAGS += -I$(srctree)/include/zfs/os/linux/zfs
++	ZFS_MODULE_CFLAGS += -I$(srctree)/include/zfs/os/linux/kernel
+ 	ZFS_MODULE_CFLAGS += -include $(srctree)/include/zfs/zfs_config.h
+ 	ZFS_MODULE_CFLAGS += -std=gnu99 -Wno-declaration-after-statement
+ 	ZFS_MODULE_CPPFLAGS  = -D_KERNEL
+diff --git a/include/.gitignore b/include/.gitignore
+index e6eb2116f..416f36b9e 100644
+--- a/include/.gitignore
++++ b/include/.gitignore
+@@ -1 +1,2 @@
+ /zfs_gitrev.h
++/spl
+diff --git a/include/Makefile.am b/include/Makefile.am
+index bac47d98d..5b37dc765 100644
+--- a/include/Makefile.am
++++ b/include/Makefile.am
+@@ -1,4 +1,4 @@
+-SUBDIRS = linux spl sys
++SUBDIRS = sys os
+ 
+ COMMON_H = \
+ 	$(top_srcdir)/include/zfeature_common.h \
+diff --git a/include/linux/Makefile.am b/include/linux/Makefile.am
+deleted file mode 100644
+index 2455759e8..000000000
+--- a/include/linux/Makefile.am
++++ /dev/null
+@@ -1,29 +0,0 @@
+-COMMON_H =
+-
+-KERNEL_H = \
+-	$(top_srcdir)/include/linux/dcache_compat.h \
+-	$(top_srcdir)/include/linux/xattr_compat.h \
+-	$(top_srcdir)/include/linux/vfs_compat.h \
+-	$(top_srcdir)/include/linux/blkdev_compat.h \
+-	$(top_srcdir)/include/linux/utsname_compat.h \
+-	$(top_srcdir)/include/linux/kmap_compat.h \
+-	$(top_srcdir)/include/linux/simd.h \
+-	$(top_srcdir)/include/linux/simd_x86.h \
+-	$(top_srcdir)/include/linux/simd_aarch64.h \
+-	$(top_srcdir)/include/linux/mod_compat.h \
+-	$(top_srcdir)/include/linux/page_compat.h \
+-	$(top_srcdir)/include/linux/compiler_compat.h
+-
+-USER_H =
+-
+-EXTRA_DIST = $(COMMON_H) $(KERNEL_H) $(USER_H)
+-
+-if CONFIG_USER
+-libzfsdir = $(includedir)/libzfs/linux
+-libzfs_HEADERS = $(COMMON_H) $(USER_H)
+-endif
+-
+-if CONFIG_KERNEL
+-kerneldir = @prefix@/src/zfs-$(VERSION)/include/linux
+-kernel_HEADERS = $(COMMON_H) $(KERNEL_H)
+-endif
+diff --git a/include/os/Makefile.am b/include/os/Makefile.am
+new file mode 100644
+index 000000000..09c0beec4
+--- /dev/null
++++ b/include/os/Makefile.am
+@@ -0,0 +1,3 @@
++if BUILD_LINUX
++SUBDIRS = linux
++endif
+diff --git a/include/os/linux/Makefile.am b/include/os/linux/Makefile.am
+new file mode 100644
+index 000000000..605a1fcb7
+--- /dev/null
++++ b/include/os/linux/Makefile.am
+@@ -0,0 +1 @@
++SUBDIRS = kernel spl zfs
+diff --git a/include/os/linux/kernel/Makefile.am b/include/os/linux/kernel/Makefile.am
+new file mode 100644
+index 000000000..08b2f5fc5
+--- /dev/null
++++ b/include/os/linux/kernel/Makefile.am
+@@ -0,0 +1 @@
++SUBDIRS = linux
+diff --git a/include/os/linux/kernel/linux/Makefile.am b/include/os/linux/kernel/linux/Makefile.am
+new file mode 100644
+index 000000000..06ce7c7aa
+--- /dev/null
++++ b/include/os/linux/kernel/linux/Makefile.am
+@@ -0,0 +1,29 @@
++COMMON_H =
++
++KERNEL_H = \
++	$(top_srcdir)/include/os/linux/kernel/linux/dcache_compat.h \
++	$(top_srcdir)/include/os/linux/kernel/linux/xattr_compat.h \
++	$(top_srcdir)/include/os/linux/kernel/linux/vfs_compat.h \
++	$(top_srcdir)/include/os/linux/kernel/linux/blkdev_compat.h \
++	$(top_srcdir)/include/os/linux/kernel/linux/utsname_compat.h \
++	$(top_srcdir)/include/os/linux/kernel/linux/kmap_compat.h \
++	$(top_srcdir)/include/os/linux/kernel/linux/simd.h \
++	$(top_srcdir)/include/os/linux/kernel/linux/simd_x86.h \
++	$(top_srcdir)/include/os/linux/kernel/linux/simd_aarch64.h \
++	$(top_srcdir)/include/os/linux/kernel/linux/mod_compat.h \
++	$(top_srcdir)/include/os/linux/kernel/linux/page_compat.h \
++	$(top_srcdir)/include/os/linux/kernel/linux/compiler_compat.h
++
++USER_H =
++
++EXTRA_DIST = $(COMMON_H) $(KERNEL_H) $(USER_H)
++
++if CONFIG_USER
++libzfsdir = $(includedir)/libzfs/linux
++libzfs_HEADERS = $(COMMON_H) $(USER_H)
++endif
++
++if CONFIG_KERNEL
++kerneldir = @prefix@/src/zfs-$(VERSION)/include/linux
++kernel_HEADERS = $(COMMON_H) $(KERNEL_H)
++endif
+diff --git a/include/linux/blkdev_compat.h b/include/os/linux/kernel/linux/blkdev_compat.h
+similarity index 100%
+rename from include/linux/blkdev_compat.h
+rename to include/os/linux/kernel/linux/blkdev_compat.h
+diff --git a/include/linux/compiler_compat.h b/include/os/linux/kernel/linux/compiler_compat.h
+similarity index 100%
+rename from include/linux/compiler_compat.h
+rename to include/os/linux/kernel/linux/compiler_compat.h
+diff --git a/include/linux/dcache_compat.h b/include/os/linux/kernel/linux/dcache_compat.h
+similarity index 100%
+rename from include/linux/dcache_compat.h
+rename to include/os/linux/kernel/linux/dcache_compat.h
+diff --git a/include/linux/kmap_compat.h b/include/os/linux/kernel/linux/kmap_compat.h
+similarity index 100%
+rename from include/linux/kmap_compat.h
+rename to include/os/linux/kernel/linux/kmap_compat.h
+diff --git a/include/linux/mod_compat.h b/include/os/linux/kernel/linux/mod_compat.h
+similarity index 100%
+rename from include/linux/mod_compat.h
+rename to include/os/linux/kernel/linux/mod_compat.h
+diff --git a/include/linux/page_compat.h b/include/os/linux/kernel/linux/page_compat.h
+similarity index 100%
+rename from include/linux/page_compat.h
+rename to include/os/linux/kernel/linux/page_compat.h
+diff --git a/include/linux/simd.h b/include/os/linux/kernel/linux/simd.h
+similarity index 92%
+rename from include/linux/simd.h
+rename to include/os/linux/kernel/linux/simd.h
+index d2b60996a..1f6574a90 100644
+--- a/include/linux/simd.h
++++ b/include/os/linux/kernel/linux/simd.h
+@@ -22,8 +22,8 @@
+  * Copyright (C) 2019 Lawrence Livermore National Security, LLC.
+  */
+ 
+-#ifndef _SIMD_H
+-#define	_SIMD_H
++#ifndef _LINUX_SIMD_H
++#define	_LINUX_SIMD_H
+ 
+ #if defined(__x86)
+ #include <linux/simd_x86.h>
+@@ -32,10 +32,10 @@
+ #include <linux/simd_aarch64.h>
+ #else
+ 
+-#define	kfpu_allowed()		1
++#define	kfpu_allowed()		0
+ #define	kfpu_initialize(tsk)	do {} while (0)
+ #define	kfpu_begin()		do {} while (0)
+ #define	kfpu_end()		do {} while (0)
+ 
+ #endif
+-#endif /* _SIMD_H */
++#endif /* _LINUX_SIMD_H */
+diff --git a/include/linux/simd_aarch64.h b/include/os/linux/kernel/linux/simd_aarch64.h
+similarity index 79%
+rename from include/linux/simd_aarch64.h
+rename to include/os/linux/kernel/linux/simd_aarch64.h
+index b45d31c48..ac530d920 100644
+--- a/include/linux/simd_aarch64.h
++++ b/include/os/linux/kernel/linux/simd_aarch64.h
+@@ -32,31 +32,21 @@
+  *	kfpu_end()
+  */
+ 
+-#ifndef _SIMD_AARCH64_H
+-#define	_SIMD_AARCH64_H
++#ifndef _LINUX_SIMD_AARCH64_H
++#define	_LINUX_SIMD_AARCH64_H
+ 
+ #include <sys/isa_defs.h>
+ 
+ #if defined(__aarch64__)
+ 
+ #include <sys/types.h>
+-
+-#if defined(_KERNEL)
+ #include <asm/neon.h>
++
+ #define	kfpu_allowed()		1
+ #define	kfpu_initialize(tsk)	do {} while (0)
+ #define	kfpu_begin()		kernel_neon_begin()
+ #define	kfpu_end()		kernel_neon_end()
+-#else
+-/*
+- * fpu dummy methods for userspace
+- */
+-#define	kfpu_allowed()		1
+-#define	kfpu_initialize(tsk)	do {} while (0)
+-#define	kfpu_begin()		do {} while (0)
+-#define	kfpu_end()		do {} while (0)
+-#endif /* defined(_KERNEL) */
+ 
+ #endif /* __aarch64__ */
+ 
+-#endif /* _SIMD_AARCH64_H */
++#endif /* _LINUX_SIMD_AARCH64_H */
+diff --git a/include/linux/simd_x86.h b/include/os/linux/kernel/linux/simd_x86.h
+similarity index 62%
+rename from include/linux/simd_x86.h
+rename to include/os/linux/kernel/linux/simd_x86.h
+index b32bccc41..486e31845 100644
+--- a/include/linux/simd_x86.h
++++ b/include/os/linux/kernel/linux/simd_x86.h
+@@ -66,23 +66,14 @@
+  *			also add zfs_avx512vl_available() to feature check.
+  */
+ 
+-#ifndef _SIMD_X86_H
+-#define	_SIMD_X86_H
+-
+-#include <sys/isa_defs.h>
++#ifndef _LINUX_SIMD_X86_H
++#define	_LINUX_SIMD_X86_H
+ 
+ /* only for __x86 */
+ #if defined(__x86)
+ 
+ #include <sys/types.h>
+-
+-#if defined(_KERNEL)
+ #include <asm/cpufeature.h>
+-#else
+-#include <cpuid.h>
+-#endif
+-
+-#if defined(_KERNEL)
+ 
+ /*
+  * Disable the WARN_ON_FPU() macro to prevent additional dependencies
+@@ -292,185 +283,9 @@ kfpu_end(void)
+ #endif /* defined(HAVE_KERNEL_FPU_INTERNAL) */
+ #endif /* defined(KERNEL_EXPORTS_X86_FPU) */
+ 
+-#else /* defined(_KERNEL) */
+ /*
+- * FPU dummy methods for user space.
++ * Linux kernel provides an interface for CPU feature testing.
+  */
+-#define	kfpu_allowed()		1
+-#define	kfpu_initialize(tsk)	do {} while (0)
+-#define	kfpu_begin()		do {} while (0)
+-#define	kfpu_end()		do {} while (0)
+-#endif /* defined(_KERNEL) */
+-
+-/*
+- * CPUID feature tests for user-space. Linux kernel provides an interface for
+- * CPU feature testing.
+- */
+-#if !defined(_KERNEL)
+-
+-/*
+- * x86 registers used implicitly by CPUID
+- */
+-typedef enum cpuid_regs {
+-	EAX = 0,
+-	EBX,
+-	ECX,
+-	EDX,
+-	CPUID_REG_CNT = 4
+-} cpuid_regs_t;
+-
+-/*
+- * List of instruction sets identified by CPUID
+- */
+-typedef enum cpuid_inst_sets {
+-	SSE = 0,
+-	SSE2,
+-	SSE3,
+-	SSSE3,
+-	SSE4_1,
+-	SSE4_2,
+-	OSXSAVE,
+-	AVX,
+-	AVX2,
+-	BMI1,
+-	BMI2,
+-	AVX512F,
+-	AVX512CD,
+-	AVX512DQ,
+-	AVX512BW,
+-	AVX512IFMA,
+-	AVX512VBMI,
+-	AVX512PF,
+-	AVX512ER,
+-	AVX512VL,
+-	AES,
+-	PCLMULQDQ
+-} cpuid_inst_sets_t;
+-
+-/*
+- * Instruction set descriptor.
+- */
+-typedef struct cpuid_feature_desc {
+-	uint32_t leaf;		/* CPUID leaf */
+-	uint32_t subleaf;	/* CPUID sub-leaf */
+-	uint32_t flag;		/* bit mask of the feature */
+-	cpuid_regs_t reg;	/* which CPUID return register to test */
+-} cpuid_feature_desc_t;
+-
+-#define	_AVX512F_BIT		(1U << 16)
+-#define	_AVX512CD_BIT		(_AVX512F_BIT | (1U << 28))
+-#define	_AVX512DQ_BIT		(_AVX512F_BIT | (1U << 17))
+-#define	_AVX512BW_BIT		(_AVX512F_BIT | (1U << 30))
+-#define	_AVX512IFMA_BIT		(_AVX512F_BIT | (1U << 21))
+-#define	_AVX512VBMI_BIT		(1U << 1) /* AVX512F_BIT is on another leaf  */
+-#define	_AVX512PF_BIT		(_AVX512F_BIT | (1U << 26))
+-#define	_AVX512ER_BIT		(_AVX512F_BIT | (1U << 27))
+-#define	_AVX512VL_BIT		(1U << 31) /* if used also check other levels */
+-#define	_AES_BIT		(1U << 25)
+-#define	_PCLMULQDQ_BIT		(1U << 1)
+-
+-/*
+- * Descriptions of supported instruction sets
+- */
+-static const cpuid_feature_desc_t cpuid_features[] = {
+-	[SSE]		= {1U, 0U,	1U << 25,	EDX	},
+-	[SSE2]		= {1U, 0U,	1U << 26,	EDX	},
+-	[SSE3]		= {1U, 0U,	1U << 0,	ECX	},
+-	[SSSE3]		= {1U, 0U,	1U << 9,	ECX	},
+-	[SSE4_1]	= {1U, 0U,	1U << 19,	ECX	},
+-	[SSE4_2]	= {1U, 0U,	1U << 20,	ECX	},
+-	[OSXSAVE]	= {1U, 0U,	1U << 27,	ECX	},
+-	[AVX]		= {1U, 0U,	1U << 28,	ECX	},
+-	[AVX2]		= {7U, 0U,	1U << 5,	EBX	},
+-	[BMI1]		= {7U, 0U,	1U << 3,	EBX	},
+-	[BMI2]		= {7U, 0U,	1U << 8,	EBX	},
+-	[AVX512F]	= {7U, 0U, _AVX512F_BIT,	EBX	},
+-	[AVX512CD]	= {7U, 0U, _AVX512CD_BIT,	EBX	},
+-	[AVX512DQ]	= {7U, 0U, _AVX512DQ_BIT,	EBX	},
+-	[AVX512BW]	= {7U, 0U, _AVX512BW_BIT,	EBX	},
+-	[AVX512IFMA]	= {7U, 0U, _AVX512IFMA_BIT,	EBX	},
+-	[AVX512VBMI]	= {7U, 0U, _AVX512VBMI_BIT,	ECX	},
+-	[AVX512PF]	= {7U, 0U, _AVX512PF_BIT,	EBX	},
+-	[AVX512ER]	= {7U, 0U, _AVX512ER_BIT,	EBX	},
+-	[AVX512VL]	= {7U, 0U, _AVX512ER_BIT,	EBX	},
+-	[AES]		= {1U, 0U, _AES_BIT,		ECX	},
+-	[PCLMULQDQ]	= {1U, 0U, _PCLMULQDQ_BIT,	ECX	},
+-};
+-
+-/*
+- * Check if OS supports AVX and AVX2 by checking XCR0
+- * Only call this function if CPUID indicates that AVX feature is
+- * supported by the CPU, otherwise it might be an illegal instruction.
+- */
+-static inline uint64_t
+-xgetbv(uint32_t index)
+-{
+-	uint32_t eax, edx;
+-	/* xgetbv - instruction byte code */
+-	__asm__ __volatile__(".byte 0x0f; .byte 0x01; .byte 0xd0"
+-	    : "=a" (eax), "=d" (edx)
+-	    : "c" (index));
+-
+-	return ((((uint64_t)edx)<<32) | (uint64_t)eax);
+-}
+-
+-/*
+- * Check if CPU supports a feature
+- */
+-static inline boolean_t
+-__cpuid_check_feature(const cpuid_feature_desc_t *desc)
+-{
+-	uint32_t r[CPUID_REG_CNT];
+-
+-	if (__get_cpuid_max(0, NULL) >= desc->leaf) {
+-		/*
+-		 * __cpuid_count is needed to properly check
+-		 * for AVX2. It is a macro, so return parameters
+-		 * are passed by value.
+-		 */
+-		__cpuid_count(desc->leaf, desc->subleaf,
+-		    r[EAX], r[EBX], r[ECX], r[EDX]);
+-		return ((r[desc->reg] & desc->flag) == desc->flag);
+-	}
+-	return (B_FALSE);
+-}
+-
+-#define	CPUID_FEATURE_CHECK(name, id)				\
+-static inline boolean_t						\
+-__cpuid_has_ ## name(void)					\
+-{								\
+-	return (__cpuid_check_feature(&cpuid_features[id]));	\
+-}
+-
+-/*
+- * Define functions for user-space CPUID features testing
+- */
+-CPUID_FEATURE_CHECK(sse, SSE);
+-CPUID_FEATURE_CHECK(sse2, SSE2);
+-CPUID_FEATURE_CHECK(sse3, SSE3);
+-CPUID_FEATURE_CHECK(ssse3, SSSE3);
+-CPUID_FEATURE_CHECK(sse4_1, SSE4_1);
+-CPUID_FEATURE_CHECK(sse4_2, SSE4_2);
+-CPUID_FEATURE_CHECK(avx, AVX);
+-CPUID_FEATURE_CHECK(avx2, AVX2);
+-CPUID_FEATURE_CHECK(osxsave, OSXSAVE);
+-CPUID_FEATURE_CHECK(bmi1, BMI1);
+-CPUID_FEATURE_CHECK(bmi2, BMI2);
+-CPUID_FEATURE_CHECK(avx512f, AVX512F);
+-CPUID_FEATURE_CHECK(avx512cd, AVX512CD);
+-CPUID_FEATURE_CHECK(avx512dq, AVX512DQ);
+-CPUID_FEATURE_CHECK(avx512bw, AVX512BW);
+-CPUID_FEATURE_CHECK(avx512ifma, AVX512IFMA);
+-CPUID_FEATURE_CHECK(avx512vbmi, AVX512VBMI);
+-CPUID_FEATURE_CHECK(avx512pf, AVX512PF);
+-CPUID_FEATURE_CHECK(avx512er, AVX512ER);
+-CPUID_FEATURE_CHECK(avx512vl, AVX512VL);
+-CPUID_FEATURE_CHECK(aes, AES);
+-CPUID_FEATURE_CHECK(pclmulqdq, PCLMULQDQ);
+-
+-#endif /* !defined(_KERNEL) */
+-
+-
+ /*
+  * Detect register set support
+  */
+@@ -480,16 +295,11 @@ __simd_state_enabled(const uint64_t state)
+ 	boolean_t has_osxsave;
+ 	uint64_t xcr0;
+ 
+-#if defined(_KERNEL)
+ #if defined(X86_FEATURE_OSXSAVE)
+ 	has_osxsave = !!boot_cpu_has(X86_FEATURE_OSXSAVE);
+ #else
+ 	has_osxsave = B_FALSE;
+ #endif
+-#elif !defined(_KERNEL)
+-	has_osxsave = __cpuid_has_osxsave();
+-#endif
+-
+ 	if (!has_osxsave)
+ 		return (B_FALSE);
+ 
+@@ -503,18 +313,13 @@ __simd_state_enabled(const uint64_t state)
+ #define	__ymm_enabled() __simd_state_enabled(_XSTATE_SSE_AVX)
+ #define	__zmm_enabled() __simd_state_enabled(_XSTATE_AVX512)
+ 
+-
+ /*
+  * Check if SSE instruction set is available
+  */
+ static inline boolean_t
+ zfs_sse_available(void)
+ {
+-#if defined(_KERNEL)
+ 	return (!!boot_cpu_has(X86_FEATURE_XMM));
+-#elif !defined(_KERNEL)
+-	return (__cpuid_has_sse());
+-#endif
+ }
+ 
+ /*
+@@ -523,11 +328,7 @@ zfs_sse_available(void)
+ static inline boolean_t
+ zfs_sse2_available(void)
+ {
+-#if defined(_KERNEL)
+ 	return (!!boot_cpu_has(X86_FEATURE_XMM2));
+-#elif !defined(_KERNEL)
+-	return (__cpuid_has_sse2());
+-#endif
+ }
+ 
+ /*
+@@ -536,11 +337,7 @@ zfs_sse2_available(void)
+ static inline boolean_t
+ zfs_sse3_available(void)
+ {
+-#if defined(_KERNEL)
+ 	return (!!boot_cpu_has(X86_FEATURE_XMM3));
+-#elif !defined(_KERNEL)
+-	return (__cpuid_has_sse3());
+-#endif
+ }
+ 
+ /*
+@@ -549,11 +346,7 @@ zfs_sse3_available(void)
+ static inline boolean_t
+ zfs_ssse3_available(void)
+ {
+-#if defined(_KERNEL)
+ 	return (!!boot_cpu_has(X86_FEATURE_SSSE3));
+-#elif !defined(_KERNEL)
+-	return (__cpuid_has_ssse3());
+-#endif
+ }
+ 
+ /*
+@@ -562,11 +355,7 @@ zfs_ssse3_available(void)
+ static inline boolean_t
+ zfs_sse4_1_available(void)
+ {
+-#if defined(_KERNEL)
+ 	return (!!boot_cpu_has(X86_FEATURE_XMM4_1));
+-#elif !defined(_KERNEL)
+-	return (__cpuid_has_sse4_1());
+-#endif
+ }
+ 
+ /*
+@@ -575,11 +364,7 @@ zfs_sse4_1_available(void)
+ static inline boolean_t
+ zfs_sse4_2_available(void)
+ {
+-#if defined(_KERNEL)
+ 	return (!!boot_cpu_has(X86_FEATURE_XMM4_2));
+-#elif !defined(_KERNEL)
+-	return (__cpuid_has_sse4_2());
+-#endif
+ }
+ 
+ /*
+@@ -588,14 +373,7 @@ zfs_sse4_2_available(void)
+ static inline boolean_t
+ zfs_avx_available(void)
+ {
+-	boolean_t has_avx;
+-#if defined(_KERNEL)
+-	has_avx = !!boot_cpu_has(X86_FEATURE_AVX);
+-#elif !defined(_KERNEL)
+-	has_avx = __cpuid_has_avx();
+-#endif
+-
+-	return (has_avx && __ymm_enabled());
++	return (boot_cpu_has(X86_FEATURE_AVX) && __ymm_enabled());
+ }
+ 
+ /*
+@@ -604,14 +382,7 @@ zfs_avx_available(void)
+ static inline boolean_t
+ zfs_avx2_available(void)
+ {
+-	boolean_t has_avx2;
+-#if defined(_KERNEL)
+-	has_avx2 = !!boot_cpu_has(X86_FEATURE_AVX2);
+-#elif !defined(_KERNEL)
+-	has_avx2 = __cpuid_has_avx2();
+-#endif
+-
+-	return (has_avx2 && __ymm_enabled());
++	return (boot_cpu_has(X86_FEATURE_AVX2) && __ymm_enabled());
+ }
+ 
+ /*
+@@ -620,15 +391,11 @@ zfs_avx2_available(void)
+ static inline boolean_t
+ zfs_bmi1_available(void)
+ {
+-#if defined(_KERNEL)
+ #if defined(X86_FEATURE_BMI1)
+ 	return (!!boot_cpu_has(X86_FEATURE_BMI1));
+ #else
+ 	return (B_FALSE);
+ #endif
+-#elif !defined(_KERNEL)
+-	return (__cpuid_has_bmi1());
+-#endif
+ }
+ 
+ /*
+@@ -637,15 +404,11 @@ zfs_bmi1_available(void)
+ static inline boolean_t
+ zfs_bmi2_available(void)
+ {
+-#if defined(_KERNEL)
+ #if defined(X86_FEATURE_BMI2)
+ 	return (!!boot_cpu_has(X86_FEATURE_BMI2));
+ #else
+ 	return (B_FALSE);
+ #endif
+-#elif !defined(_KERNEL)
+-	return (__cpuid_has_bmi2());
+-#endif
+ }
+ 
+ /*
+@@ -654,15 +417,11 @@ zfs_bmi2_available(void)
+ static inline boolean_t
+ zfs_aes_available(void)
+ {
+-#if defined(_KERNEL)
+ #if defined(X86_FEATURE_AES)
+ 	return (!!boot_cpu_has(X86_FEATURE_AES));
+ #else
+ 	return (B_FALSE);
+ #endif
+-#elif !defined(_KERNEL)
+-	return (__cpuid_has_aes());
+-#endif
+ }
+ 
+ /*
+@@ -671,15 +430,11 @@ zfs_aes_available(void)
+ static inline boolean_t
+ zfs_pclmulqdq_available(void)
+ {
+-#if defined(_KERNEL)
+ #if defined(X86_FEATURE_PCLMULQDQ)
+ 	return (!!boot_cpu_has(X86_FEATURE_PCLMULQDQ));
+ #else
+ 	return (B_FALSE);
+ #endif
+-#elif !defined(_KERNEL)
+-	return (__cpuid_has_pclmulqdq());
+-#endif
+ }
+ 
+ /*
+@@ -698,187 +453,141 @@ zfs_pclmulqdq_available(void)
+  * AVX512VBMI	Vector Byte Manipulation Instructions
+  */
+ 
+-
+-/* Check if AVX512F instruction set is available */
++/*
++ * Check if AVX512F instruction set is available
++ */
+ static inline boolean_t
+ zfs_avx512f_available(void)
+ {
+ 	boolean_t has_avx512 = B_FALSE;
+ 
+-#if defined(_KERNEL)
+ #if defined(X86_FEATURE_AVX512F)
+ 	has_avx512 = !!boot_cpu_has(X86_FEATURE_AVX512F);
+-#else
+-	has_avx512 = B_FALSE;
+-#endif
+-#elif !defined(_KERNEL)
+-	has_avx512 = __cpuid_has_avx512f();
+ #endif
+-
+ 	return (has_avx512 && __zmm_enabled());
+ }
+ 
+-/* Check if AVX512CD instruction set is available */
++/*
++ * Check if AVX512CD instruction set is available
++ */
+ static inline boolean_t
+ zfs_avx512cd_available(void)
+ {
+ 	boolean_t has_avx512 = B_FALSE;
+ 
+-#if defined(_KERNEL)
+ #if defined(X86_FEATURE_AVX512CD)
+ 	has_avx512 = boot_cpu_has(X86_FEATURE_AVX512F) &&
+ 	    boot_cpu_has(X86_FEATURE_AVX512CD);
+-#else
+-	has_avx512 = B_FALSE;
+ #endif
+-#elif !defined(_KERNEL)
+-	has_avx512 = __cpuid_has_avx512cd();
+-#endif
+-
+ 	return (has_avx512 && __zmm_enabled());
+ }
+ 
+-/* Check if AVX512ER instruction set is available */
++/*
++ * Check if AVX512ER instruction set is available
++ */
+ static inline boolean_t
+ zfs_avx512er_available(void)
+ {
+ 	boolean_t has_avx512 = B_FALSE;
+ 
+-#if defined(_KERNEL)
+ #if defined(X86_FEATURE_AVX512ER)
+ 	has_avx512 = boot_cpu_has(X86_FEATURE_AVX512F) &&
+ 	    boot_cpu_has(X86_FEATURE_AVX512ER);
+-#else
+-	has_avx512 = B_FALSE;
+-#endif
+-#elif !defined(_KERNEL)
+-	has_avx512 = __cpuid_has_avx512er();
+ #endif
+-
+ 	return (has_avx512 && __zmm_enabled());
+ }
+ 
+-/* Check if AVX512PF instruction set is available */
++/*
++ * Check if AVX512PF instruction set is available
++ */
+ static inline boolean_t
+ zfs_avx512pf_available(void)
+ {
+ 	boolean_t has_avx512 = B_FALSE;
+ 
+-#if defined(_KERNEL)
+ #if defined(X86_FEATURE_AVX512PF)
+ 	has_avx512 = boot_cpu_has(X86_FEATURE_AVX512F) &&
+ 	    boot_cpu_has(X86_FEATURE_AVX512PF);
+-#else
+-	has_avx512 = B_FALSE;
+-#endif
+-#elif !defined(_KERNEL)
+-	has_avx512 = __cpuid_has_avx512pf();
+ #endif
+-
+ 	return (has_avx512 && __zmm_enabled());
+ }
+ 
+-/* Check if AVX512BW instruction set is available */
++/*
++ * Check if AVX512BW instruction set is available
++ */
+ static inline boolean_t
+ zfs_avx512bw_available(void)
+ {
+ 	boolean_t has_avx512 = B_FALSE;
+ 
+-#if defined(_KERNEL)
+ #if defined(X86_FEATURE_AVX512BW)
+ 	has_avx512 = boot_cpu_has(X86_FEATURE_AVX512F) &&
+ 	    boot_cpu_has(X86_FEATURE_AVX512BW);
+-#else
+-	has_avx512 = B_FALSE;
+-#endif
+-#elif !defined(_KERNEL)
+-	has_avx512 = __cpuid_has_avx512bw();
+ #endif
+ 
+ 	return (has_avx512 && __zmm_enabled());
+ }
+ 
+-/* Check if AVX512DQ instruction set is available */
++/*
++ * Check if AVX512DQ instruction set is available
++ */
+ static inline boolean_t
+ zfs_avx512dq_available(void)
+ {
+ 	boolean_t has_avx512 = B_FALSE;
+ 
+-#if defined(_KERNEL)
+ #if defined(X86_FEATURE_AVX512DQ)
+ 	has_avx512 = boot_cpu_has(X86_FEATURE_AVX512F) &&
+ 	    boot_cpu_has(X86_FEATURE_AVX512DQ);
+-#else
+-	has_avx512 = B_FALSE;
+-#endif
+-#elif !defined(_KERNEL)
+-	has_avx512 = __cpuid_has_avx512dq();
+ #endif
+-
+ 	return (has_avx512 && __zmm_enabled());
+ }
+ 
+-/* Check if AVX512VL instruction set is available */
++/*
++ * Check if AVX512VL instruction set is available
++ */
+ static inline boolean_t
+ zfs_avx512vl_available(void)
+ {
+ 	boolean_t has_avx512 = B_FALSE;
+ 
+-#if defined(_KERNEL)
+ #if defined(X86_FEATURE_AVX512VL)
+ 	has_avx512 = boot_cpu_has(X86_FEATURE_AVX512F) &&
+ 	    boot_cpu_has(X86_FEATURE_AVX512VL);
+-#else
+-	has_avx512 = B_FALSE;
+-#endif
+-#elif !defined(_KERNEL)
+-	has_avx512 = __cpuid_has_avx512vl();
+ #endif
+-
+ 	return (has_avx512 && __zmm_enabled());
+ }
+ 
+-/* Check if AVX512IFMA instruction set is available */
++/*
++ * Check if AVX512IFMA instruction set is available
++ */
+ static inline boolean_t
+ zfs_avx512ifma_available(void)
+ {
+ 	boolean_t has_avx512 = B_FALSE;
+ 
+-#if defined(_KERNEL)
+ #if defined(X86_FEATURE_AVX512IFMA)
+ 	has_avx512 = boot_cpu_has(X86_FEATURE_AVX512F) &&
+ 	    boot_cpu_has(X86_FEATURE_AVX512IFMA);
+-#else
+-	has_avx512 = B_FALSE;
+-#endif
+-#elif !defined(_KERNEL)
+-	has_avx512 = __cpuid_has_avx512ifma();
+ #endif
+-
+ 	return (has_avx512 && __zmm_enabled());
+ }
+ 
+-/* Check if AVX512VBMI instruction set is available */
++/*
++ * Check if AVX512VBMI instruction set is available
++ */
+ static inline boolean_t
+ zfs_avx512vbmi_available(void)
+ {
+ 	boolean_t has_avx512 = B_FALSE;
+ 
+-#if defined(_KERNEL)
+ #if defined(X86_FEATURE_AVX512VBMI)
+ 	has_avx512 = boot_cpu_has(X86_FEATURE_AVX512F) &&
+ 	    boot_cpu_has(X86_FEATURE_AVX512VBMI);
+-#else
+-	has_avx512 = B_FALSE;
+ #endif
+-#elif !defined(_KERNEL)
+-	has_avx512 = __cpuid_has_avx512f() &&
+-	    __cpuid_has_avx512vbmi();
+-#endif
+-
+ 	return (has_avx512 && __zmm_enabled());
+ }
+ 
+ #endif /* defined(__x86) */
+ 
+-#endif /* _SIMD_X86_H */
++#endif /* _LINUX_SIMD_X86_H */
+diff --git a/include/linux/utsname_compat.h b/include/os/linux/kernel/linux/utsname_compat.h
+similarity index 100%
+rename from include/linux/utsname_compat.h
+rename to include/os/linux/kernel/linux/utsname_compat.h
+diff --git a/include/linux/vfs_compat.h b/include/os/linux/kernel/linux/vfs_compat.h
+similarity index 100%
+rename from include/linux/vfs_compat.h
+rename to include/os/linux/kernel/linux/vfs_compat.h
+diff --git a/include/linux/xattr_compat.h b/include/os/linux/kernel/linux/xattr_compat.h
+similarity index 100%
+rename from include/linux/xattr_compat.h
+rename to include/os/linux/kernel/linux/xattr_compat.h
+diff --git a/include/spl/Makefile.am b/include/os/linux/spl/Makefile.am
+similarity index 100%
+rename from include/spl/Makefile.am
+rename to include/os/linux/spl/Makefile.am
+diff --git a/include/spl/rpc/Makefile.am b/include/os/linux/spl/rpc/Makefile.am
+similarity index 72%
+rename from include/spl/rpc/Makefile.am
+rename to include/os/linux/spl/rpc/Makefile.am
+index 5110cc0f0..9477dd59d 100644
+--- a/include/spl/rpc/Makefile.am
++++ b/include/os/linux/spl/rpc/Makefile.am
+@@ -1,5 +1,5 @@
+ KERNEL_H = \
+-	$(top_srcdir)/include/spl/rpc/xdr.h
++	$(top_srcdir)/include/os/linux/spl/rpc/xdr.h
+ 
+ if CONFIG_KERNEL
+ kerneldir = @prefix@/src/zfs-$(VERSION)/include/spl/rpc
+diff --git a/include/spl/rpc/xdr.h b/include/os/linux/spl/rpc/xdr.h
+similarity index 100%
+rename from include/spl/rpc/xdr.h
+rename to include/os/linux/spl/rpc/xdr.h
+diff --git a/include/os/linux/spl/sys/Makefile.am b/include/os/linux/spl/sys/Makefile.am
+new file mode 100644
+index 000000000..de2f74d8c
+--- /dev/null
++++ b/include/os/linux/spl/sys/Makefile.am
+@@ -0,0 +1,62 @@
++KERNEL_H = \
++	$(top_srcdir)/include/os/linux/spl/sys/acl.h \
++	$(top_srcdir)/include/os/linux/spl/sys/atomic.h \
++	$(top_srcdir)/include/os/linux/spl/sys/byteorder.h \
++	$(top_srcdir)/include/os/linux/spl/sys/callb.h \
++	$(top_srcdir)/include/os/linux/spl/sys/callo.h \
++	$(top_srcdir)/include/os/linux/spl/sys/cmn_err.h \
++	$(top_srcdir)/include/os/linux/spl/sys/condvar.h \
++	$(top_srcdir)/include/os/linux/spl/sys/console.h \
++	$(top_srcdir)/include/os/linux/spl/sys/cred.h \
++	$(top_srcdir)/include/os/linux/spl/sys/ctype.h \
++	$(top_srcdir)/include/os/linux/spl/sys/debug.h \
++	$(top_srcdir)/include/os/linux/spl/sys/disp.h \
++	$(top_srcdir)/include/os/linux/spl/sys/dkio.h \
++	$(top_srcdir)/include/os/linux/spl/sys/errno.h \
++	$(top_srcdir)/include/os/linux/spl/sys/fcntl.h \
++	$(top_srcdir)/include/os/linux/spl/sys/file.h \
++	$(top_srcdir)/include/os/linux/spl/sys/inttypes.h \
++	$(top_srcdir)/include/os/linux/spl/sys/isa_defs.h \
++	$(top_srcdir)/include/os/linux/spl/sys/kmem_cache.h \
++	$(top_srcdir)/include/os/linux/spl/sys/kmem.h \
++	$(top_srcdir)/include/os/linux/spl/sys/kobj.h \
++	$(top_srcdir)/include/os/linux/spl/sys/kstat.h \
++	$(top_srcdir)/include/os/linux/spl/sys/list.h \
++	$(top_srcdir)/include/os/linux/spl/sys/mode.h \
++	$(top_srcdir)/include/os/linux/spl/sys/mutex.h \
++	$(top_srcdir)/include/os/linux/spl/sys/param.h \
++	$(top_srcdir)/include/os/linux/spl/sys/processor.h \
++	$(top_srcdir)/include/os/linux/spl/sys/proc.h \
++	$(top_srcdir)/include/os/linux/spl/sys/procfs_list.h \
++	$(top_srcdir)/include/os/linux/spl/sys/random.h \
++	$(top_srcdir)/include/os/linux/spl/sys/rwlock.h \
++	$(top_srcdir)/include/os/linux/spl/sys/shrinker.h \
++	$(top_srcdir)/include/os/linux/spl/sys/sid.h \
++	$(top_srcdir)/include/os/linux/spl/sys/signal.h \
++	$(top_srcdir)/include/os/linux/spl/sys/simd.h \
++	$(top_srcdir)/include/os/linux/spl/sys/stat.h \
++	$(top_srcdir)/include/os/linux/spl/sys/strings.h \
++	$(top_srcdir)/include/os/linux/spl/sys/sunddi.h \
++	$(top_srcdir)/include/os/linux/spl/sys/sysmacros.h \
++	$(top_srcdir)/include/os/linux/spl/sys/systeminfo.h \
++	$(top_srcdir)/include/os/linux/spl/sys/taskq.h \
++	$(top_srcdir)/include/os/linux/spl/sys/thread.h \
++	$(top_srcdir)/include/os/linux/spl/sys/time.h \
++	$(top_srcdir)/include/os/linux/spl/sys/timer.h \
++	$(top_srcdir)/include/os/linux/spl/sys/tsd.h \
++	$(top_srcdir)/include/os/linux/spl/sys/types32.h \
++	$(top_srcdir)/include/os/linux/spl/sys/types.h \
++	$(top_srcdir)/include/os/linux/spl/sys/uio.h \
++	$(top_srcdir)/include/os/linux/spl/sys/user.h \
++	$(top_srcdir)/include/os/linux/spl/sys/vfs.h \
++	$(top_srcdir)/include/os/linux/spl/sys/vmem.h \
++	$(top_srcdir)/include/os/linux/spl/sys/vmsystm.h \
++	$(top_srcdir)/include/os/linux/spl/sys/vnode.h \
++	$(top_srcdir)/include/os/linux/spl/sys/wait.h \
++	$(top_srcdir)/include/os/linux/spl/sys/zmod.h \
++	$(top_srcdir)/include/os/linux/spl/sys/zone.h
++
++if CONFIG_KERNEL
++kerneldir = @prefix@/src/zfs-$(VERSION)/include/spl/sys
++kernel_HEADERS = $(KERNEL_H)
++endif
+diff --git a/include/spl/sys/acl.h b/include/os/linux/spl/sys/acl.h
+similarity index 100%
+rename from include/spl/sys/acl.h
+rename to include/os/linux/spl/sys/acl.h
+diff --git a/include/spl/sys/atomic.h b/include/os/linux/spl/sys/atomic.h
+similarity index 100%
+rename from include/spl/sys/atomic.h
+rename to include/os/linux/spl/sys/atomic.h
+diff --git a/include/spl/sys/byteorder.h b/include/os/linux/spl/sys/byteorder.h
+similarity index 100%
+rename from include/spl/sys/byteorder.h
+rename to include/os/linux/spl/sys/byteorder.h
+diff --git a/include/spl/sys/callb.h b/include/os/linux/spl/sys/callb.h
+similarity index 100%
+rename from include/spl/sys/callb.h
+rename to include/os/linux/spl/sys/callb.h
+diff --git a/include/spl/sys/callo.h b/include/os/linux/spl/sys/callo.h
+similarity index 100%
+rename from include/spl/sys/callo.h
+rename to include/os/linux/spl/sys/callo.h
+diff --git a/include/spl/sys/cmn_err.h b/include/os/linux/spl/sys/cmn_err.h
+similarity index 100%
+rename from include/spl/sys/cmn_err.h
+rename to include/os/linux/spl/sys/cmn_err.h
+diff --git a/include/spl/sys/condvar.h b/include/os/linux/spl/sys/condvar.h
+similarity index 100%
+rename from include/spl/sys/condvar.h
+rename to include/os/linux/spl/sys/condvar.h
+diff --git a/include/spl/sys/console.h b/include/os/linux/spl/sys/console.h
+similarity index 100%
+rename from include/spl/sys/console.h
+rename to include/os/linux/spl/sys/console.h
+diff --git a/include/spl/sys/cred.h b/include/os/linux/spl/sys/cred.h
+similarity index 100%
+rename from include/spl/sys/cred.h
+rename to include/os/linux/spl/sys/cred.h
+diff --git a/include/spl/sys/ctype.h b/include/os/linux/spl/sys/ctype.h
+similarity index 100%
+rename from include/spl/sys/ctype.h
+rename to include/os/linux/spl/sys/ctype.h
+diff --git a/include/spl/sys/debug.h b/include/os/linux/spl/sys/debug.h
+similarity index 100%
+rename from include/spl/sys/debug.h
+rename to include/os/linux/spl/sys/debug.h
+diff --git a/include/spl/sys/disp.h b/include/os/linux/spl/sys/disp.h
+similarity index 100%
+rename from include/spl/sys/disp.h
+rename to include/os/linux/spl/sys/disp.h
+diff --git a/include/spl/sys/dkio.h b/include/os/linux/spl/sys/dkio.h
+similarity index 100%
+rename from include/spl/sys/dkio.h
+rename to include/os/linux/spl/sys/dkio.h
+diff --git a/include/spl/sys/errno.h b/include/os/linux/spl/sys/errno.h
+similarity index 100%
+rename from include/spl/sys/errno.h
+rename to include/os/linux/spl/sys/errno.h
+diff --git a/include/spl/sys/fcntl.h b/include/os/linux/spl/sys/fcntl.h
+similarity index 100%
+rename from include/spl/sys/fcntl.h
+rename to include/os/linux/spl/sys/fcntl.h
+diff --git a/include/spl/sys/file.h b/include/os/linux/spl/sys/file.h
+similarity index 100%
+rename from include/spl/sys/file.h
+rename to include/os/linux/spl/sys/file.h
+diff --git a/include/spl/sys/inttypes.h b/include/os/linux/spl/sys/inttypes.h
+similarity index 100%
+rename from include/spl/sys/inttypes.h
+rename to include/os/linux/spl/sys/inttypes.h
+diff --git a/include/spl/sys/isa_defs.h b/include/os/linux/spl/sys/isa_defs.h
+similarity index 100%
+rename from include/spl/sys/isa_defs.h
+rename to include/os/linux/spl/sys/isa_defs.h
+diff --git a/include/spl/sys/kmem.h b/include/os/linux/spl/sys/kmem.h
+similarity index 100%
+rename from include/spl/sys/kmem.h
+rename to include/os/linux/spl/sys/kmem.h
+diff --git a/include/spl/sys/kmem_cache.h b/include/os/linux/spl/sys/kmem_cache.h
+similarity index 100%
+rename from include/spl/sys/kmem_cache.h
+rename to include/os/linux/spl/sys/kmem_cache.h
+diff --git a/include/spl/sys/kobj.h b/include/os/linux/spl/sys/kobj.h
+similarity index 100%
+rename from include/spl/sys/kobj.h
+rename to include/os/linux/spl/sys/kobj.h
+diff --git a/include/spl/sys/kstat.h b/include/os/linux/spl/sys/kstat.h
+similarity index 100%
+rename from include/spl/sys/kstat.h
+rename to include/os/linux/spl/sys/kstat.h
+diff --git a/include/spl/sys/list.h b/include/os/linux/spl/sys/list.h
+similarity index 100%
+rename from include/spl/sys/list.h
+rename to include/os/linux/spl/sys/list.h
+diff --git a/include/spl/sys/mode.h b/include/os/linux/spl/sys/mode.h
+similarity index 100%
+rename from include/spl/sys/mode.h
+rename to include/os/linux/spl/sys/mode.h
+diff --git a/include/spl/sys/mutex.h b/include/os/linux/spl/sys/mutex.h
+similarity index 100%
+rename from include/spl/sys/mutex.h
+rename to include/os/linux/spl/sys/mutex.h
+diff --git a/include/spl/sys/param.h b/include/os/linux/spl/sys/param.h
+similarity index 100%
+rename from include/spl/sys/param.h
+rename to include/os/linux/spl/sys/param.h
+diff --git a/include/spl/sys/proc.h b/include/os/linux/spl/sys/proc.h
+similarity index 100%
+rename from include/spl/sys/proc.h
+rename to include/os/linux/spl/sys/proc.h
+diff --git a/include/spl/sys/processor.h b/include/os/linux/spl/sys/processor.h
+similarity index 100%
+rename from include/spl/sys/processor.h
+rename to include/os/linux/spl/sys/processor.h
+diff --git a/include/spl/sys/procfs_list.h b/include/os/linux/spl/sys/procfs_list.h
+similarity index 100%
+rename from include/spl/sys/procfs_list.h
+rename to include/os/linux/spl/sys/procfs_list.h
+diff --git a/include/spl/sys/random.h b/include/os/linux/spl/sys/random.h
+similarity index 100%
+rename from include/spl/sys/random.h
+rename to include/os/linux/spl/sys/random.h
+diff --git a/include/spl/sys/rwlock.h b/include/os/linux/spl/sys/rwlock.h
+similarity index 100%
+rename from include/spl/sys/rwlock.h
+rename to include/os/linux/spl/sys/rwlock.h
+diff --git a/include/spl/sys/shrinker.h b/include/os/linux/spl/sys/shrinker.h
+similarity index 100%
+rename from include/spl/sys/shrinker.h
+rename to include/os/linux/spl/sys/shrinker.h
+diff --git a/include/spl/sys/sid.h b/include/os/linux/spl/sys/sid.h
+similarity index 100%
+rename from include/spl/sys/sid.h
+rename to include/os/linux/spl/sys/sid.h
+diff --git a/include/spl/sys/signal.h b/include/os/linux/spl/sys/signal.h
+similarity index 100%
+rename from include/spl/sys/signal.h
+rename to include/os/linux/spl/sys/signal.h
+diff --git a/include/os/linux/spl/sys/simd.h b/include/os/linux/spl/sys/simd.h
+new file mode 100644
+index 000000000..f2048d9e1
+--- /dev/null
++++ b/include/os/linux/spl/sys/simd.h
+@@ -0,0 +1,31 @@
++/*
++ *  Copyright (C) 2007-2010 Lawrence Livermore National Security, LLC.
++ *  Copyright (C) 2007 The Regents of the University of California.
++ *  Produced at Lawrence Livermore National Laboratory (cf, DISCLAIMER).
++ *  Written by Brian Behlendorf <behlendorf1@llnl.gov>.
++ *  UCRL-CODE-235197
++ *
++ *  This file is part of the SPL, Solaris Porting Layer.
++ *  For details, see <http://zfsonlinux.org/>.
++ *
++ *  The SPL is free software; you can redistribute it and/or modify it
++ *  under the terms of the GNU General Public License as published by the
++ *  Free Software Foundation; either version 2 of the License, or (at your
++ *  option) any later version.
++ *
++ *  The SPL is distributed in the hope that it will be useful, but WITHOUT
++ *  ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
++ *  FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
++ *  for more details.
++ *
++ *  You should have received a copy of the GNU General Public License along
++ *  with the SPL.  If not, see <http://www.gnu.org/licenses/>.
++ */
++
++#ifndef _SPL_SYS_SIMD_H
++#define	_SPL_SYS_SIMD_H
++
++#include <sys/isa_defs.h>
++#include <linux/simd.h>
++
++#endif /* _SPL_SYS_SIMD_H */
+diff --git a/include/spl/sys/stat.h b/include/os/linux/spl/sys/stat.h
+similarity index 100%
+rename from include/spl/sys/stat.h
+rename to include/os/linux/spl/sys/stat.h
+diff --git a/include/spl/sys/strings.h b/include/os/linux/spl/sys/strings.h
+similarity index 100%
+rename from include/spl/sys/strings.h
+rename to include/os/linux/spl/sys/strings.h
+diff --git a/include/spl/sys/sunddi.h b/include/os/linux/spl/sys/sunddi.h
+similarity index 100%
+rename from include/spl/sys/sunddi.h
+rename to include/os/linux/spl/sys/sunddi.h
+diff --git a/include/spl/sys/sysmacros.h b/include/os/linux/spl/sys/sysmacros.h
+similarity index 100%
+rename from include/spl/sys/sysmacros.h
+rename to include/os/linux/spl/sys/sysmacros.h
+diff --git a/include/spl/sys/systeminfo.h b/include/os/linux/spl/sys/systeminfo.h
+similarity index 100%
+rename from include/spl/sys/systeminfo.h
+rename to include/os/linux/spl/sys/systeminfo.h
+diff --git a/include/spl/sys/taskq.h b/include/os/linux/spl/sys/taskq.h
+similarity index 100%
+rename from include/spl/sys/taskq.h
+rename to include/os/linux/spl/sys/taskq.h
+diff --git a/include/spl/sys/thread.h b/include/os/linux/spl/sys/thread.h
+similarity index 100%
+rename from include/spl/sys/thread.h
+rename to include/os/linux/spl/sys/thread.h
+diff --git a/include/spl/sys/time.h b/include/os/linux/spl/sys/time.h
+similarity index 100%
+rename from include/spl/sys/time.h
+rename to include/os/linux/spl/sys/time.h
+diff --git a/include/spl/sys/timer.h b/include/os/linux/spl/sys/timer.h
+similarity index 100%
+rename from include/spl/sys/timer.h
+rename to include/os/linux/spl/sys/timer.h
+diff --git a/include/spl/sys/tsd.h b/include/os/linux/spl/sys/tsd.h
+similarity index 100%
+rename from include/spl/sys/tsd.h
+rename to include/os/linux/spl/sys/tsd.h
+diff --git a/include/spl/sys/types.h b/include/os/linux/spl/sys/types.h
+similarity index 100%
+rename from include/spl/sys/types.h
+rename to include/os/linux/spl/sys/types.h
+diff --git a/include/spl/sys/types32.h b/include/os/linux/spl/sys/types32.h
+similarity index 100%
+rename from include/spl/sys/types32.h
+rename to include/os/linux/spl/sys/types32.h
+diff --git a/include/spl/sys/uio.h b/include/os/linux/spl/sys/uio.h
+similarity index 100%
+rename from include/spl/sys/uio.h
+rename to include/os/linux/spl/sys/uio.h
+diff --git a/include/spl/sys/user.h b/include/os/linux/spl/sys/user.h
+similarity index 100%
+rename from include/spl/sys/user.h
+rename to include/os/linux/spl/sys/user.h
+diff --git a/include/spl/sys/vfs.h b/include/os/linux/spl/sys/vfs.h
+similarity index 100%
+rename from include/spl/sys/vfs.h
+rename to include/os/linux/spl/sys/vfs.h
+diff --git a/include/spl/sys/vmem.h b/include/os/linux/spl/sys/vmem.h
+similarity index 100%
+rename from include/spl/sys/vmem.h
+rename to include/os/linux/spl/sys/vmem.h
+diff --git a/include/spl/sys/vmsystm.h b/include/os/linux/spl/sys/vmsystm.h
+similarity index 100%
+rename from include/spl/sys/vmsystm.h
+rename to include/os/linux/spl/sys/vmsystm.h
+diff --git a/include/spl/sys/vnode.h b/include/os/linux/spl/sys/vnode.h
+similarity index 100%
+rename from include/spl/sys/vnode.h
+rename to include/os/linux/spl/sys/vnode.h
+diff --git a/include/spl/sys/wait.h b/include/os/linux/spl/sys/wait.h
+similarity index 100%
+rename from include/spl/sys/wait.h
+rename to include/os/linux/spl/sys/wait.h
+diff --git a/include/spl/sys/zmod.h b/include/os/linux/spl/sys/zmod.h
+similarity index 100%
+rename from include/spl/sys/zmod.h
+rename to include/os/linux/spl/sys/zmod.h
+diff --git a/include/spl/sys/zone.h b/include/os/linux/spl/sys/zone.h
+similarity index 100%
+rename from include/spl/sys/zone.h
+rename to include/os/linux/spl/sys/zone.h
+diff --git a/include/os/linux/zfs/Makefile.am b/include/os/linux/zfs/Makefile.am
+new file mode 100644
+index 000000000..081839c48
+--- /dev/null
++++ b/include/os/linux/zfs/Makefile.am
+@@ -0,0 +1 @@
++SUBDIRS = sys
+diff --git a/include/os/linux/zfs/sys/Makefile.am b/include/os/linux/zfs/sys/Makefile.am
+new file mode 100644
+index 000000000..5aa87da37
+--- /dev/null
++++ b/include/os/linux/zfs/sys/Makefile.am
+@@ -0,0 +1,12 @@
++KERNEL_H = \
++	$(top_srcdir)/include/os/linux/zfs/sys/policy.h \
++	$(top_srcdir)/include/os/linux/zfs/sys/zfs_ctldir.h \
++	$(top_srcdir)/include/os/linux/zfs/sys/zfs_dir.h \
++	$(top_srcdir)/include/os/linux/zfs/sys/zfs_vfsops.h \
++	$(top_srcdir)/include/os/linux/zfs/sys/zfs_vnops.h \
++	$(top_srcdir)/include/os/linux/zfs/sys/zpl.h
++
++if CONFIG_KERNEL
++kerneldir = @prefix@/src/zfs-$(VERSION)/include/sys
++kernel_HEADERS = $(KERNEL_H)
++endif
+diff --git a/include/sys/policy.h b/include/os/linux/zfs/sys/policy.h
+similarity index 100%
+rename from include/sys/policy.h
+rename to include/os/linux/zfs/sys/policy.h
+diff --git a/include/sys/zfs_ctldir.h b/include/os/linux/zfs/sys/zfs_ctldir.h
+similarity index 100%
+rename from include/sys/zfs_ctldir.h
+rename to include/os/linux/zfs/sys/zfs_ctldir.h
+diff --git a/include/sys/zfs_dir.h b/include/os/linux/zfs/sys/zfs_dir.h
+similarity index 100%
+rename from include/sys/zfs_dir.h
+rename to include/os/linux/zfs/sys/zfs_dir.h
+diff --git a/include/sys/zfs_vfsops.h b/include/os/linux/zfs/sys/zfs_vfsops.h
+similarity index 100%
+rename from include/sys/zfs_vfsops.h
+rename to include/os/linux/zfs/sys/zfs_vfsops.h
+diff --git a/include/sys/zfs_vnops.h b/include/os/linux/zfs/sys/zfs_vnops.h
+similarity index 100%
+rename from include/sys/zfs_vnops.h
+rename to include/os/linux/zfs/sys/zfs_vnops.h
+diff --git a/include/sys/zpl.h b/include/os/linux/zfs/sys/zpl.h
+similarity index 100%
+rename from include/sys/zpl.h
+rename to include/os/linux/zfs/sys/zpl.h
+diff --git a/include/spl/sys/Makefile.am b/include/spl/sys/Makefile.am
+deleted file mode 100644
+index 3b5b2755a..000000000
+--- a/include/spl/sys/Makefile.am
++++ /dev/null
+@@ -1,61 +0,0 @@
+-KERNEL_H = \
+-	$(top_srcdir)/include/spl/sys/acl.h \
+-	$(top_srcdir)/include/spl/sys/atomic.h \
+-	$(top_srcdir)/include/spl/sys/byteorder.h \
+-	$(top_srcdir)/include/spl/sys/callb.h \
+-	$(top_srcdir)/include/spl/sys/callo.h \
+-	$(top_srcdir)/include/spl/sys/cmn_err.h \
+-	$(top_srcdir)/include/spl/sys/condvar.h \
+-	$(top_srcdir)/include/spl/sys/console.h \
+-	$(top_srcdir)/include/spl/sys/cred.h \
+-	$(top_srcdir)/include/spl/sys/ctype.h \
+-	$(top_srcdir)/include/spl/sys/debug.h \
+-	$(top_srcdir)/include/spl/sys/disp.h \
+-	$(top_srcdir)/include/spl/sys/dkio.h \
+-	$(top_srcdir)/include/spl/sys/errno.h \
+-	$(top_srcdir)/include/spl/sys/fcntl.h \
+-	$(top_srcdir)/include/spl/sys/file.h \
+-	$(top_srcdir)/include/spl/sys/inttypes.h \
+-	$(top_srcdir)/include/spl/sys/isa_defs.h \
+-	$(top_srcdir)/include/spl/sys/kmem_cache.h \
+-	$(top_srcdir)/include/spl/sys/kmem.h \
+-	$(top_srcdir)/include/spl/sys/kobj.h \
+-	$(top_srcdir)/include/spl/sys/kstat.h \
+-	$(top_srcdir)/include/spl/sys/list.h \
+-	$(top_srcdir)/include/spl/sys/mode.h \
+-	$(top_srcdir)/include/spl/sys/mutex.h \
+-	$(top_srcdir)/include/spl/sys/param.h \
+-	$(top_srcdir)/include/spl/sys/processor.h \
+-	$(top_srcdir)/include/spl/sys/proc.h \
+-	$(top_srcdir)/include/spl/sys/procfs_list.h \
+-	$(top_srcdir)/include/spl/sys/random.h \
+-	$(top_srcdir)/include/spl/sys/rwlock.h \
+-	$(top_srcdir)/include/spl/sys/shrinker.h \
+-	$(top_srcdir)/include/spl/sys/sid.h \
+-	$(top_srcdir)/include/spl/sys/signal.h \
+-	$(top_srcdir)/include/spl/sys/stat.h \
+-	$(top_srcdir)/include/spl/sys/strings.h \
+-	$(top_srcdir)/include/spl/sys/sunddi.h \
+-	$(top_srcdir)/include/spl/sys/sysmacros.h \
+-	$(top_srcdir)/include/spl/sys/systeminfo.h \
+-	$(top_srcdir)/include/spl/sys/taskq.h \
+-	$(top_srcdir)/include/spl/sys/thread.h \
+-	$(top_srcdir)/include/spl/sys/time.h \
+-	$(top_srcdir)/include/spl/sys/timer.h \
+-	$(top_srcdir)/include/spl/sys/tsd.h \
+-	$(top_srcdir)/include/spl/sys/types32.h \
+-	$(top_srcdir)/include/spl/sys/types.h \
+-	$(top_srcdir)/include/spl/sys/uio.h \
+-	$(top_srcdir)/include/spl/sys/user.h \
+-	$(top_srcdir)/include/spl/sys/vfs.h \
+-	$(top_srcdir)/include/spl/sys/vmem.h \
+-	$(top_srcdir)/include/spl/sys/vmsystm.h \
+-	$(top_srcdir)/include/spl/sys/vnode.h \
+-	$(top_srcdir)/include/spl/sys/wait.h \
+-	$(top_srcdir)/include/spl/sys/zmod.h \
+-	$(top_srcdir)/include/spl/sys/zone.h
+-
+-if CONFIG_KERNEL
+-kerneldir = @prefix@/src/zfs-$(VERSION)/include/spl/sys
+-kernel_HEADERS = $(KERNEL_H)
+-endif
+diff --git a/include/sys/Makefile.am b/include/sys/Makefile.am
+index 31ffdfb4a..25ede0929 100644
+--- a/include/sys/Makefile.am
++++ b/include/sys/Makefile.am
+@@ -51,7 +51,6 @@ COMMON_H = \
+ 	$(top_srcdir)/include/sys/nvpair.h \
+ 	$(top_srcdir)/include/sys/nvpair_impl.h \
+ 	$(top_srcdir)/include/sys/pathname.h \
+-	$(top_srcdir)/include/sys/policy.h \
+ 	$(top_srcdir)/include/sys/range_tree.h \
+ 	$(top_srcdir)/include/sys/refcount.h \
+ 	$(top_srcdir)/include/sys/rrwlock.h \
+@@ -112,10 +111,8 @@ COMMON_H = \
+ 	$(top_srcdir)/include/sys/zfeature.h \
+ 	$(top_srcdir)/include/sys/zfs_acl.h \
+ 	$(top_srcdir)/include/sys/zfs_context.h \
+-	$(top_srcdir)/include/sys/zfs_ctldir.h \
+ 	$(top_srcdir)/include/sys/zfs_debug.h \
+ 	$(top_srcdir)/include/sys/zfs_delay.h \
+-	$(top_srcdir)/include/sys/zfs_dir.h \
+ 	$(top_srcdir)/include/sys/zfs_fuid.h \
+ 	$(top_srcdir)/include/sys/zfs_project.h \
+ 	$(top_srcdir)/include/sys/zfs_ratelimit.h \
+@@ -123,8 +120,6 @@ COMMON_H = \
+ 	$(top_srcdir)/include/sys/zfs_sa.h \
+ 	$(top_srcdir)/include/sys/zfs_stat.h \
+ 	$(top_srcdir)/include/sys/zfs_sysfs.h \
+-	$(top_srcdir)/include/sys/zfs_vfsops.h \
+-	$(top_srcdir)/include/sys/zfs_vnops.h \
+ 	$(top_srcdir)/include/sys/zfs_znode.h \
+ 	$(top_srcdir)/include/sys/zil.h \
+ 	$(top_srcdir)/include/sys/zil_impl.h \
+@@ -140,7 +135,6 @@ COMMON_H = \
+ KERNEL_H = \
+ 	$(top_srcdir)/include/sys/zfs_ioctl.h \
+ 	$(top_srcdir)/include/sys/zfs_onexit.h \
+-	${top_srcdir}/include/sys/zpl.h \
+ 	$(top_srcdir)/include/sys/zvol.h
+ 
+ USER_H =
+diff --git a/lib/libspl/include/sys/Makefile.am b/lib/libspl/include/sys/Makefile.am
+index e7af317e0..5156e2912 100644
+--- a/lib/libspl/include/sys/Makefile.am
++++ b/lib/libspl/include/sys/Makefile.am
+@@ -33,6 +33,7 @@ libspl_HEADERS = \
+ 	$(top_srcdir)/lib/libspl/include/sys/priv.h \
+ 	$(top_srcdir)/lib/libspl/include/sys/processor.h \
+ 	$(top_srcdir)/lib/libspl/include/sys/signal.h \
++	$(top_srcdir)/lib/libspl/include/sys/simd.h \
+ 	$(top_srcdir)/lib/libspl/include/sys/stack.h \
+ 	$(top_srcdir)/lib/libspl/include/sys/stat.h \
+ 	$(top_srcdir)/lib/libspl/include/sys/stdtypes.h \
+diff --git a/lib/libspl/include/sys/simd.h b/lib/libspl/include/sys/simd.h
+new file mode 100644
+index 000000000..6a2b3a022
+--- /dev/null
++++ b/lib/libspl/include/sys/simd.h
+@@ -0,0 +1,448 @@
++/*
++ * CDDL HEADER START
++ *
++ * The contents of this file are subject to the terms of the
++ * Common Development and Distribution License, Version 1.0 only
++ * (the "License").  You may not use this file except in compliance
++ * with the License.
++ *
++ * You can obtain a copy of the license at usr/src/OPENSOLARIS.LICENSE
++ * or http://www.opensolaris.org/os/licensing.
++ * See the License for the specific language governing permissions
++ * and limitations under the License.
++ *
++ * When distributing Covered Code, include this CDDL HEADER in each
++ * file and include the License file at usr/src/OPENSOLARIS.LICENSE.
++ * If applicable, add the following below this CDDL HEADER, with the
++ * fields enclosed by brackets "[]" replaced with your own identifying
++ * information: Portions Copyright [yyyy] [name of copyright owner]
++ *
++ * CDDL HEADER END
++ */
++/*
++ * Copyright 2006 Sun Microsystems, Inc.  All rights reserved.
++ * Use is subject to license terms.
++ */
++
++#ifndef _LIBSPL_SYS_SIMD_H
++#define	_LIBSPL_SYS_SIMD_H
++
++#include <sys/isa_defs.h>
++#include <sys/types.h>
++
++#if defined(__x86)
++#include <cpuid.h>
++
++#define	kfpu_allowed()		1
++#define	kfpu_initialize(tsk)	do {} while (0)
++#define	kfpu_begin()		do {} while (0)
++#define	kfpu_end()		do {} while (0)
++
++/*
++ * CPUID feature tests for user-space.
++ *
++ * x86 registers used implicitly by CPUID
++ */
++typedef enum cpuid_regs {
++	EAX = 0,
++	EBX,
++	ECX,
++	EDX,
++	CPUID_REG_CNT = 4
++} cpuid_regs_t;
++
++/*
++ * List of instruction sets identified by CPUID
++ */
++typedef enum cpuid_inst_sets {
++	SSE = 0,
++	SSE2,
++	SSE3,
++	SSSE3,
++	SSE4_1,
++	SSE4_2,
++	OSXSAVE,
++	AVX,
++	AVX2,
++	BMI1,
++	BMI2,
++	AVX512F,
++	AVX512CD,
++	AVX512DQ,
++	AVX512BW,
++	AVX512IFMA,
++	AVX512VBMI,
++	AVX512PF,
++	AVX512ER,
++	AVX512VL,
++	AES,
++	PCLMULQDQ
++} cpuid_inst_sets_t;
++
++/*
++ * Instruction set descriptor.
++ */
++typedef struct cpuid_feature_desc {
++	uint32_t leaf;		/* CPUID leaf */
++	uint32_t subleaf;	/* CPUID sub-leaf */
++	uint32_t flag;		/* bit mask of the feature */
++	cpuid_regs_t reg;	/* which CPUID return register to test */
++} cpuid_feature_desc_t;
++
++#define	_AVX512F_BIT		(1U << 16)
++#define	_AVX512CD_BIT		(_AVX512F_BIT | (1U << 28))
++#define	_AVX512DQ_BIT		(_AVX512F_BIT | (1U << 17))
++#define	_AVX512BW_BIT		(_AVX512F_BIT | (1U << 30))
++#define	_AVX512IFMA_BIT		(_AVX512F_BIT | (1U << 21))
++#define	_AVX512VBMI_BIT		(1U << 1) /* AVX512F_BIT is on another leaf  */
++#define	_AVX512PF_BIT		(_AVX512F_BIT | (1U << 26))
++#define	_AVX512ER_BIT		(_AVX512F_BIT | (1U << 27))
++#define	_AVX512VL_BIT		(1U << 31) /* if used also check other levels */
++#define	_AES_BIT		(1U << 25)
++#define	_PCLMULQDQ_BIT		(1U << 1)
++
++/*
++ * Descriptions of supported instruction sets
++ */
++static const cpuid_feature_desc_t cpuid_features[] = {
++	[SSE]		= {1U, 0U,	1U << 25,	EDX	},
++	[SSE2]		= {1U, 0U,	1U << 26,	EDX	},
++	[SSE3]		= {1U, 0U,	1U << 0,	ECX	},
++	[SSSE3]		= {1U, 0U,	1U << 9,	ECX	},
++	[SSE4_1]	= {1U, 0U,	1U << 19,	ECX	},
++	[SSE4_2]	= {1U, 0U,	1U << 20,	ECX	},
++	[OSXSAVE]	= {1U, 0U,	1U << 27,	ECX	},
++	[AVX]		= {1U, 0U,	1U << 28,	ECX	},
++	[AVX2]		= {7U, 0U,	1U << 5,	EBX	},
++	[BMI1]		= {7U, 0U,	1U << 3,	EBX	},
++	[BMI2]		= {7U, 0U,	1U << 8,	EBX	},
++	[AVX512F]	= {7U, 0U, _AVX512F_BIT,	EBX	},
++	[AVX512CD]	= {7U, 0U, _AVX512CD_BIT,	EBX	},
++	[AVX512DQ]	= {7U, 0U, _AVX512DQ_BIT,	EBX	},
++	[AVX512BW]	= {7U, 0U, _AVX512BW_BIT,	EBX	},
++	[AVX512IFMA]	= {7U, 0U, _AVX512IFMA_BIT,	EBX	},
++	[AVX512VBMI]	= {7U, 0U, _AVX512VBMI_BIT,	ECX	},
++	[AVX512PF]	= {7U, 0U, _AVX512PF_BIT,	EBX	},
++	[AVX512ER]	= {7U, 0U, _AVX512ER_BIT,	EBX	},
++	[AVX512VL]	= {7U, 0U, _AVX512ER_BIT,	EBX	},
++	[AES]		= {1U, 0U, _AES_BIT,		ECX	},
++	[PCLMULQDQ]	= {1U, 0U, _PCLMULQDQ_BIT,	ECX	},
++};
++
++/*
++ * Check if OS supports AVX and AVX2 by checking XCR0
++ * Only call this function if CPUID indicates that AVX feature is
++ * supported by the CPU, otherwise it might be an illegal instruction.
++ */
++static inline uint64_t
++xgetbv(uint32_t index)
++{
++	uint32_t eax, edx;
++	/* xgetbv - instruction byte code */
++	__asm__ __volatile__(".byte 0x0f; .byte 0x01; .byte 0xd0"
++	    : "=a" (eax), "=d" (edx)
++	    : "c" (index));
++
++	return ((((uint64_t)edx)<<32) | (uint64_t)eax);
++}
++
++/*
++ * Check if CPU supports a feature
++ */
++static inline boolean_t
++__cpuid_check_feature(const cpuid_feature_desc_t *desc)
++{
++	uint32_t r[CPUID_REG_CNT];
++
++	if (__get_cpuid_max(0, NULL) >= desc->leaf) {
++		/*
++		 * __cpuid_count is needed to properly check
++		 * for AVX2. It is a macro, so return parameters
++		 * are passed by value.
++		 */
++		__cpuid_count(desc->leaf, desc->subleaf,
++		    r[EAX], r[EBX], r[ECX], r[EDX]);
++		return ((r[desc->reg] & desc->flag) == desc->flag);
++	}
++	return (B_FALSE);
++}
++
++#define	CPUID_FEATURE_CHECK(name, id)				\
++static inline boolean_t						\
++__cpuid_has_ ## name(void)					\
++{								\
++	return (__cpuid_check_feature(&cpuid_features[id]));	\
++}
++
++/*
++ * Define functions for user-space CPUID features testing
++ */
++CPUID_FEATURE_CHECK(sse, SSE);
++CPUID_FEATURE_CHECK(sse2, SSE2);
++CPUID_FEATURE_CHECK(sse3, SSE3);
++CPUID_FEATURE_CHECK(ssse3, SSSE3);
++CPUID_FEATURE_CHECK(sse4_1, SSE4_1);
++CPUID_FEATURE_CHECK(sse4_2, SSE4_2);
++CPUID_FEATURE_CHECK(avx, AVX);
++CPUID_FEATURE_CHECK(avx2, AVX2);
++CPUID_FEATURE_CHECK(osxsave, OSXSAVE);
++CPUID_FEATURE_CHECK(bmi1, BMI1);
++CPUID_FEATURE_CHECK(bmi2, BMI2);
++CPUID_FEATURE_CHECK(avx512f, AVX512F);
++CPUID_FEATURE_CHECK(avx512cd, AVX512CD);
++CPUID_FEATURE_CHECK(avx512dq, AVX512DQ);
++CPUID_FEATURE_CHECK(avx512bw, AVX512BW);
++CPUID_FEATURE_CHECK(avx512ifma, AVX512IFMA);
++CPUID_FEATURE_CHECK(avx512vbmi, AVX512VBMI);
++CPUID_FEATURE_CHECK(avx512pf, AVX512PF);
++CPUID_FEATURE_CHECK(avx512er, AVX512ER);
++CPUID_FEATURE_CHECK(avx512vl, AVX512VL);
++CPUID_FEATURE_CHECK(aes, AES);
++CPUID_FEATURE_CHECK(pclmulqdq, PCLMULQDQ);
++
++/*
++ * Detect register set support
++ */
++static inline boolean_t
++__simd_state_enabled(const uint64_t state)
++{
++	boolean_t has_osxsave;
++	uint64_t xcr0;
++
++	has_osxsave = __cpuid_has_osxsave();
++	if (!has_osxsave)
++		return (B_FALSE);
++
++	xcr0 = xgetbv(0);
++	return ((xcr0 & state) == state);
++}
++
++#define	_XSTATE_SSE_AVX		(0x2 | 0x4)
++#define	_XSTATE_AVX512		(0xE0 | _XSTATE_SSE_AVX)
++
++#define	__ymm_enabled()		__simd_state_enabled(_XSTATE_SSE_AVX)
++#define	__zmm_enabled()		__simd_state_enabled(_XSTATE_AVX512)
++
++/*
++ * Check if SSE instruction set is available
++ */
++static inline boolean_t
++zfs_sse_available(void)
++{
++	return (__cpuid_has_sse());
++}
++
++/*
++ * Check if SSE2 instruction set is available
++ */
++static inline boolean_t
++zfs_sse2_available(void)
++{
++	return (__cpuid_has_sse2());
++}
++
++/*
++ * Check if SSE3 instruction set is available
++ */
++static inline boolean_t
++zfs_sse3_available(void)
++{
++	return (__cpuid_has_sse3());
++}
++
++/*
++ * Check if SSSE3 instruction set is available
++ */
++static inline boolean_t
++zfs_ssse3_available(void)
++{
++	return (__cpuid_has_ssse3());
++}
++
++/*
++ * Check if SSE4.1 instruction set is available
++ */
++static inline boolean_t
++zfs_sse4_1_available(void)
++{
++	return (__cpuid_has_sse4_1());
++}
++
++/*
++ * Check if SSE4.2 instruction set is available
++ */
++static inline boolean_t
++zfs_sse4_2_available(void)
++{
++	return (__cpuid_has_sse4_2());
++}
++
++/*
++ * Check if AVX instruction set is available
++ */
++static inline boolean_t
++zfs_avx_available(void)
++{
++	return (__cpuid_has_avx() && __ymm_enabled());
++}
++
++/*
++ * Check if AVX2 instruction set is available
++ */
++static inline boolean_t
++zfs_avx2_available(void)
++{
++	return (__cpuid_has_avx2() && __ymm_enabled());
++}
++
++/*
++ * Check if BMI1 instruction set is available
++ */
++static inline boolean_t
++zfs_bmi1_available(void)
++{
++	return (__cpuid_has_bmi1());
++}
++
++/*
++ * Check if BMI2 instruction set is available
++ */
++static inline boolean_t
++zfs_bmi2_available(void)
++{
++	return (__cpuid_has_bmi2());
++}
++
++/*
++ * Check if AES instruction set is available
++ */
++static inline boolean_t
++zfs_aes_available(void)
++{
++	return (__cpuid_has_aes());
++}
++
++/*
++ * Check if PCLMULQDQ instruction set is available
++ */
++static inline boolean_t
++zfs_pclmulqdq_available(void)
++{
++	return (__cpuid_has_pclmulqdq());
++}
++
++/*
++ * AVX-512 family of instruction sets:
++ *
++ * AVX512F	Foundation
++ * AVX512CD	Conflict Detection Instructions
++ * AVX512ER	Exponential and Reciprocal Instructions
++ * AVX512PF	Prefetch Instructions
++ *
++ * AVX512BW	Byte and Word Instructions
++ * AVX512DQ	Double-word and Quadword Instructions
++ * AVX512VL	Vector Length Extensions
++ *
++ * AVX512IFMA	Integer Fused Multiply Add (Not supported by kernel 4.4)
++ * AVX512VBMI	Vector Byte Manipulation Instructions
++ */
++
++/*
++ * Check if AVX512F instruction set is available
++ */
++static inline boolean_t
++zfs_avx512f_available(void)
++{
++	return (__cpuid_has_avx512f() && __zmm_enabled());
++}
++
++/*
++ * Check if AVX512CD instruction set is available
++ */
++static inline boolean_t
++zfs_avx512cd_available(void)
++{
++	return (__cpuid_has_avx512cd() && __zmm_enabled());
++}
++
++/*
++ * Check if AVX512ER instruction set is available
++ */
++static inline boolean_t
++zfs_avx512er_available(void)
++{
++	return (__cpuid_has_avx512er() && __zmm_enabled());
++}
++
++/*
++ * Check if AVX512PF instruction set is available
++ */
++static inline boolean_t
++zfs_avx512pf_available(void)
++{
++	return (__cpuid_has_avx512pf() && __zmm_enabled());
++}
++
++/*
++ * Check if AVX512BW instruction set is available
++ */
++static inline boolean_t
++zfs_avx512bw_available(void)
++{
++	return (__cpuid_has_avx512bw() && __zmm_enabled());
++}
++
++/*
++ * Check if AVX512DQ instruction set is available
++ */
++static inline boolean_t
++zfs_avx512dq_available(void)
++{
++	return (__cpuid_has_avx512dq() && __zmm_enabled());
++}
++
++/*
++ * Check if AVX512VL instruction set is available
++ */
++static inline boolean_t
++zfs_avx512vl_available(void)
++{
++	return (__cpuid_has_avx512vl() && __zmm_enabled());
++}
++
++/*
++ * Check if AVX512IFMA instruction set is available
++ */
++static inline boolean_t
++zfs_avx512ifma_available(void)
++{
++	return (__cpuid_has_avx512ifma() && __zmm_enabled());
++}
++
++/*
++ * Check if AVX512VBMI instruction set is available
++ */
++static inline boolean_t
++zfs_avx512vbmi_available(void)
++{
++	return (__cpuid_has_avx512f() && __cpuid_has_avx512vbmi() &&
++	    __zmm_enabled());
++}
++
++#elif defined(__aarch64__)
++
++#define	kfpu_allowed()		1
++#define	kfpu_initialize(tsk)	do {} while (0)
++#define	kfpu_begin()		do {} while (0)
++#define	kfpu_end()		do {} while (0)
++
++#else
++
++#define	kfpu_allowed()		0
++#define	kfpu_initialize(tsk)	do {} while (0)
++#define	kfpu_begin()		do {} while (0)
++#define	kfpu_end()		do {} while (0)
++
++#endif
++
++#endif /* _LIBSPL_SYS_SIMD_H */
+diff --git a/module/Makefile.in b/module/Makefile.in
+index 7477dbe56..bf0eb101c 100644
+--- a/module/Makefile.in
++++ b/module/Makefile.in
+@@ -12,7 +12,9 @@ INSTALL_MOD_DIR ?= extra
+ ZFS_MODULE_CFLAGS += -std=gnu99 -Wno-declaration-after-statement
+ ZFS_MODULE_CFLAGS += @KERNEL_DEBUG_CFLAGS@
+ ZFS_MODULE_CFLAGS += -include @abs_top_builddir@/zfs_config.h
+-ZFS_MODULE_CFLAGS += -I@abs_top_srcdir@/include/spl
++ZFS_MODULE_CFLAGS += -I@abs_top_srcdir@/include/os/linux/kernel
++ZFS_MODULE_CFLAGS += -I@abs_top_srcdir@/include/os/linux/spl
++ZFS_MODULE_CFLAGS += -I@abs_top_srcdir@/include/os/linux/zfs
+ ZFS_MODULE_CFLAGS += -I@abs_top_srcdir@/include
+ 
+ ZFS_MODULE_CPPFLAGS += -D_KERNEL
+diff --git a/module/icp/algs/aes/aes_impl.c b/module/icp/algs/aes/aes_impl.c
+index 0f11f9999..b60b16cc0 100644
+--- a/module/icp/algs/aes/aes_impl.c
++++ b/module/icp/algs/aes/aes_impl.c
+@@ -25,9 +25,9 @@
+ #include <sys/zfs_context.h>
+ #include <sys/crypto/icp.h>
+ #include <sys/crypto/spi.h>
++#include <sys/simd.h>
+ #include <modes/modes.h>
+ #include <aes/aes_impl.h>
+-#include <linux/simd.h>
+ 
+ /*
+  * Initialize AES encryption and decryption key schedules.
+diff --git a/module/icp/algs/aes/aes_impl_aesni.c b/module/icp/algs/aes/aes_impl_aesni.c
+index 222c176aa..4b5eefd71 100644
+--- a/module/icp/algs/aes/aes_impl_aesni.c
++++ b/module/icp/algs/aes/aes_impl_aesni.c
+@@ -24,7 +24,8 @@
+ 
+ #if defined(__x86_64) && defined(HAVE_AES)
+ 
+-#include <linux/simd_x86.h>
++#include <sys/simd.h>
++#include <sys/types.h>
+ 
+ /* These functions are used to execute AES-NI instructions: */
+ extern int rijndael_key_setup_enc_intel(uint32_t rk[],
+diff --git a/module/icp/algs/aes/aes_impl_x86-64.c b/module/icp/algs/aes/aes_impl_x86-64.c
+index b4515fa22..0ee7ee99c 100644
+--- a/module/icp/algs/aes/aes_impl_x86-64.c
++++ b/module/icp/algs/aes/aes_impl_x86-64.c
+@@ -24,7 +24,7 @@
+ 
+ #if defined(__x86_64)
+ 
+-#include <linux/simd_x86.h>
++#include <sys/simd.h>
+ 
+ /* These functions are used to execute amd64 instructions for AMD or Intel: */
+ extern int rijndael_key_setup_enc_amd64(uint32_t rk[],
+diff --git a/module/icp/algs/modes/gcm.c b/module/icp/algs/modes/gcm.c
+index 423b70e2c..1fb8e256a 100644
+--- a/module/icp/algs/modes/gcm.c
++++ b/module/icp/algs/modes/gcm.c
+@@ -28,8 +28,8 @@
+ #include <sys/crypto/icp.h>
+ #include <sys/crypto/impl.h>
+ #include <sys/byteorder.h>
++#include <sys/simd.h>
+ #include <modes/gcm_impl.h>
+-#include <linux/simd.h>
+ 
+ #define	GHASH(c, d, t, o) \
+ 	xor_block((uint8_t *)(d), (uint8_t *)(c)->gcm_ghash); \
+diff --git a/module/icp/algs/modes/gcm_pclmulqdq.c b/module/icp/algs/modes/gcm_pclmulqdq.c
+index 8a43ba33a..05920115c 100644
+--- a/module/icp/algs/modes/gcm_pclmulqdq.c
++++ b/module/icp/algs/modes/gcm_pclmulqdq.c
+@@ -24,12 +24,12 @@
+ 
+ #if defined(__x86_64) && defined(HAVE_PCLMULQDQ)
+ 
+-#include <linux/simd_x86.h>
++#include <sys/types.h>
++#include <sys/simd.h>
+ 
+ /* These functions are used to execute pclmulqdq based assembly methods */
+ extern void gcm_mul_pclmulqdq(uint64_t *, uint64_t *, uint64_t *);
+ 
+-
+ #include <modes/gcm_impl.h>
+ 
+ /*
+diff --git a/module/icp/io/aes.c b/module/icp/io/aes.c
+index 51538bc60..4b2dbd6e1 100644
+--- a/module/icp/io/aes.c
++++ b/module/icp/io/aes.c
+@@ -212,8 +212,8 @@ aes_mod_init(void)
+ 	 * are run in dedicated kernel threads to allow Linux 5.0+ kernels
+ 	 * to use SIMD operations.  If for some reason this isn't possible,
+ 	 * fallback to the generic implementations.  See the comment in
+-	 * include/linux/simd_x86.h for additional details.  Additionally,
+-	 * this has the benefit of allowing them to be run in parallel.
++	 * linux/simd_x86.h for additional details.  Additionally, this has
++	 * the benefit of allowing them to be run in parallel.
+ 	 */
+ 	taskqid_t aes_id = taskq_dispatch(system_taskq, aes_impl_init,
+ 	    NULL, TQ_SLEEP);
+diff --git a/module/spl/spl-taskq.c b/module/spl/spl-taskq.c
+index 69d591ff7..90e1d0a4d 100644
+--- a/module/spl/spl-taskq.c
++++ b/module/spl/spl-taskq.c
+@@ -28,7 +28,7 @@
+ #include <sys/taskq.h>
+ #include <sys/kmem.h>
+ #include <sys/tsd.h>
+-#include <linux/simd.h>
++#include <sys/simd.h>
+ 
+ int spl_taskq_thread_bind = 0;
+ module_param(spl_taskq_thread_bind, int, 0644);
+diff --git a/module/spl/spl-thread.c b/module/spl/spl-thread.c
+index 07e3a1bff..29de9252a 100644
+--- a/module/spl/spl-thread.c
++++ b/module/spl/spl-thread.c
+@@ -27,7 +27,7 @@
+ #include <sys/thread.h>
+ #include <sys/kmem.h>
+ #include <sys/tsd.h>
+-#include <linux/simd.h>
++#include <sys/simd.h>
+ 
+ /*
+  * Thread interfaces
+diff --git a/module/zcommon/zfs_fletcher.c b/module/zcommon/zfs_fletcher.c
+index 9187a7c1e..c14c95fa2 100644
+--- a/module/zcommon/zfs_fletcher.c
++++ b/module/zcommon/zfs_fletcher.c
+@@ -137,10 +137,10 @@
+ #include <sys/sysmacros.h>
+ #include <sys/byteorder.h>
+ #include <sys/spa.h>
++#include <sys/simd.h>
+ #include <sys/zio_checksum.h>
+ #include <sys/zfs_context.h>
+ #include <zfs_fletcher.h>
+-#include <linux/simd.h>
+ 
+ #define	FLETCHER_MIN_SIMD_SIZE	64
+ 
+@@ -773,7 +773,7 @@ fletcher_4_init(void)
+ 	/*
+ 	 * For 5.0 and latter Linux kernels the fletcher 4 benchmarks are
+ 	 * run in a kernel threads.  This is needed to take advantage of the
+-	 * SIMD functionality, see include/linux/simd_x86.h for details.
++	 * SIMD functionality, see linux/simd_x86.h for details.
+ 	 */
+ 	taskqid_t id = taskq_dispatch(system_taskq, fletcher_4_benchmark,
+ 	    NULL, TQ_SLEEP);
+diff --git a/module/zcommon/zfs_fletcher_aarch64_neon.c b/module/zcommon/zfs_fletcher_aarch64_neon.c
+index 3b3c1b52b..c95a71681 100644
+--- a/module/zcommon/zfs_fletcher_aarch64_neon.c
++++ b/module/zcommon/zfs_fletcher_aarch64_neon.c
+@@ -43,7 +43,7 @@
+ 
+ #if defined(__aarch64__)
+ 
+-#include <linux/simd_aarch64.h>
++#include <sys/simd.h>
+ #include <sys/spa_checksum.h>
+ #include <sys/strings.h>
+ #include <zfs_fletcher.h>
+diff --git a/module/zcommon/zfs_fletcher_avx512.c b/module/zcommon/zfs_fletcher_avx512.c
+index 0d4cff21a..43806f264 100644
+--- a/module/zcommon/zfs_fletcher_avx512.c
++++ b/module/zcommon/zfs_fletcher_avx512.c
+@@ -24,11 +24,11 @@
+ 
+ #if defined(__x86_64) && defined(HAVE_AVX512F)
+ 
+-#include <linux/simd_x86.h>
+ #include <sys/byteorder.h>
+ #include <sys/frame.h>
+ #include <sys/spa_checksum.h>
+ #include <sys/strings.h>
++#include <sys/simd.h>
+ #include <zfs_fletcher.h>
+ 
+ #define	__asm __asm__ __volatile__
+diff --git a/module/zcommon/zfs_fletcher_intel.c b/module/zcommon/zfs_fletcher_intel.c
+index 7f12efe6d..5136a01ec 100644
+--- a/module/zcommon/zfs_fletcher_intel.c
++++ b/module/zcommon/zfs_fletcher_intel.c
+@@ -42,8 +42,8 @@
+ 
+ #if defined(HAVE_AVX) && defined(HAVE_AVX2)
+ 
+-#include <linux/simd_x86.h>
+ #include <sys/spa_checksum.h>
++#include <sys/simd.h>
+ #include <sys/strings.h>
+ #include <zfs_fletcher.h>
+ 
+diff --git a/module/zcommon/zfs_fletcher_sse.c b/module/zcommon/zfs_fletcher_sse.c
+index e6389d6e5..15ce9b07f 100644
+--- a/module/zcommon/zfs_fletcher_sse.c
++++ b/module/zcommon/zfs_fletcher_sse.c
+@@ -43,7 +43,7 @@
+ 
+ #if defined(HAVE_SSE2)
+ 
+-#include <linux/simd_x86.h>
++#include <sys/simd.h>
+ #include <sys/spa_checksum.h>
+ #include <sys/byteorder.h>
+ #include <sys/strings.h>
+diff --git a/module/zfs/vdev_raidz_math.c b/module/zfs/vdev_raidz_math.c
+index ef514e9e1..86d4aabdc 100644
+--- a/module/zfs/vdev_raidz_math.c
++++ b/module/zfs/vdev_raidz_math.c
+@@ -29,7 +29,7 @@
+ #include <sys/zfs_debug.h>
+ #include <sys/vdev_raidz.h>
+ #include <sys/vdev_raidz_impl.h>
+-#include <linux/simd.h>
++#include <sys/simd.h>
+ 
+ extern boolean_t raidz_will_scalar_work(void);
+ 
+diff --git a/module/zfs/vdev_raidz_math_aarch64_neon_common.h b/module/zfs/vdev_raidz_math_aarch64_neon_common.h
+index 024917417..f47446753 100644
+--- a/module/zfs/vdev_raidz_math_aarch64_neon_common.h
++++ b/module/zfs/vdev_raidz_math_aarch64_neon_common.h
+@@ -23,7 +23,7 @@
+  */
+ 
+ #include <sys/types.h>
+-#include <linux/simd_aarch64.h>
++#include <sys/simd.h>
+ 
+ #define	__asm __asm__ __volatile__
+ 
+diff --git a/module/zfs/vdev_raidz_math_avx2.c b/module/zfs/vdev_raidz_math_avx2.c
+index a12eb6720..008e848d4 100644
+--- a/module/zfs/vdev_raidz_math_avx2.c
++++ b/module/zfs/vdev_raidz_math_avx2.c
+@@ -26,7 +26,7 @@
+ #if defined(__x86_64) && defined(HAVE_AVX2)
+ 
+ #include <sys/types.h>
+-#include <linux/simd_x86.h>
++#include <sys/simd.h>
+ 
+ #define	__asm __asm__ __volatile__
+ 
+diff --git a/module/zfs/vdev_raidz_math_avx512bw.c b/module/zfs/vdev_raidz_math_avx512bw.c
+index 2f545c9ec..38cdbedf7 100644
+--- a/module/zfs/vdev_raidz_math_avx512bw.c
++++ b/module/zfs/vdev_raidz_math_avx512bw.c
+@@ -28,7 +28,7 @@
+ #if defined(__x86_64) && defined(HAVE_AVX512BW)
+ 
+ #include <sys/types.h>
+-#include <linux/simd_x86.h>
++#include <sys/simd.h>
+ 
+ #define	__asm __asm__ __volatile__
+ 
+diff --git a/module/zfs/vdev_raidz_math_avx512f.c b/module/zfs/vdev_raidz_math_avx512f.c
+index 75af7a8ee..adbe9b0ef 100644
+--- a/module/zfs/vdev_raidz_math_avx512f.c
++++ b/module/zfs/vdev_raidz_math_avx512f.c
+@@ -28,7 +28,7 @@
+ #if defined(__x86_64) && defined(HAVE_AVX512F)
+ 
+ #include <sys/types.h>
+-#include <linux/simd_x86.h>
++#include <sys/simd.h>
+ 
+ #define	__asm __asm__ __volatile__
+ 
+diff --git a/module/zfs/vdev_raidz_math_sse2.c b/module/zfs/vdev_raidz_math_sse2.c
+index 5b3a9385c..70a21c10c 100644
+--- a/module/zfs/vdev_raidz_math_sse2.c
++++ b/module/zfs/vdev_raidz_math_sse2.c
+@@ -27,7 +27,7 @@
+ #if defined(__x86_64) && defined(HAVE_SSE2)
+ 
+ #include <sys/types.h>
+-#include <linux/simd_x86.h>
++#include <sys/simd.h>
+ 
+ #define	__asm __asm__ __volatile__
+ 
+diff --git a/module/zfs/vdev_raidz_math_ssse3.c b/module/zfs/vdev_raidz_math_ssse3.c
+index 62247cf8e..d5776a38a 100644
+--- a/module/zfs/vdev_raidz_math_ssse3.c
++++ b/module/zfs/vdev_raidz_math_ssse3.c
+@@ -27,7 +27,7 @@
+ #if defined(__x86_64) && defined(HAVE_SSSE3)
+ 
+ #include <sys/types.h>
+-#include <linux/simd_x86.h>
++#include <sys/simd.h>
+ 
+ #define	__asm __asm__ __volatile__
+ 
