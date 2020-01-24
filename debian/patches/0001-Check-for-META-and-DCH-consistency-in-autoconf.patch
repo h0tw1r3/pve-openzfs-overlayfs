@@ -10,7 +10,7 @@ Signed-off-by: Thomas Lamprecht <t.lamprecht@proxmox.com>
  1 file changed, 29 insertions(+), 5 deletions(-)
 
 diff --git a/config/zfs-meta.m4 b/config/zfs-meta.m4
-index aa0fc1420..f525e2010 100644
+index b3c1befaa..660d8ccb9 100644
 --- a/config/zfs-meta.m4
 +++ b/config/zfs-meta.m4
 @@ -1,9 +1,10 @@
