@@ -3,3 +3,4 @@
 0003-Fix-the-path-to-the-zed-binary-on-the-systemd-unit.patch
 0004-import-with-d-dev-disk-by-id-in-scan-service.patch
 0005-Enable-zed-emails.patch
+0006-dont-symlink-zed-scripts.patch
