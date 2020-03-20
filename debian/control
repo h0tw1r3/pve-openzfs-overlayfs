@@ -70,9 +70,9 @@ Depends: ${misc:Depends}, ${shlibs:Depends}
 Breaks: libzfs2
 Replaces: libzfs2
 Description: OpenZFS filesystem library for Linux
- The Z file system is a pooled filesystem designed for maximum data
- integrity, supporting data snapshots, multiple copies, and data
- checksums.
+ OpenZFS is a storage platform that encompasses the functionality of
+ traditional filesystems and volume managers. It supports data checksums,
+ compression, encryption, snapshots, and more.
  .
  The OpenZFS library provides support for managing OpenZFS filesystems.
 
@@ -83,9 +83,9 @@ Depends: ${misc:Depends}, ${shlibs:Depends}
 Breaks: libzpool2
 Replaces: libzpool2
 Description: OpenZFS pool library for Linux
- The Z file system is a pooled filesystem designed for maximum data
- integrity, supporting data snapshots, multiple copies, and data
- checksums.
+ OpenZFS is a storage platform that encompasses the functionality of
+ traditional filesystems and volume managers. It supports data checksums,
+ compression, encryption, snapshots, and more.
  .
  This zpool library provides support for managing zpools.
 
@@ -143,9 +143,9 @@ Depends: busybox-initramfs | busybox-static | busybox,
 Breaks: zfsutils-linux (<= 0.7.11-pve1~bpo1)
 Replaces: zfsutils-linux (<= 0.7.11-pve1~bpo1)
 Description: OpenZFS root filesystem capabilities for Linux - initramfs
- The Z file system is a pooled filesystem designed for maximum data
- integrity, supporting data snapshots, multiple copies, and data
- checksums.
+ OpenZFS is a storage platform that encompasses the functionality of
+ traditional filesystems and volume managers. It supports data checksums,
+ compression, encryption, snapshots, and more.
  .
  This package adds OpenZFS to the system initramfs with a hook
  for the initramfs-tools infrastructure.
@@ -161,9 +161,9 @@ Suggests: nfs-kernel-server,
 Conflicts: zfs, zfs-fuse
 Provides: zfsutils
 Description: command-line tools to manage OpenZFS filesystems
- The Z file system is a pooled filesystem designed for maximum data
- integrity, supporting data snapshots, multiple copies, and data
- checksums.
+ OpenZFS is a storage platform that encompasses the functionality of
+ traditional filesystems and volume managers. It supports data checksums,
+ compression, encryption, snapshots, and more.
  .
  This package provides the zfs and zpool commands to create and administer
  OpenZFS filesystems.
@@ -175,9 +175,9 @@ Depends: zfsutils-linux (>= ${binary:Version}),
          ${misc:Depends},
          ${shlibs:Depends}
 Description: OpenZFS Event Daemon
- The Z file system is a pooled filesystem designed for maximum data
- integrity, supporting data snapshots, multiple copies, and data
- checksums.
+ OpenZFS is a storage platform that encompasses the functionality of
+ traditional filesystems and volume managers. It supports data checksums,
+ compression, encryption, snapshots, and more.
  .
  This package provides the OpenZFS Event Daemon (zed).
 
@@ -201,10 +201,10 @@ Depends: acl,
 Breaks: zfsutils-linux (<= 0.7.9-2)
 Replaces: zfsutils-linux (<= 0.7.9-2)
 Conflicts: zutils
-Description: OpenZFS test infrastructure an support scripts
- The Z file system is a pooled filesystem designed for maximum data
- integrity, supporting data snapshots, multiple copies, and data
- checksums.
+Description: OpenZFS test infrastructure and support scripts
+ OpenZFS is a storage platform that encompasses the functionality of
+ traditional filesystems and volume managers. It supports data checksums,
+ compression, encryption, snapshots, and more.
  .
  This package provides the OpenZFS test infrastructure for destructively
  testing and validating a system using OpenZFS. It is entirely optional
@@ -222,9 +222,9 @@ Depends: libnvpair1linux (= ${binary:Version}),
          zfsutils-linux (= ${binary:Version}),
          ${misc:Depends}
 Description: Debugging symbols for OpenZFS userland libraries and tools
- The Z file system is a pooled filesystem designed for maximum data
- integrity, supporting data snapshots, multiple copies, and data
- checksums.
+ OpenZFS is a storage platform that encompasses the functionality of
+ traditional filesystems and volume managers. It supports data checksums,
+ compression, encryption, snapshots, and more.
  .
  This package contains the debugging symbols for libzpool2linux, libzfs2linux,
  libnvpair1linux, libuutil1linux, zfs-zed and zfsutils-linux.
