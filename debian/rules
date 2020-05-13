@@ -10,7 +10,7 @@ SPHINX_BUILD = $(shell dpkg -L python3-sphinx | grep "sphinx-build$$")
 export DEB_BUILD_MAINT_OPTIONS = hardening=+all
 
 %:
-	dh $@ --with autoreconf,python3,systemd,sphinxdoc --parallel
+	dh $@ --with autoreconf,python3,sphinxdoc --parallel
 
 adapt_meta_file:
 	@# Embed the downstream version in the module.
