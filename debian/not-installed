@@ -1,5 +1,6 @@
 usr/share/zfs/enum-extract.pl
 usr/share/zfs/zfs-helpers.sh
+etc/default/zfs
 etc/init.d
 etc/sudoers.d
 etc/zfs/vdev_id.conf.alias.example
@@ -9,3 +10,4 @@ etc/zfs/vdev_id.conf.sas_switch.example
 etc/zfs/vdev_id.conf.scsi.example
 usr/lib/dracut
 usr/share/zfs/enum-extract.pl
+etc/zfs/zfs-functions
