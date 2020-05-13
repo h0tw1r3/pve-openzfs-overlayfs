@@ -14,10 +14,10 @@ Signed-off-by: Thomas Lamprecht <t.lamprecht@proxmox.com>
  1 file changed, 1 insertion(+), 1 deletion(-)
 
 diff --git a/etc/systemd/system/zfs-import-scan.service.in b/etc/systemd/system/zfs-import-scan.service.in
-index 4aae9f06e..ec5c45e63 100644
+index 278f937fe..e8c502a33 100644
 --- a/etc/systemd/system/zfs-import-scan.service.in
 +++ b/etc/systemd/system/zfs-import-scan.service.in
-@@ -11,7 +11,7 @@ ConditionPathExists=!@sysconfdir@/zfs/zpool.cache
+@@ -12,7 +12,7 @@ ConditionPathExists=!@sysconfdir@/zfs/zpool.cache
  [Service]
  Type=oneshot
  RemainAfterExit=yes
