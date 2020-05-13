@@ -185,6 +185,7 @@ Package: zfs-test
 Section: contrib/admin
 Architecture: linux-any
 Depends: acl,
+         attr,
          bc,
          fio,
          ksh,
@@ -198,6 +199,7 @@ Depends: acl,
          zfsutils-linux (>=${binary:Version}),
          ${misc:Depends},
          ${shlibs:Depends}
+Recommends: nfs-kernel-server
 Breaks: zfsutils-linux (<= 0.7.9-2)
 Replaces: zfsutils-linux (<= 0.7.9-2)
 Conflicts: zutils
