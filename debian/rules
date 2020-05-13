@@ -33,6 +33,7 @@ override_dh_auto_configure:
 	  --with-zfsexecdir=/usr/lib/zfs-linux \
 	  --enable-systemd \
 	  --enable-pyzfs \
+	  --with-python=python3 \
 	  --with-systemdunitdir=/lib/systemd/system \
 	  --with-systemdpresetdir=/lib/systemd/system-preset \
 	  --with-systemdgeneratordir=/lib/systemd/system-generators \
