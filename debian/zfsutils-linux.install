@@ -5,6 +5,7 @@ etc/zfs/zpool.d/
 lib/systemd/system-preset/
 lib/systemd/system/zfs-import-cache.service
 lib/systemd/system/zfs-import-scan.service
+lib/systemd/system/zfs-import@.service
 lib/systemd/system/zfs-import.target
 lib/systemd/system/zfs-import.service
 lib/systemd/system/zfs-mount.service

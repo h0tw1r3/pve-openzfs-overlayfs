@@ -5,3 +5,4 @@
 0005-Enable-zed-emails.patch
 0006-dont-symlink-zed-scripts.patch
 0007-Use-installed-python3.patch
+0008-Add-systemd-unit-for-importing-specific-pools.patch
