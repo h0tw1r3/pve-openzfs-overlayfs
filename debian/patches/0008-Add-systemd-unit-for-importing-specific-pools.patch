@@ -55,12 +55,11 @@ new file mode 100644
 index 000000000..2db9fdaab
 --- /dev/null
 +++ b/etc/systemd/system/zfs-import@.service.in
-@@ -0,0 +1,17 @@
+@@ -0,0 +1,16 @@
 +[Unit]
 +Description=Import ZFS pool %i
 +Documentation=man:zpool(8)
 +DefaultDependencies=no
-+Requires=systemd-udev-settle.service
 +After=systemd-udev-settle.service
 +After=cryptsetup.target
 +After=multipathd.target
