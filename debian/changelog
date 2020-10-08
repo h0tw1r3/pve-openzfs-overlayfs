@@ -1,3 +1,9 @@
+zfs-linux (0.8.5-pve1) pve pmg; urgency=medium
+
+  * update ZFS to 0.8.5
+
+ -- Proxmox Support Team <support@proxmox.com>  Thu, 08 Oct 2020 10:45:28 +0200
+
 zfs-linux (0.8.4-pve2) pve pmg; urgency=medium
 
   * add systemd-unit for importing specific pools
