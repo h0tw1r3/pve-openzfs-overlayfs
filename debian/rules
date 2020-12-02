@@ -35,6 +35,7 @@ override_dh_auto_configure:
 	  --enable-systemd \
 	  --enable-pyzfs \
 	  --with-python=python3 \
+	  --with-pammoduledir='/lib/$(DEB_HOST_MULTIARCH)/security' \
 	  --with-systemdunitdir=/lib/systemd/system \
 	  --with-systemdpresetdir=/lib/systemd/system-preset \
 	  --with-systemdgeneratordir=/lib/systemd/system-generators \
@@ -102,6 +103,7 @@ override_dh_auto_clean:
 
 override_dh_missing:
 	find . -name lib*.la -delete
+	rm debian/tmp/lib/$(DEB_HOST_MULTIARCH)/security/pam_zfs_key.la
 	dh_missing --fail-missing
 
 override_dh_installdocs:

@@ -2,6 +2,7 @@
 etc/default/zfs
 etc/zfs/zfs-functions
 etc/zfs/zpool.d/
+lib/*/security/pam_zfs_key.so
 lib/systemd/system-preset/
 lib/systemd/system/zfs-import-cache.service
 lib/systemd/system/zfs-import-scan.service
@@ -118,3 +119,4 @@ usr/share/man/man8/zpoolconcepts.8
 usr/share/man/man8/zpoolprops.8
 usr/share/man/man8/zstream.8
 usr/share/man/man8/zstreamdump.8
+usr/share/pam-configs/zfs_key
