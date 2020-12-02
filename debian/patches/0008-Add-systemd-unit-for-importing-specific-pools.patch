@@ -13,9 +13,9 @@ can contain characters which will be escaped by systemd.
 Signed-off-by: Stoiko Ivanov <s.ivanov@proxmox.com>
 ---
  etc/systemd/system/50-zfs.preset.in       |  1 +
- etc/systemd/system/Makefile.am            |  2 ++
- etc/systemd/system/zfs-import@.service.in | 17 +++++++++++++++++
- 3 files changed, 20 insertions(+)
+ etc/systemd/system/Makefile.am            |  1 +
+ etc/systemd/system/zfs-import@.service.in | 16 ++++++++++++++++
+ 3 files changed, 18 insertions(+)
  create mode 100644 etc/systemd/system/zfs-import@.service.in
 
 diff --git a/etc/systemd/system/50-zfs.preset.in b/etc/systemd/system/50-zfs.preset.in
@@ -31,10 +31,10 @@ index e4056a92c..030611419 100644
  enable zfs-mount.service
  enable zfs-share.service
 diff --git a/etc/systemd/system/Makefile.am b/etc/systemd/system/Makefile.am
-index 4e14467a0..ae72102af 100644
+index c374a52ac..25d1b99d7 100644
 --- a/etc/systemd/system/Makefile.am
 +++ b/etc/systemd/system/Makefile.am
-@@ -5,6 +5,7 @@ systemdunit_DATA = \
+@@ -7,6 +7,7 @@ systemdunit_DATA = \
  	zfs-zed.service \
  	zfs-import-cache.service \
  	zfs-import-scan.service \
@@ -42,17 +42,9 @@ index 4e14467a0..ae72102af 100644
  	zfs-mount.service \
  	zfs-share.service \
  	zfs-volume-wait.service \
-@@ -16,6 +17,7 @@ EXTRA_DIST = \
- 	$(top_srcdir)/etc/systemd/system/zfs-zed.service.in \
- 	$(top_srcdir)/etc/systemd/system/zfs-import-cache.service.in \
- 	$(top_srcdir)/etc/systemd/system/zfs-import-scan.service.in \
-+	$(top_srcdir)/etc/systemd/system/zfs-import@.service.in \
- 	$(top_srcdir)/etc/systemd/system/zfs-mount.service.in \
- 	$(top_srcdir)/etc/systemd/system/zfs-share.service.in \
- 	$(top_srcdir)/etc/systemd/system/zfs-import.target.in \
 diff --git a/etc/systemd/system/zfs-import@.service.in b/etc/systemd/system/zfs-import@.service.in
 new file mode 100644
-index 000000000..2db9fdaab
+index 000000000..9b4ee9371
 --- /dev/null
 +++ b/etc/systemd/system/zfs-import@.service.in
 @@ -0,0 +1,16 @@

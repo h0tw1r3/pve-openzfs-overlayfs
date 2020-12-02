@@ -15,13 +15,13 @@ Signed-off-by: Fabian Grünbichler <f.gruenbichler@proxmox.com>
 Signed-off-by: Stoiko Ivanov <s.ivanov@proxmox.com>
 Signed-off-by: Thomas Lamprecht <t.lamprecht@proxmox.com>
 ---
- etc/modules-load.d/zfs.conf.in | 2 +-
+ etc/modules-load.d/zfs.conf | 2 +-
  1 file changed, 1 insertion(+), 1 deletion(-)
 
-diff --git a/etc/modules-load.d/zfs.conf.in b/etc/modules-load.d/zfs.conf.in
+diff --git a/etc/modules-load.d/zfs.conf b/etc/modules-load.d/zfs.conf
 index 44e1bb3ed..7509b03cb 100644
---- a/etc/modules-load.d/zfs.conf.in
-+++ b/etc/modules-load.d/zfs.conf.in
+--- a/etc/modules-load.d/zfs.conf
++++ b/etc/modules-load.d/zfs.conf
 @@ -1,3 +1,3 @@
  # The default behavior is to allow udev to load the kernel modules on demand.
  # Uncomment the following line to unconditionally load them at boot.

@@ -16,10 +16,10 @@ Forwarded: no need
  1 file changed, 1 insertion(+), 1 deletion(-)
 
 diff --git a/cmd/zed/zed.d/Makefile.am b/cmd/zed/zed.d/Makefile.am
-index 716db2b2f..57fed7fdf 100644
+index 8b2d0c200..118c96547 100644
 --- a/cmd/zed/zed.d/Makefile.am
 +++ b/cmd/zed/zed.d/Makefile.am
-@@ -52,6 +52,6 @@ install-data-hook:
+@@ -48,6 +48,6 @@ install-data-hook:
  	for f in $(zedconfdefaults); do \
  	  test -f "$(DESTDIR)$(zedconfdir)/$${f}" -o \
  	       -L "$(DESTDIR)$(zedconfdir)/$${f}" || \

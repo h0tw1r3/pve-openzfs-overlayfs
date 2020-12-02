@@ -13,11 +13,11 @@ Signed-off-by: Thomas Lamprecht <t.lamprecht@proxmox.com>
  1 file changed, 1 insertion(+), 1 deletion(-)
 
 diff --git a/etc/systemd/system/zfs-zed.service.in b/etc/systemd/system/zfs-zed.service.in
-index f4313625e..444e776fd 100644
+index 008075138..570e27707 100644
 --- a/etc/systemd/system/zfs-zed.service.in
 +++ b/etc/systemd/system/zfs-zed.service.in
-@@ -3,7 +3,7 @@ Description=ZFS Event Daemon (zed)
- Documentation=man:zed(8)
+@@ -4,7 +4,7 @@ Documentation=man:zed(8)
+ ConditionPathIsDirectory=/sys/module/zfs
  
  [Service]
 -ExecStart=@sbindir@/zed -F
