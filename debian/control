@@ -19,23 +19,23 @@ Homepage: https://www.zfsonlinux.org/
 Vcs-Git: https://git.proxmox.com/git/zfsonlinux.git
 Vcs-Browser: https://git.proxmox.com/?p=zfsonlinux.git;a=summary
 
-Package: libnvpair1linux
+Package: libnvpair2linux
 Section: contrib/libs
 Architecture: linux-any
 Depends: ${misc:Depends}, ${shlibs:Depends}
-Breaks: libnvpair1
-Replaces: libnvpair1
+Breaks: libnvpair1, libnvpair1linux
+Replaces: libnvpair1, libnvpair1linux
 Description: Solaris name-value library for Linux
  This library provides routines for packing and unpacking nv pairs for
  transporting data across process boundaries, transporting between
  kernel and userland, and possibly saving onto disk files.
 
-Package: libuutil1linux
+Package: libuutil2linux
 Section: contrib/libs
 Architecture: linux-any
 Depends: ${misc:Depends}, ${shlibs:Depends}
-Breaks: libuutil1
-Replaces: libuutil1
+Breaks: libuutil1, libuutil1linux
+Replaces: libuutil1, libuutil1linux
 Description: Solaris userland utility library for Linux
  This library provides a variety of glue functions for ZFS on Linux:
   * libspl: The Solaris Porting Layer userland library, which provides APIs
@@ -50,25 +50,25 @@ Description: Solaris userland utility library for Linux
 Package: libzfslinux-dev
 Section: contrib/libdevel
 Architecture: linux-any
-Depends: libnvpair1linux (= ${binary:Version}),
-         libuutil1linux (= ${binary:Version}),
-         libzfs2linux (= ${binary:Version}),
-         libzpool2linux (= ${binary:Version}),
+Depends: libnvpair2linux (= ${binary:Version}),
+         libuutil2linux (= ${binary:Version}),
+         libzfs3linux (= ${binary:Version}),
+         libzpool3linux (= ${binary:Version}),
          ${misc:Depends}
 Provides: libnvpair-dev, libuutil-dev
 Description: OpenZFS filesystem development files for Linux
  Header files and static libraries for compiling software against
  libraries of OpenZFS filesystem.
  .
- This package includes the development files of libnvpair1, libuutil1,
- libzpool2 and libzfs2.
+ This package includes the development files of libnvpair2, libuutil2,
+ libzpool3 and libzfs3.
 
-Package: libzfs2linux
+Package: libzfs3linux
 Section: contrib/libs
 Architecture: linux-any
 Depends: ${misc:Depends}, ${shlibs:Depends}
-Breaks: libzfs2
-Replaces: libzfs2
+Breaks: libzfs2, libzfs2linux
+Replaces: libzfs2, libzfs2linux
 Description: OpenZFS filesystem library for Linux
  OpenZFS is a storage platform that encompasses the functionality of
  traditional filesystems and volume managers. It supports data checksums,
@@ -76,12 +76,12 @@ Description: OpenZFS filesystem library for Linux
  .
  The OpenZFS library provides support for managing OpenZFS filesystems.
 
-Package: libzpool2linux
+Package: libzpool3linux
 Section: contrib/libs
 Architecture: linux-any
 Depends: ${misc:Depends}, ${shlibs:Depends}
-Breaks: libzpool2
-Replaces: libzpool2
+Breaks: libzpool2, libzpool2linux
+Replaces: libzpool2, libzpool2linux
 Description: OpenZFS pool library for Linux
  OpenZFS is a storage platform that encompasses the functionality of
  traditional filesystems and volume managers. It supports data checksums,
@@ -216,10 +216,10 @@ Package: zfs-dbg
 Section: contrib/debug
 Priority: optional
 Architecture: linux-any
-Depends: libnvpair1linux (= ${binary:Version}),
-         libuutil1linux (= ${binary:Version}),
-         libzfs2linux (= ${binary:Version}),
-         libzpool2linux (= ${binary:Version}),
+Depends: libnvpair2linux (= ${binary:Version}),
+         libuutil2linux (= ${binary:Version}),
+         libzfs3linux (= ${binary:Version}),
+         libzpool3linux (= ${binary:Version}),
          zfs-zed (= ${binary:Version}),
          zfsutils-linux (= ${binary:Version}),
          ${misc:Depends}
@@ -228,8 +228,8 @@ Description: Debugging symbols for OpenZFS userland libraries and tools
  traditional filesystems and volume managers. It supports data checksums,
  compression, encryption, snapshots, and more.
  .
- This package contains the debugging symbols for libzpool2linux, libzfs2linux,
- libnvpair1linux, libuutil1linux, zfs-zed and zfsutils-linux.
+ This package contains the debugging symbols for libzpool3linux, libzfs3linux,
+ libnvpair2linux, libuutil2linux, zfs-zed and zfsutils-linux.
 
 Package: spl
 Section: contrib/metapackages
