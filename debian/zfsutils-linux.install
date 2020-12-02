@@ -21,6 +21,7 @@ sbin/zdb
 sbin/zfs
 sbin/zhack
 sbin/zpool
+sbin/zstream
 sbin/zstreamdump
 usr/bin/zgenhostid
 usr/bin/zvol_wait
@@ -113,4 +114,5 @@ usr/share/man/man8/zpool-wait.8
 usr/share/man/man8/zpool.8
 usr/share/man/man8/zpoolconcepts.8
 usr/share/man/man8/zpoolprops.8
+usr/share/man/man8/zstream.8
 usr/share/man/man8/zstreamdump.8
