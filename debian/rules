@@ -5,7 +5,7 @@ include /usr/share/dpkg/default.mk
 VERSION := $(DEB_VERSION_UPSTREAM)
 REVISION := $(shell echo $(DEB_VERSION) | cut -d- -f2)
 
-SPHINX_BUILD = $(shell dpkg -L python3-sphinx | grep "sphinx-build$$")
+SPHINX_BUILD = $(shell dpkg -L python3-sphinx | grep -m 1 "/sphinx-build$$")
 
 export DEB_BUILD_MAINT_OPTIONS = hardening=+all
 
