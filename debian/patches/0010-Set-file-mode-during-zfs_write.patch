@@ -1,0 +1,39 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Antonio Russo <aerusso@aerusso.net>
+Date: Mon, 8 Feb 2021 10:15:05 -0700
+Subject: [PATCH] Set file mode during zfs_write
+
+3d40b65 refactored zfs_vnops.c, which shared much code verbatim between
+Linux and BSD.  After a successful write, the suid/sgid bits are reset,
+and the mode to be written is stored in newmode.  On Linux, this was
+propagated to both the in-memory inode and znode, which is then updated
+with sa_update.
+
+3d40b65 accidentally removed the initialization of newmode, which
+happened to occur on the same line as the inode update (which has been
+moved out of the function).
+
+The uninitialized newmode can be saved to disk, leading to a crash on
+stat() of that file, in addition to a merely incorrect file mode.
+
+Reviewed-by: Ryan Moeller <ryan@ixsystems.com>
+Reviewed-by: Brian Behlendorf <behlendorf1@llnl.gov>
+Signed-off-by: Antonio Russo <aerusso@aerusso.net>
+Closes #11474
+Closes #11576
+---
+ module/zfs/zfs_vnops.c | 1 +
+ 1 file changed, 1 insertion(+)
+
+diff --git a/module/zfs/zfs_vnops.c b/module/zfs/zfs_vnops.c
+index 17ea788f3..e54488882 100644
+--- a/module/zfs/zfs_vnops.c
++++ b/module/zfs/zfs_vnops.c
+@@ -528,6 +528,7 @@ zfs_write(znode_t *zp, uio_t *uio, int ioflag, cred_t *cr)
+ 		    ((zp->z_mode & S_ISUID) != 0 && uid == 0)) != 0) {
+ 			uint64_t newmode;
+ 			zp->z_mode &= ~(S_ISUID | S_ISGID);
++			newmode = zp->z_mode;
+ 			(void) sa_update(zp->z_sa_hdl, SA_ZPL_MODE(zfsvfs),
+ 			    (void *)&newmode, sizeof (uint64_t), tx);
+ 		}
