@@ -1,3 +1,11 @@
+zfs-linux (2.0.3-pve1) pve pmg; urgency=medium
+
+  * buildsys: make libpam-zfs a separate package
+
+  * update ZFS to 2.0.3
+
+ -- Proxmox Support Team <support@proxmox.com>  Mon, 15 Feb 2021 15:46:03 +0100
+
 zfs-linux (2.0.2-pve1) pve pmg; urgency=medium
 
   * update ZFS to 2.0.2
