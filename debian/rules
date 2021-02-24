@@ -29,13 +29,13 @@ override_dh_auto_configure:
 	  --bindir=/usr/bin \
 	  --sbindir=/sbin \
 	  --libdir=/lib/"$(DEB_HOST_MULTIARCH)" \
-	  --with-pkgconfigdir='/usr/lib/$(DEB_HOST_MULTIARCH)/pkgconfig' \
 	  --with-udevdir=/lib/udev \
 	  --with-zfsexecdir=/usr/lib/zfs-linux \
 	  --enable-systemd \
 	  --enable-pyzfs \
 	  --with-python=python3 \
 	  --with-pammoduledir='/lib/$(DEB_HOST_MULTIARCH)/security' \
+	  --with-pkgconfigdir='/usr/lib/$(DEB_HOST_MULTIARCH)/pkgconfig' \
 	  --with-systemdunitdir=/lib/systemd/system \
 	  --with-systemdpresetdir=/lib/systemd/system-preset \
 	  --with-systemdgeneratordir=/lib/systemd/system-generators \
@@ -101,9 +101,11 @@ override_dh_auto_clean:
 	dh_auto_clean
 	@if test -e META.orig; then mv META.orig META; fi
 
+override_dh_install:
+	find debian/tmp/lib -name *.la -delete
+	dh_install
+
 override_dh_missing:
-	find . -name lib*.la -delete
-	rm debian/tmp/lib/$(DEB_HOST_MULTIARCH)/security/pam_zfs_key.la
 	dh_missing --fail-missing
 
 override_dh_installdocs:
