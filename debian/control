@@ -2,7 +2,8 @@ Source: zfs-linux
 Section: contrib/kernel
 Priority: optional
 Maintainer: Proxmox Support Team <support@proxmox.com>
-Build-Depends: debhelper (>= 10~),
+Build-Depends: abigail-tools,
+               debhelper (>= 10~),
                dh-python,
                libblkid-dev,
                libelf-dev,
