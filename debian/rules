@@ -84,13 +84,6 @@ override_dh_python3:
 
 override_dh_makeshlibs:
 	dh_makeshlibs -a -V
-ifeq ($(BUILD_UDEB), true)
-	dh_makeshlibs -V -plibnvpair1linux
-	dh_makeshlibs -V -plibuutil1linux
-	dh_makeshlibs -V -plibzfs2linux
-	dh_makeshlibs -V -plibzpool2linux
-	dh_makeshlibs -V -pzfsutils-linux
-endif
 
 override_dh_strip:
 	dh_strip --dbg-package=zfs-dbg
