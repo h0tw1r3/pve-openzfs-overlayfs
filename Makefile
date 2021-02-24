@@ -6,12 +6,12 @@ ZFSPKGVER != dpkg-parsechangelog -l ${ZFSPKG}/changelog -Sversion
 ZFSDIR=zfs-linux_${ZFSVER}
 ZFSSRC=upstream
 
-ZFS_DEB1= libnvpair2linux_${ZFSPKGVER}_amd64.deb
+ZFS_DEB1= libnvpair3linux_${ZFSPKGVER}_amd64.deb
 ZFS_DEB2= 					\
-libuutil2linux_${ZFSPKGVER}_amd64.deb		\
-libzfs3linux_${ZFSPKGVER}_amd64.deb		\
+libuutil3linux_${ZFSPKGVER}_amd64.deb		\
+libzfs4linux_${ZFSPKGVER}_amd64.deb		\
 libzfslinux-dev_${ZFSPKGVER}_amd64.deb		\
-libzpool3linux_${ZFSPKGVER}_amd64.deb		\
+libzpool4linux_${ZFSPKGVER}_amd64.deb		\
 zfs-dbg_${ZFSPKGVER}_amd64.deb			\
 zfs-zed_${ZFSPKGVER}_amd64.deb			\
 zfs-initramfs_${ZFSPKGVER}_all.deb		\
