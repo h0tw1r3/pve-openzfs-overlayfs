@@ -1,3 +1,9 @@
+zfs-linux (2.0.3-pve2) pve pmg; urgency=medium
+
+  * match package names to the ones used by Debian
+
+ -- Proxmox Support Team <support@proxmox.com>  Thu, 25 Feb 2021 13:06:07 +0100
+
 zfs-linux (2.0.3-pve1) pve pmg; urgency=medium
 
   * buildsys: make libpam-zfs a separate package
