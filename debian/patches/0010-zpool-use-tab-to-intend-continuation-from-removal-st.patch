@@ -1,0 +1,48 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Thomas Lamprecht <t.lamprecht@proxmox.com>
+Date: Tue, 2 Mar 2021 09:22:07 +0100
+Subject: [PATCH] zpool: use tab to intend continuation from removal status
+
+Bring the output of the removal status in line with the other
+"fields" that zpool status outputs, and thus allows an parser to
+easier detect this as continuation of the 'remove:' output.
+
+Before:
+remove: Removal of vdev 0 copied 282G in 0h9m, completed on [...]
+    776K memory used for removed device mappings
+
+Now:
+remove: Removal of vdev 0 copied 282G in 0h9m, completed on [...]
+	776K memory used for removed device mappings
+
+Signed-off-by: Thomas Lamprecht <t.lamprecht@proxmox.com>
+---
+ cmd/zpool/zpool_main.c | 8 ++++----
+ 1 file changed, 4 insertions(+), 4 deletions(-)
+
+diff --git a/cmd/zpool/zpool_main.c b/cmd/zpool/zpool_main.c
+index 50adc0add..5a5a5eda0 100644
+--- a/cmd/zpool/zpool_main.c
++++ b/cmd/zpool/zpool_main.c
+@@ -7736,8 +7736,8 @@ print_removal_status(zpool_handle_t *zhp, pool_removal_stat_t *prs)
+ 		 * do not print estimated time if hours_left is more than
+ 		 * 30 days
+ 		 */
+-		(void) printf(gettext("    %s copied out of %s at %s/s, "
+-		    "%.2f%% done"),
++		(void) printf(gettext(
++		    "\t%s copied out of %s at %s/s, %.2f%% done"),
+ 		    examined_buf, total_buf, rate_buf, 100 * fraction_done);
+ 		if (hours_left < (30 * 24)) {
+ 			(void) printf(gettext(", %lluh%um to go\n"),
+@@ -7752,8 +7752,8 @@ print_removal_status(zpool_handle_t *zhp, pool_removal_stat_t *prs)
+ 	if (prs->prs_mapping_memory > 0) {
+ 		char mem_buf[7];
+ 		zfs_nicenum(prs->prs_mapping_memory, mem_buf, sizeof (mem_buf));
+-		(void) printf(gettext("    %s memory used for "
+-		    "removed device mappings\n"),
++		(void) printf(gettext(
++		    "\t%s memory used for removed device mappings\n"),
+ 		    mem_buf);
+ 	}
+ }
