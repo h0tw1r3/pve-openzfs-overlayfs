@@ -92,7 +92,7 @@ override_dh_makeshlibs:
 	dh_makeshlibs -a -V
 
 override_dh_strip:
-	dh_strip --dbg-package=zfs-dbg
+	dh_strip --dbgsym-migration='zfs-dbg (<< 2.0.4~)'
 
 override_dh_auto_clean:
 	find . -name .gitignore -delete

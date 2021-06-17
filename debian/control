@@ -247,25 +247,6 @@ Description: OpenZFS test infrastructure and support scripts
  testing and validating a system using OpenZFS. It is entirely optional
  and should only be installed and used in test environments.
 
-Package: zfs-dbg
-Section: contrib/debug
-Priority: optional
-Architecture: linux-any
-Depends: libnvpair3linux (= ${binary:Version}),
-         libuutil3linux (= ${binary:Version}),
-         libzfs4linux (= ${binary:Version}),
-         libzpool4linux (= ${binary:Version}),
-         zfs-zed (= ${binary:Version}),
-         zfsutils-linux (= ${binary:Version}),
-         ${misc:Depends}
-Description: Debugging symbols for OpenZFS userland libraries and tools
- OpenZFS is a storage platform that encompasses the functionality of
- traditional filesystems and volume managers. It supports data checksums,
- compression, encryption, snapshots, and more.
- .
- This package contains the debugging symbols for libzpool4linux, libzfs4linux,
- libnvpair3linux, libuutil3linux, zfs-zed and zfsutils-linux.
-
 Package: spl
 Section: contrib/metapackages
 Architecture: all

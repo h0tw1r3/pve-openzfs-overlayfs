@@ -7,22 +7,27 @@ ZFSDIR=zfs-linux_${ZFSVER}
 ZFSSRC=upstream
 
 ZFS_DEB1= libnvpair3linux_${ZFSPKGVER}_amd64.deb
-ZFS_DEB2= 					\
+
+ZFS_DEB_BINARY =				\
 libpam-zfs_${ZFSPKGVER}_amd64.deb		\
 libuutil3linux_${ZFSPKGVER}_amd64.deb		\
 libzfs4linux_${ZFSPKGVER}_amd64.deb		\
 libzfsbootenv1linux_${ZFSPKGVER}_amd64.deb	\
-libzfslinux-dev_${ZFSPKGVER}_amd64.deb		\
 libzpool4linux_${ZFSPKGVER}_amd64.deb		\
-zfs-dbg_${ZFSPKGVER}_amd64.deb			\
-python3-pyzfs_${ZFSPKGVER}_amd64.deb		\
-pyzfs-doc_${ZFSPKGVER}_all.deb			\
-spl_${ZFSPKGVER}_all.deb			\
-zfs-initramfs_${ZFSPKGVER}_all.deb		\
 zfs-test_${ZFSPKGVER}_amd64.deb			\
 zfsutils-linux_${ZFSPKGVER}_amd64.deb		\
 zfs-zed_${ZFSPKGVER}_amd64.deb
-ZFS_DEBS= ${ZFS_DEB1} ${ZFS_DEB2}
+
+ZFS_DBG_DEBS = $(patsubst %_${ZFSPKGVER}_amd64.deb, %-dbgsym_${ZFSPKGVER}_amd64.deb, ${ZFS_DEB1} ${ZFS_DEB_BINARY})
+
+ZFS_DEB2= ${ZFS_DEB_BINARY}			\
+libzfslinux-dev_${ZFSPKGVER}_amd64.deb		\
+python3-pyzfs_${ZFSPKGVER}_amd64.deb		\
+pyzfs-doc_${ZFSPKGVER}_all.deb			\
+spl_${ZFSPKGVER}_all.deb			\
+zfs-initramfs_${ZFSPKGVER}_all.deb
+ZFS_DEBS= ${ZFS_DEB1} ${ZFS_DEB2} ${ZFS_DBG_DEBS}
+
 ZFS_DSC = zfs-linux_${ZFSPKGVER}.dsc
 
 all: deb
