@@ -17,7 +17,7 @@ zfs-zed_${ZFSPKGVER}_amd64.deb			\
 zfs-initramfs_${ZFSPKGVER}_all.deb		\
 zfs-test_${ZFSPKGVER}_amd64.deb		\
 zfsutils-linux_${ZFSPKGVER}_amd64.deb
-ZFS_DEBS= $(ZFS_DEB1) $(ZFS_DEB2)
+ZFS_DEBS= ${ZFS_DEB1} ${ZFS_DEB2}
 ZFS_DSC = zfs-linux_${ZFSPKGVER}.dsc
 
 all: deb
@@ -30,7 +30,7 @@ dsc: ${ZFS_DSC}
 .PHONY: kernel
 kernel: dsc
 	dpkg-source -x ${ZFS_DSC} ../pkg-zfs
-	$(MAKE) -C ../pkg-zfs -f debian/rules adapt_meta_file
+	${MAKE} -C ../pkg-zfs -f debian/rules adapt_meta_file
 
 .PHONY: dinstall
 dinstall: ${DEBS}
@@ -38,13 +38,13 @@ dinstall: ${DEBS}
 
 .PHONY: submodule
 submodule:
-	test -f "$(ZFSSRC)/README.md" || git submodule update --init
-$(ZFSSRC)/README.md: submodule
+	test -f "${ZFSSRC}/README.md" || git submodule update --init
+${ZFSSRC}/README.md: submodule
 
 .PHONY: zfs
-zfs: $(ZFS_DEBS)
-$(ZFS_DEB2): $(ZFS_DEB1)
-$(ZFS_DEB1): ${ZFSDIR}
+zfs: ${ZFS_DEBS}
+${ZFS_DEB2}: ${ZFS_DEB1}
+${ZFS_DEB1}: ${ZFSDIR}
 	cd ${ZFSDIR}; dpkg-buildpackage -b -uc -us
 	lintian ${ZFS_DEBS}
 
@@ -53,7 +53,7 @@ ${ZFS_DSC}: ${ZFSDIR}
 	cd ${ZFSDIR}; dpkg-buildpackage -S -uc -us -d
 	lintian $@
 
-${ZFSDIR}: $(ZFSSRC)/README.md $(ZFSSRC) ${ZFSPKG}
+${ZFSDIR}: ${ZFSSRC}/README.md ${ZFSSRC} ${ZFSPKG}
 	rm -rf ${ZFSDIR} ${ZFSDIR}.tmp
 	cp -a ${ZFSSRC} ${ZFSDIR}.tmp
 	cp -a ${ZFSPKG} ${ZFSDIR}.tmp/debian
