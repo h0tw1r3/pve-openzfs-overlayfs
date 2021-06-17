@@ -6,7 +6,7 @@ if ! [ -d /sys/module/zfs ]; then
 fi
 
 # [auto] / enable / disable
-PROPERTY_NAME="org.debian:periodic-scrub"
+PROPERTY_NAME="org.debian:periodic-trim"
 
 get_property () {
 	# Detect the ${PROPERTY_NAME} property on a given pool.
@@ -17,15 +17,26 @@ get_property () {
 	zfs get -H -o value "${PROPERTY_NAME}" "${pool}" 2>/dev/null || return 1
 }
 
-scrub_if_not_scrub_in_progress () {
+trim_if_not_already_trimming () {
 	pool="$1"
-	if ! zpool status "${pool}" | grep -q "scrub in progress"; then
-		# Ignore errors and continue with scrubbing other pools.
-		zpool scrub "${pool}" || true
+	if ! zpool status "${pool}" | grep -q "trimming"; then
+		# Ignore errors (i.e. HDD pools),
+		# and continue with trimming other pools.
+		zpool trim "${pool}" || true
 	fi
 }
 
-# Scrub all healthy pools that are not already scrubbing as per their configs.
+zpool_is_nvme_only () {
+	zpool=$1
+	# get a list of devices attached to the specified zpool
+	zpool list -vHPL "${zpool}" |
+		awk -F'\t' '$2 ~ /^\/dev\// {
+			if($2 !~ /^\/dev\/nvme/)
+				exit 1
+		}'
+}
+
+# TRIM all healthy pools that are not already trimming as per their configs.
 zpool list -H -o health,name 2>&1 | \
 	awk -F'\t' '$1 == "ONLINE" {print $2}' | \
 while read pool
@@ -34,8 +45,12 @@ do
 	ret=$(get_property "${pool}")
 	if [ $? -ne 0 ] || [ "disable" = "${ret}" ]; then
 		:
-	elif [ "-" = "${ret}" ] || [ "auto" = "${ret}" ] || [ "enable" = "${ret}" ]; then
-		scrub_if_not_scrub_in_progress "${pool}"
+	elif [ "enable" = "${ret}" ]; then
+		trim_if_not_already_trimming "${pool}"
+	elif [ "-" = "${ret}" ] || [ "auto" = "${ret}" ]; then
+		if zpool_is_nvme_only "${pool}"; then
+			trim_if_not_already_trimming "${pool}"
+		fi
 	else
 		cat > /dev/stderr <<EOF
 $0: [WARNING] illegal value "${ret}" for property "${PROPERTY_NAME}" of ZFS dataset "${pool}".
