@@ -17,7 +17,7 @@ Build-Depends: abigail-tools,
                python3-all-dev,
                uuid-dev,
                zlib1g-dev
-Standards-Version: 4.5.0
+Standards-Version: 4.5.1
 Homepage: https://www.zfsonlinux.org/
 Vcs-Git: https://git.proxmox.com/git/zfsonlinux.git
 Vcs-Browser: https://git.proxmox.com/?p=zfsonlinux.git;a=summary
