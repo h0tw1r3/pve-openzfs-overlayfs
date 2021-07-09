@@ -1,3 +1,13 @@
+zfs-linux (2.0.5-pve1) bullseye; urgency=medium
+
+  * update ZFS to 2.0.5
+
+  * do not restart most services upon upgrade
+
+  * add a script and cronjob for regular trimming of pools
+
+ -- Proxmox Support Team <support@proxmox.com>  Fri, 09 Jul 2021 18:23:58 +0200
+
 zfs-linux (2.0.4-pve1) pve pmg; urgency=medium
 
   * update ZFS to 2.0.4
