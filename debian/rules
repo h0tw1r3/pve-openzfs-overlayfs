@@ -107,6 +107,14 @@ override_dh_install:
 override_dh_missing:
 	dh_missing --fail-missing
 
+override_dh_installsystemd:
+	# these to lines prevent the restarting of all systemd services, except
+	# zfs-zed - they should not be restarted (importing, mounting, creating
+	# links in /dev, and can cause erros in the log
+	# (upon major.minor change)
+	dh_installsystemd --no-stop-on-upgrade -X zfs-zed.service
+	dh_installsystemd --name zfs-zed
+
 override_dh_installdocs:
 	dh_installdocs
 ifeq (,$(findstring nodoc, $(DEB_BUILD_OPTIONS)))
