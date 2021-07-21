@@ -265,3 +265,17 @@ Description: Solaris Porting Layer user-space utilities for Linux (dummy)
  to Linux primitives.
  .
  This is a transitional dummy package. It can safely be removed.
+
+Package: zfs-dbg
+Section: contrib/metapackages
+Architecture: all
+Suggests: libnvpair3linux-dbgsym,
+         libpam-zfs-dbgsym,
+         libuutil3linux-dbgsym,
+         libzfs4linux-dbgsym,
+         libzfsbootenv1linux-dbgsym,
+         libzpool4linux-dbgsym,
+         zfs-test-dbgsym,
+         zfsutils-linux-dbgsym,
+         zfs-zed-dbgsym,
+Description: Transitional package. It can be safely removed.
