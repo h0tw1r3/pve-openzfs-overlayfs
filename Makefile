@@ -13,7 +13,7 @@ libpam-zfs_${ZFSPKGVER}_amd64.deb		\
 libuutil3linux_${ZFSPKGVER}_amd64.deb		\
 libzfs4linux_${ZFSPKGVER}_amd64.deb		\
 libzfsbootenv1linux_${ZFSPKGVER}_amd64.deb	\
-libzpool4linux_${ZFSPKGVER}_amd64.deb		\
+libzpool5linux_${ZFSPKGVER}_amd64.deb		\
 zfs-test_${ZFSPKGVER}_amd64.deb			\
 zfsutils-linux_${ZFSPKGVER}_amd64.deb		\
 zfs-zed_${ZFSPKGVER}_amd64.deb
