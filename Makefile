@@ -26,13 +26,13 @@ python3-pyzfs_${ZFSPKGVER}_amd64.deb		\
 pyzfs-doc_${ZFSPKGVER}_all.deb			\
 spl_${ZFSPKGVER}_all.deb			\
 zfs-initramfs_${ZFSPKGVER}_all.deb
-ZFS_DEBS= ${ZFS_DEB1} ${ZFS_DEB2} ${ZFS_DBG_DEBS}
+DEBS= ${ZFS_DEB1} ${ZFS_DEB2} ${ZFS_DBG_DEBS}
 
 ZFS_DSC = zfs-linux_${ZFSPKGVER}.dsc
 
 all: deb
 .PHONY: deb
-deb: ${ZFS_DEBS}
+deb: ${DEBS}
 .PHONY: dsc
 dsc: ${ZFS_DSC}
 
@@ -52,11 +52,11 @@ submodule:
 ${ZFSSRC}/README.md: submodule
 
 .PHONY: zfs
-zfs: ${ZFS_DEBS}
+zfs: ${DEBS}
 ${ZFS_DEB2}: ${ZFS_DEB1}
 ${ZFS_DEB1}: ${ZFSDIR}
 	cd ${ZFSDIR}; dpkg-buildpackage -b -uc -us
-	lintian ${ZFS_DEBS}
+	lintian ${DEBS}
 
 ${ZFS_DSC}: ${ZFSDIR}
 	tar czf zfs-linux_${ZFSVER}.orig.tar.gz ${ZFSDIR}
