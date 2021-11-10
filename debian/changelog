@@ -1,3 +1,11 @@
+zfs-linux (2.1.1-pve2) bullseye; urgency=medium
+
+  * arc stat/summary: guard access to l2arc MFU/MRU stats to avoid bogus
+    exception when checking the ARC stats/summary on a older, 2.0 based ZFS
+    kernel module with the newer, 2.1 based, user space tools.
+
+ -- Proxmox Support Team <support@proxmox.com>  Wed, 10 Nov 2021 08:11:27 +0100
+
 zfs-linux (2.1.1-pve1) bullseye; urgency=medium
 
   * update ZFS to 2.1.1
