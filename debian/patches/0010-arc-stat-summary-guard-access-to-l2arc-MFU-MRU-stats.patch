@@ -1,0 +1,65 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Thomas Lamprecht <t.lamprecht@proxmox.com>
+Date: Wed, 10 Nov 2021 08:00:13 +0100
+Subject: [PATCH] arc stat/summary: guard access to l2arc MFU/MRU stats
+
+In 2.1 commit 085321621e79a75bea41c2b6511da6ebfbf2ba0a added printing
+MFU/MRU stats, but those keys are not available in 2.0, meaning it
+may break there due to python bailing out on the dict access.
+
+simply guard those problematic usage line by checking the
+availability of the respective keys in the dict first to avoid the
+pythonic exception, not much more we can do.
+
+Signed-off-by: Thomas Lamprecht <t.lamprecht@proxmox.com>
+---
+ cmd/arc_summary/arc_summary3 | 18 ++++++++++--------
+ cmd/arcstat/arcstat.in       |  6 ++++--
+ 2 files changed, 14 insertions(+), 10 deletions(-)
+
+diff --git a/cmd/arc_summary/arc_summary3 b/cmd/arc_summary/arc_summary3
+index 7b28012ed..1acedc884 100755
+--- a/cmd/arc_summary/arc_summary3
++++ b/cmd/arc_summary/arc_summary3
+@@ -616,14 +616,16 @@ def section_arc(kstats_dict):
+            f_hits(arc_stats['evict_l2_skip']))
+     prt_i1('L2 cached evictions:', f_bytes(arc_stats['evict_l2_cached']))
+     prt_i1('L2 eligible evictions:', f_bytes(arc_stats['evict_l2_eligible']))
+-    prt_i2('L2 eligible MFU evictions:',
+-           f_perc(arc_stats['evict_l2_eligible_mfu'],
+-           arc_stats['evict_l2_eligible']),
+-           f_bytes(arc_stats['evict_l2_eligible_mfu']))
+-    prt_i2('L2 eligible MRU evictions:',
+-           f_perc(arc_stats['evict_l2_eligible_mru'],
+-           arc_stats['evict_l2_eligible']),
+-           f_bytes(arc_stats['evict_l2_eligible_mru']))
++    if 'evict_l2_eligible_mfu' in arc_stats:
++        prt_i2('L2 eligible MFU evictions:',
++               f_perc(arc_stats['evict_l2_eligible_mfu'],
++               arc_stats['evict_l2_eligible']),
++               f_bytes(arc_stats['evict_l2_eligible_mfu']))
++    if 'evict_l2_eligible_mru' in arc_stats:
++        prt_i2('L2 eligible MRU evictions:',
++               f_perc(arc_stats['evict_l2_eligible_mru'],
++               arc_stats['evict_l2_eligible']),
++               f_bytes(arc_stats['evict_l2_eligible_mru']))
+     prt_i1('L2 ineligible evictions:',
+            f_bytes(arc_stats['evict_l2_ineligible']))
+     print()
+diff --git a/cmd/arcstat/arcstat.in b/cmd/arcstat/arcstat.in
+index 9e7c52a6c..b236ac333 100755
+--- a/cmd/arcstat/arcstat.in
++++ b/cmd/arcstat/arcstat.in
+@@ -482,8 +482,10 @@ def calculate():
+     v["el2skip"] = d["evict_l2_skip"] / sint
+     v["el2cach"] = d["evict_l2_cached"] / sint
+     v["el2el"] = d["evict_l2_eligible"] / sint
+-    v["el2mfu"] = d["evict_l2_eligible_mfu"] / sint
+-    v["el2mru"] = d["evict_l2_eligible_mru"] / sint
++    if "evict_l2_eligible_mfu" in v:
++        v["el2mfu"] = d["evict_l2_eligible_mfu"] / sint
++    if "evict_l2_eligible_mru" in v:
++        v["el2mru"] = d["evict_l2_eligible_mru"] / sint
+     v["el2inel"] = d["evict_l2_ineligible"] / sint
+     v["mtxmis"] = d["mutex_miss"] / sint
+ 
