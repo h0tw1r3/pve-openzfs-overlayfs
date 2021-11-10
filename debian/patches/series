@@ -7,4 +7,5 @@
 0007-Use-installed-python3.patch
 0008-Add-systemd-unit-for-importing-specific-pools.patch
 0009-Patch-move-manpage-arcstat-1-to-arcstat-8.patch
-0010-arc-stat-summary-guard-access-to-l2arc-MFU-MRU-stats.patch
+0010-arcstat-Fix-integer-division-with-python3.patch
+0011-arc-stat-summary-guard-access-to-l2arc-MFU-MRU-stats.patch
