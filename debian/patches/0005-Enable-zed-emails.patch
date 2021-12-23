@@ -13,7 +13,7 @@ Signed-off-by: Thomas Lamprecht <t.lamprecht@proxmox.com>
  1 file changed, 2 insertions(+), 2 deletions(-)
 
 diff --git a/cmd/zed/zed.d/zed.rc b/cmd/zed/zed.d/zed.rc
-index df560f921..4ce7af744 100644
+index 1c278b2ef..41c075c09 100644
 --- a/cmd/zed/zed.d/zed.rc
 +++ b/cmd/zed/zed.d/zed.rc
 @@ -15,7 +15,7 @@
