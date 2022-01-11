@@ -1,3 +1,9 @@
+zfs-linux (2.1.2-pve1) bullseye; urgency=medium
+
+  * update ZFS to 2.1.2
+
+ -- Proxmox Support Team <support@proxmox.com>  Tue, 11 Jan 2022 11:31:34 +0100
+
 zfs-linux (2.1.1-pve3) bullseye; urgency=medium
 
   * zfs-utils: arc stat/summary: guard access to l2arc MFU/MRU stats to avoid
