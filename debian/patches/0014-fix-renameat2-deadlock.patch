@@ -1,0 +1,149 @@
+diff --git a/module/zfs/zfs_log.c b/module/zfs/zfs_log.c
+index 722cc277a..b09de64d7 100644
+--- a/module/zfs/zfs_log.c
++++ b/module/zfs/zfs_log.c
+@@ -545,27 +545,6 @@ zfs_log_rename2(zilog_t *zilog, dmu_tx_t *tx, uint64_t txtype, znode_t *sdzp,
+ 	if (zil_replaying(zilog, tx))
+ 		return;
+ 
+-	/*
+-	 * Activate the renameat2 feature if it isn't already active. We need
+-	 * to wait for the activation to sync out before we continue building
+-	 * the ZIL entry.
+-	 */
+-	ASSERT(spa_feature_is_enabled(zilog->zl_spa, SPA_FEATURE_RENAMEAT2));
+-	if (!dsl_dataset_feature_is_active(ds, SPA_FEATURE_RENAMEAT2)) {
+-		uint64_t txg = 0;
+-		dmu_tx_t *tx = dmu_tx_create(zilog->zl_os);
+-
+-		VERIFY0(dmu_tx_assign(tx, TXG_WAIT));
+-		dsl_dataset_dirty(ds, tx);
+-		txg = dmu_tx_get_txg(tx);
+-
+-		mutex_enter(&ds->ds_lock);
+-		ds->ds_feature_activation[SPA_FEATURE_RENAMEAT2] = (void *)B_TRUE;
+-		mutex_exit(&ds->ds_lock);
+-		dmu_tx_commit(tx);
+-		txg_wait_synced(zilog->zl_dmu_pool, txg);
+-	}
+-
+ 	txtype |= TX_RENAME2;
+ 	itx = zil_itx_create(txtype, sizeof (*lr) + snamesize + dnamesize);
+ 	lr = (lr_rename2_t *)&itx->itx_lr;
+diff --git a/module/zfs/zil.c b/module/zfs/zil.c
+index b9f177dae..1f155eae4 100644
+--- a/module/zfs/zil.c
++++ b/module/zfs/zil.c
+@@ -663,6 +663,35 @@ zilog_is_dirty(zilog_t *zilog)
+ 	return (B_FALSE);
+ }
+ 
++/*
++ * Activate SPA_FEATURE_RENAMEAT2 feature if its enabled.
++ */
++static void
++zil_commit_activate_renameat2_feature(zilog_t *zilog)
++{
++	dsl_dataset_t *ds = dmu_objset_ds(zilog->zl_os);
++	uint64_t txg = 0;
++	dmu_tx_t *tx = NULL;
++
++	if (spa_feature_is_enabled(zilog->zl_spa,
++	    SPA_FEATURE_RENAMEAT2) &&
++	    dmu_objset_type(zilog->zl_os) != DMU_OST_ZVOL &&
++	    !dsl_dataset_feature_is_active(ds,
++	    SPA_FEATURE_RENAMEAT2)) {
++		tx = dmu_tx_create(zilog->zl_os);
++		VERIFY0(dmu_tx_assign(tx, TXG_WAIT));
++		dsl_dataset_dirty(ds, tx);
++		txg = dmu_tx_get_txg(tx);
++
++		mutex_enter(&ds->ds_lock);
++		ds->ds_feature_activation[SPA_FEATURE_RENAMEAT2] =
++		    (void *)B_TRUE;
++		mutex_exit(&ds->ds_lock);
++		dmu_tx_commit(tx);
++		txg_wait_synced(zilog->zl_dmu_pool, txg);
++	}
++}
++
+ /*
+  * Create an on-disk intent log.
+  */
+@@ -677,6 +706,7 @@ zil_create(zilog_t *zilog)
+ 	int error = 0;
+ 	boolean_t fastwrite = FALSE;
+ 	boolean_t slog = FALSE;
++	dsl_dataset_t *ds = dmu_objset_ds(zilog->zl_os);
+ 
+ 	/*
+ 	 * Wait for any previous destroy to complete.
+@@ -724,9 +754,33 @@ zil_create(zilog_t *zilog)
+ 	 * (zh is part of the MOS, so we cannot modify it in open context.)
+ 	 */
+ 	if (tx != NULL) {
++		/*
++		 * If "renameat2" feature is enabled on zpool, then activate
++		 * it now when we're creating the ZIL chain. We can't wait with
++		 * this until we write the first log record because we
++		 * need to wait for the feature activation to sync out.
++		 */
++		if (spa_feature_is_enabled(zilog->zl_spa,
++		    SPA_FEATURE_RENAMEAT2) && dmu_objset_type(zilog->zl_os) !=
++		    DMU_OST_ZVOL) {
++		    mutex_enter(&ds->ds_lock);
++		    ds->ds_feature_activation[SPA_FEATURE_RENAMEAT2] =
++			(void *)B_TRUE;
++		    mutex_exit(&ds->ds_lock);
++		}
++
+ 		dmu_tx_commit(tx);
+ 		txg_wait_synced(zilog->zl_dmu_pool, txg);
++	} else {
++	    /*
++	     * This branch covers the case where we enable the feature on a
++	     * zpool that has existing ZIL headers
++	     */
++	    zil_commit_activate_renameat2_feature(zilog);
+ 	}
++	IMPLY(spa_feature_is_enabled(zilog->zl_spa, SPA_FEATURE_RENAMEAT2) &&
++	    dmu_objset_type(zilog->zl_os) != DMU_OST_ZVOL,
++	    dsl_dataset_feature_is_active(ds, SPA_FEATURE_RENAMEAT2));
+ 
+ 	ASSERT(error != 0 || bcmp(&blk, &zh->zh_log, sizeof (blk)) == 0);
+ 	IMPLY(error == 0, lwb != NULL);
+@@ -2297,6 +2351,10 @@ zil_process_commit_list(zilog_t *zilog)
+ 	if (lwb == NULL) {
+ 		lwb = zil_create(zilog);
+ 	} else {
++		/* Activate SPA_FEATURE_RENAMEAT2 for the cases where ZIL will
++		 * have already been created (zl_lwb_list not empty)
++		 */
++		zil_commit_activate_renameat2_feature(zilog);
+ 		ASSERT3S(lwb->lwb_state, !=, LWB_STATE_ISSUED);
+ 		ASSERT3S(lwb->lwb_state, !=, LWB_STATE_WRITE_DONE);
+ 		ASSERT3S(lwb->lwb_state, !=, LWB_STATE_FLUSH_DONE);
+@@ -3075,6 +3133,7 @@ zil_sync(zilog_t *zilog, dmu_tx_t *tx)
+ 
+ 	if (zilog->zl_destroy_txg == txg) {
+ 		blkptr_t blk = zh->zh_log;
++		dsl_dataset_t *ds = dmu_objset_ds(zilog->zl_os);
+ 
+ 		ASSERT(list_head(&zilog->zl_lwb_list) == NULL);
+ 
+@@ -3092,6 +3151,15 @@ zil_sync(zilog_t *zilog, dmu_tx_t *tx)
+ 			 */
+ 			zil_init_log_chain(zilog, &blk);
+ 			zh->zh_log = blk;
++		} else {
++		    /* A destroyed ZIL chain can't contain any TX_RENAMEAT2
++		     * records. So, deactivate the feature for this dataset.
++		     * We activate it again when we start a new ZIL chain.
++		     */
++		    if (dsl_dataset_feature_is_active(ds,
++			SPA_FEATURE_RENAMEAT2))
++			    dsl_dataset_deactivate_feature(ds,
++				SPA_FEATURE_RENAMEAT2, tx);
+ 		}
+ 	}
+ 

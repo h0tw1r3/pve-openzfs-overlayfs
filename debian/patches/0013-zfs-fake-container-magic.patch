@@ -1,0 +1,42 @@
+diff --git a/include/sys/fs/zfs.h b/include/sys/fs/zfs.h
+index 71d736d5c..700a6ce34 100644
+--- a/include/sys/fs/zfs.h
++++ b/include/sys/fs/zfs.h
+@@ -1211,6 +1211,7 @@ typedef struct ddt_histogram {
+ #define	ZFS_DEV		"/dev/zfs"
+ 
+ #define	ZFS_SUPER_MAGIC	0x2fc12fc1
++#define ZFS_SHACK_MAGIC 0x13372fc1
+ 
+ /* general zvol path */
+ #define	ZVOL_DIR		"/dev/zvol/"
+diff --git a/module/os/linux/zfs/zfs_vfsops.c b/module/os/linux/zfs/zfs_vfsops.c
+index 469b82efe..141bd2a87 100644
+--- a/module/os/linux/zfs/zfs_vfsops.c
++++ b/module/os/linux/zfs/zfs_vfsops.c
+@@ -1094,6 +1094,7 @@ zfs_statvfs(struct inode *ip, struct kstatfs *statp)
+ 	zfsvfs_t *zfsvfs = ITOZSB(ip);
+ 	uint64_t refdbytes, availbytes, usedobjs, availobjs;
+ 	int err = 0;
++        bool magic_hack = false;
+ 
+ 	ZFS_ENTER(zfsvfs);
+ 
+@@ -1141,6 +1142,17 @@ zfs_statvfs(struct inode *ip, struct kstatfs *statp)
+ 	statp->f_type = ZFS_SUPER_MAGIC;
+ 	statp->f_namelen = MAXNAMELEN - 1;
+ 
++	if (strcmp(current->comm, "containerd") == 0)
++	    magic_hack = true;
++	else if (strcmp(current->comm, "dockerd") == 0)
++	    magic_hack = true;
++	else if (strcmp(current->comm, "lxd") == 0)
++	    magic_hack = true;
++	if (magic_hack) {
++	    printk(KERN_WARNING "ZFS magic faked to %s\n", current->comm);
++	    statp->f_type = ZFS_SHACK_MAGIC;
++	}
++
+ 	/*
+ 	 * We have all of 40 characters to stuff a string here.
+ 	 * Is there anything useful we could/should provide?
