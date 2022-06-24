@@ -184,6 +184,19 @@ Description: OpenZFS root filesystem capabilities for Linux - initramfs
  This package adds OpenZFS to the system initramfs with a hook
  for the initramfs-tools infrastructure.
 
+Package: zfs-dracut
+Architecture: all
+Depends: dracut,
+         zfsutils-linux (>= ${source:Version}),
+         ${misc:Depends}
+Description: OpenZFS root filesystem capabilities for Linux - dracut
+ OpenZFS is a storage platform that encompasses the functionality of
+ traditional filesystems and volume managers. It supports data checksums,
+ compression, encryption, snapshots, and more.
+ .
+ This package adds OpenZFS to the system initramfs with a hook
+ for the dracut infrastructure.
+
 Package: zfsutils-linux
 Section: contrib/admin
 Architecture: linux-any
