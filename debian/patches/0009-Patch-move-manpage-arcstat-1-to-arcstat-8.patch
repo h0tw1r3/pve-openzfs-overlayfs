@@ -14,7 +14,7 @@ Signed-off-by: Stoiko Ivanov <s.ivanov@proxmox.com>
  rename man/{man1/arcstat.1 => man8/arcstat.8} (99%)
 
 diff --git a/man/Makefile.am b/man/Makefile.am
-index 8ab1b7572..8b3dbe633 100644
+index 64650c2b9..95a66a62f 100644
 --- a/man/Makefile.am
 +++ b/man/Makefile.am
 @@ -8,7 +8,6 @@ dist_man_MANS = \
@@ -25,7 +25,7 @@ index 8ab1b7572..8b3dbe633 100644
  	\
  	man5/vdev_id.conf.5 \
  	\
-@@ -21,6 +20,7 @@ dist_man_MANS = \
+@@ -22,6 +21,7 @@ dist_man_MANS = \
  	man7/zpoolconcepts.7 \
  	man7/zpoolprops.7 \
  	\
