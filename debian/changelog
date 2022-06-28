@@ -1,3 +1,13 @@
+zfs-linux (2.1.5-pve1) bullseye; urgency=medium
+
+  * update ZFS to 2.1.5
+
+  * Build with libcurl for new keylocation=https://
+
+  * d/control: add new zfs-dracut package
+
+ -- Proxmox Support Team <support@proxmox.com>  Tue, 28 Jun 2022 16:13:24 +0200
+
 zfs-linux (2.1.4-pve1) bullseye; urgency=medium
 
   * update ZFS to 2.1.4
