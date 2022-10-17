@@ -1,0 +1,37 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: =?UTF-8?q?=D0=BD=D0=B0=D0=B1?= <nabijaczleweli@nabijaczleweli.xyz>
+Date: Thu, 13 Oct 2022 00:29:21 +0200
+Subject: [PATCH] etc: mask zfs-load-key.service
+MIME-Version: 1.0
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 8bit
+
+Otherwise, systemd-sysv-generator will generate a service equivalent
+that breaks the boot: under systemd this is covered by
+zfs-mount-generator
+
+We already do this for zfs-import.service, and other init scripts are
+suppressed automatically by the "actual" .service files
+
+Fixes: commit f04b97620059d08b37d9e80ada397e742bb2f311 ("Add init script
+ to load keys")
+Reviewed-by: George Melikov <mail@gmelikov.ru>
+Reviewed-by: Brian Behlendorf <behlendorf1@llnl.gov>
+Signed-off-by: Ahelenia Ziemiańska <nabijaczleweli@nabijaczleweli.xyz>
+Closes #14010
+Closes #14019
+(cherry picked from commit 8cf59e97c4fc7b70723313953ceb0f777ca3bcdf)
+Signed-off-by: Stoiko Ivanov <s.ivanov@proxmox.com>
+---
+ etc/systemd/system/Makefile.am | 1 +
+ 1 file changed, 1 insertion(+)
+
+diff --git a/etc/systemd/system/Makefile.am b/etc/systemd/system/Makefile.am
+index 8e6baeb68..af3ae597c 100644
+--- a/etc/systemd/system/Makefile.am
++++ b/etc/systemd/system/Makefile.am
+@@ -23,3 +23,4 @@ SUBSTFILES += $(systemdpreset_DATA) $(systemdunit_DATA)
+ install-data-hook:
+ 	$(MKDIR_P) "$(DESTDIR)$(systemdunitdir)"
+ 	ln -sf /dev/null "$(DESTDIR)$(systemdunitdir)/zfs-import.service"
++	ln -sf /dev/null "$(DESTDIR)$(systemdunitdir)/zfs-load-key.service"

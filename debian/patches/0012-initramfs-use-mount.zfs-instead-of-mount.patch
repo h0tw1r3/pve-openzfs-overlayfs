@@ -1,0 +1,74 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Damian Szuberski <szuberskidamian@gmail.com>
+Date: Tue, 12 Apr 2022 00:51:23 +0200
+Subject: [PATCH] initramfs: use `mount.zfs` instead of `mount`
+
+A followup to d7a67402a85252e163aa8a9b69e7eda499db8c61
+
+For `mount -t zfs -o opts ds mp` command line
+some implementations of `mount(8)`, e. g. Busybox in Debian
+work as follows:
+
+```
+newfstatat(AT_FDCWD, "ds", 0x7fff826f4ab0, 0) = -1
+mount("ds", "mp", "zfs", MS_SILENT, NULL) = 0
+```
+
+The logic above skips completely `mount.zfs` and prevents us
+from reading filesystem properties and applying mount options.
+
+For comparison, the coreutils `mount(8)` implementation does:
+
+```
+openat(AT_FDCWD, "/proc/filesystems", O_RDONLY|O_CLOEXEC) = 3
+// figure out that zfs is a `nodev` filesystem and look for a helper
+newfstatat(AT_FDCWD, "/sbin/mount.zfs" ...) = 0
+execve("/sbin/mount.zfs" ...) = 0
+```
+
+Using `mount.zfs` in initramfs would help circumvent deficiencies
+of some of `mount(8)` implementations. `mount -t zfs` translates
+to `mount.zfs` invocation, except for cases when explicitly disabled
+by `-i`.
+
+Reviewed-by: Brian Behlendorf <behlendorf1@llnl.gov>
+Signed-off-by: szubersk <szuberskidamian@gmail.com>
+Closes #13305
+(cherry picked from commit 35d81a75a8c13e011e19fd12cf553d9c5849386e)
+(cherry picked from commit 4d22befde60087cbc6174122863353903df1d935)
+Signed-off-by: Stoiko Ivanov <s.ivanov@proxmox.com>
+---
+ contrib/initramfs/scripts/zfs | 6 +++---
+ 1 file changed, 3 insertions(+), 3 deletions(-)
+
+diff --git a/contrib/initramfs/scripts/zfs b/contrib/initramfs/scripts/zfs
+index 814547b6f..9169adf5f 100644
+--- a/contrib/initramfs/scripts/zfs
++++ b/contrib/initramfs/scripts/zfs
+@@ -326,7 +326,7 @@ mount_fs()
+ 
+ 	# Need the _original_ datasets mountpoint!
+ 	mountpoint=$(get_fs_value "$fs" mountpoint)
+-	ZFS_CMD="mount -o zfsutil -t zfs"
++	ZFS_CMD="mount.zfs -o zfsutil"
+ 	if [ "$mountpoint" = "legacy" ] || [ "$mountpoint" = "none" ]; then
+ 		# Can't use the mountpoint property. Might be one of our
+ 		# clones. Check the 'org.zol:mountpoint' property set in
+@@ -349,7 +349,7 @@ mount_fs()
+ 		# If it's not a legacy filesystem, it can only be a
+ 		# native one...
+ 		if [ "$mountpoint" = "legacy" ]; then
+-			ZFS_CMD="mount -t zfs"
++			ZFS_CMD="mount.zfs"
+ 		fi
+ 	fi
+ 
+@@ -915,7 +915,7 @@ mountroot()
+ 		echo "       not specified on the kernel command line."
+ 		echo ""
+ 		echo "Manually mount the root filesystem on $rootmnt and then exit."
+-		echo "Hint: Try:  mount -o zfsutil -t zfs ${ZFS_RPOOL-rpool}/ROOT/system $rootmnt"
++		echo "Hint: Try:  mount.zfs -o zfsutil ${ZFS_RPOOL-rpool}/ROOT/system $rootmnt"
+ 		shell
+ 	fi
+ 

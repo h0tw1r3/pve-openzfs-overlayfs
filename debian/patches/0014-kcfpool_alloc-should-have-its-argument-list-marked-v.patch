@@ -1,0 +1,40 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Richard Yao <richard.yao@alumni.stonybrook.edu>
+Date: Wed, 12 Oct 2022 18:47:39 -0400
+Subject: [PATCH] kcfpool_alloc() should have its argument list marked void
+
+This error occurred when building on Gentoo with debugging enabled:
+
+zfs-kmod-2.1.6/work/zfs-2.1.6/module/icp/core/kcf_sched.c:1277:14:
+error: a function declaration without a prototype is deprecated
+in all versions of C [-Werror,-Wstrict-prototypes]
+  kcfpool_alloc()
+               ^
+               void
+1 error generated.
+
+This function is not present in master.
+
+Reviewed-by: Brian Behlendorf <behlendorf1@llnl.gov>
+Reviewed-by: Tony Hutter <hutter2@llnl.gov>
+Signed-off-by: Richard Yao <richard.yao@alumni.stonybrook.edu>
+Closes #14023
+(cherry picked from commit b0bc882395ed37f60cf9612250cb99b1322cd458)
+Signed-off-by: Stoiko Ivanov <s.ivanov@proxmox.com>
+---
+ module/icp/core/kcf_sched.c | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+
+diff --git a/module/icp/core/kcf_sched.c b/module/icp/core/kcf_sched.c
+index 81fd15f8e..fa44a4dbf 100644
+--- a/module/icp/core/kcf_sched.c
++++ b/module/icp/core/kcf_sched.c
+@@ -1274,7 +1274,7 @@ kcf_aop_done(kcf_areq_node_t *areq, int error)
+  * Allocate the thread pool and initialize all the fields.
+  */
+ static void
+-kcfpool_alloc()
++kcfpool_alloc(void)
+ {
+ 	kcfpool = kmem_alloc(sizeof (kcf_pool_t), KM_SLEEP);
+ 
