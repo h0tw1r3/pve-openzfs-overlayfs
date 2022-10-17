@@ -221,6 +221,7 @@ Architecture: linux-any
 Depends: zfsutils-linux (>= ${binary:Version}),
          ${misc:Depends},
          ${shlibs:Depends}
+Recommends: bsd-mailx | mailutils
 Description: OpenZFS Event Daemon
  OpenZFS is a storage platform that encompasses the functionality of
  traditional filesystems and volume managers. It supports data checksums,
