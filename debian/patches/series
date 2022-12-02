@@ -9,6 +9,3 @@
 0009-Patch-move-manpage-arcstat-1-to-arcstat-8.patch
 0010-arcstat-Fix-integer-division-with-python3.patch
 0011-arc-stat-summary-guard-access-to-l2arc-MFU-MRU-stats.patch
-0012-initramfs-use-mount.zfs-instead-of-mount.patch
-0013-etc-mask-zfs-load-key.service.patch
-0014-kcfpool_alloc-should-have-its-argument-list-marked-v.patch
