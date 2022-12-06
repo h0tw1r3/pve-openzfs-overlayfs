@@ -1,3 +1,9 @@
+zfs-linux (2.1.7-pve1) bullseye; urgency=medium
+
+  * update ZFS to 2.1.7
+
+ -- Proxmox Support Team <support@proxmox.com>  Tue, 06 Dec 2022 16:41:31 +0100
+
 zfs-linux (2.1.6-pve1) bullseye; urgency=medium
 
   * update ZFS to 2.1.6
