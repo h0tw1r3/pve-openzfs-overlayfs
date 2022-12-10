@@ -51,7 +51,7 @@ Closes #14039
  5 files changed, 189 insertions(+), 134 deletions(-)
 
 diff --git a/include/sys/btree.h b/include/sys/btree.h
-index a901d654ef1..883abb5181c 100644
+index a901d654e..883abb518 100644
 --- a/include/sys/btree.h
 +++ b/include/sys/btree.h
 @@ -65,7 +65,7 @@ extern "C" {
@@ -106,7 +106,7 @@ index a901d654ef1..883abb5181c 100644
  /*
   * Find a node with a matching value in the tree. Returns the matching node
 diff --git a/include/sys/zap_impl.h b/include/sys/zap_impl.h
-index 250dde3ce23..3c83448caa2 100644
+index 250dde3ce..3c83448ca 100644
 --- a/include/sys/zap_impl.h
 +++ b/include/sys/zap_impl.h
 @@ -66,10 +66,9 @@ typedef struct mzap_phys {
@@ -142,7 +142,7 @@ index 250dde3ce23..3c83448caa2 100644
  int zap_hashbits(zap_t *zap);
  uint32_t zap_maxcd(zap_t *zap);
 diff --git a/module/zfs/btree.c b/module/zfs/btree.c
-index e16c4ebef6b..28ab3fcdcc3 100644
+index e16c4ebef..28ab3fcdc 100644
 --- a/module/zfs/btree.c
 +++ b/module/zfs/btree.c
 @@ -102,7 +102,7 @@ zfs_btree_poison_node(zfs_btree_t *tree, zfs_btree_hdr_t *hdr)
@@ -262,7 +262,7 @@ index e16c4ebef6b..28ab3fcdcc3 100644
  	} else {
  		zfs_btree_core_t *node = (zfs_btree_core_t *)hdr;
 diff --git a/module/zfs/zap_leaf.c b/module/zfs/zap_leaf.c
-index aad923d512d..fc25344ea8a 100644
+index aad923d51..fc25344ea 100644
 --- a/module/zfs/zap_leaf.c
 +++ b/module/zfs/zap_leaf.c
 @@ -645,7 +645,7 @@ zap_entry_create(zap_leaf_t *l, zap_name_t *zn, uint32_t cd,
@@ -284,7 +284,7 @@ index aad923d512d..fc25344ea8a 100644
  		}
  		if (zap_leaf_array_match(zeh->zeh_leaf, zn,
 diff --git a/module/zfs/zap_micro.c b/module/zfs/zap_micro.c
-index 1f32e445052..590e2f837ba 100644
+index 516d46ac7..e3dadf130 100644
 --- a/module/zfs/zap_micro.c
 +++ b/module/zfs/zap_micro.c
 @@ -33,7 +33,7 @@
@@ -622,7 +622,7 @@ index 1f32e445052..590e2f837ba 100644
  			allocdzn = B_TRUE;
  		}
  		if (zap_match(zn, MZE_PHYS(zap, other)->mze_name)) {
-@@ -939,9 +950,20 @@ mzap_normalization_conflict(zap_t *zap, zap_name_t *zn, mzap_ent_t *mze)
+@@ -939,9 +950,20 @@ again:
  		}
  	}
  
@@ -665,8 +665,8 @@ index 1f32e445052..590e2f837ba 100644
  		if (mze == NULL) {
  			err = SET_ERROR(ENOENT);
  		} else {
-@@ -992,7 +1015,7 @@ zap_lookup_impl(zap_t *zap, const char *name,
- 				    MZE_PHYS(zap, mze)->mze_name, rn_len);
+@@ -994,7 +1017,7 @@ zap_lookup_impl(zap_t *zap, const char *name,
+ 					    rn_len);
  				if (ncp) {
  					*ncp = mzap_normalization_conflict(zap,
 -					    zn, mze);
@@ -674,7 +674,7 @@ index 1f32e445052..590e2f837ba 100644
  				}
  			}
  		}
-@@ -1029,7 +1052,7 @@ zap_prefetch(objset_t *os, uint64_t zapobj, const char *name)
+@@ -1031,7 +1054,7 @@ zap_prefetch(objset_t *os, uint64_t zapobj, const char *name)
  	err = zap_lockdir(os, zapobj, NULL, RW_READER, TRUE, FALSE, FTAG, &zap);
  	if (err)
  		return (err);
@@ -683,7 +683,7 @@ index 1f32e445052..590e2f837ba 100644
  	if (zn == NULL) {
  		zap_unlockdir(zap, FTAG);
  		return (SET_ERROR(ENOTSUP));
-@@ -1132,7 +1155,7 @@ zap_length(objset_t *os, uint64_t zapobj, const char *name,
+@@ -1134,7 +1157,7 @@ zap_length(objset_t *os, uint64_t zapobj, const char *name,
  	    zap_lockdir(os, zapobj, NULL, RW_READER, TRUE, FALSE, FTAG, &zap);
  	if (err != 0)
  		return (err);
@@ -692,7 +692,7 @@ index 1f32e445052..590e2f837ba 100644
  	if (zn == NULL) {
  		zap_unlockdir(zap, FTAG);
  		return (SET_ERROR(ENOTSUP));
-@@ -1140,7 +1163,8 @@ zap_length(objset_t *os, uint64_t zapobj, const char *name,
+@@ -1142,7 +1165,8 @@ zap_length(objset_t *os, uint64_t zapobj, const char *name,
  	if (!zap->zap_ismicro) {
  		err = fzap_length(zn, integer_size, num_integers);
  	} else {
@@ -702,7 +702,7 @@ index 1f32e445052..590e2f837ba 100644
  		if (mze == NULL) {
  			err = SET_ERROR(ENOENT);
  		} else {
-@@ -1180,7 +1204,7 @@ static void
+@@ -1182,7 +1206,7 @@ static void
  mzap_addent(zap_name_t *zn, uint64_t value)
  {
  	zap_t *zap = zn->zn_zap;
@@ -711,7 +711,7 @@ index 1f32e445052..590e2f837ba 100644
  
  	ASSERT(RW_WRITE_HELD(&zap->zap_rwlock));
  
-@@ -1196,7 +1220,7 @@ mzap_addent(zap_name_t *zn, uint64_t value)
+@@ -1198,7 +1222,7 @@ mzap_addent(zap_name_t *zn, uint64_t value)
  	ASSERT(cd < zap_maxcd(zap));
  
  again:
@@ -720,7 +720,7 @@ index 1f32e445052..590e2f837ba 100644
  		mzap_ent_phys_t *mze = &zap_m_phys(zap)->mz_chunk[i];
  		if (mze->mze_name[0] == 0) {
  			mze->mze_value = value;
-@@ -1227,7 +1251,7 @@ zap_add_impl(zap_t *zap, const char *key,
+@@ -1229,7 +1253,7 @@ zap_add_impl(zap_t *zap, const char *key,
  	const uint64_t *intval = val;
  	int err = 0;
  
@@ -729,7 +729,7 @@ index 1f32e445052..590e2f837ba 100644
  	if (zn == NULL) {
  		zap_unlockdir(zap, tag);
  		return (SET_ERROR(ENOTSUP));
-@@ -1245,7 +1269,8 @@ zap_add_impl(zap_t *zap, const char *key,
+@@ -1247,7 +1271,8 @@ zap_add_impl(zap_t *zap, const char *key,
  		}
  		zap = zn->zn_zap;	/* fzap_add() may change zap */
  	} else {
@@ -739,7 +739,7 @@ index 1f32e445052..590e2f837ba 100644
  			err = SET_ERROR(EEXIST);
  		} else {
  			mzap_addent(zn, *intval);
-@@ -1325,7 +1350,7 @@ zap_update(objset_t *os, uint64_t zapobj, const char *name,
+@@ -1327,7 +1352,7 @@ zap_update(objset_t *os, uint64_t zapobj, const char *name,
  	    zap_lockdir(os, zapobj, tx, RW_WRITER, TRUE, TRUE, FTAG, &zap);
  	if (err != 0)
  		return (err);
@@ -748,7 +748,7 @@ index 1f32e445052..590e2f837ba 100644
  	if (zn == NULL) {
  		zap_unlockdir(zap, FTAG);
  		return (SET_ERROR(ENOTSUP));
-@@ -1346,7 +1371,8 @@ zap_update(objset_t *os, uint64_t zapobj, const char *name,
+@@ -1348,7 +1373,8 @@ zap_update(objset_t *os, uint64_t zapobj, const char *name,
  		}
  		zap = zn->zn_zap;	/* fzap_update() may change zap */
  	} else {
@@ -758,7 +758,7 @@ index 1f32e445052..590e2f837ba 100644
  		if (mze != NULL) {
  			MZE_PHYS(zap, mze)->mze_value = *intval;
  		} else {
-@@ -1396,20 +1422,20 @@ zap_remove_impl(zap_t *zap, const char *name,
+@@ -1398,20 +1424,20 @@ zap_remove_impl(zap_t *zap, const char *name,
  {
  	int err = 0;
  
@@ -784,7 +784,7 @@ index 1f32e445052..590e2f837ba 100644
  		}
  	}
  	zap_name_free(zn);
-@@ -1580,29 +1606,30 @@ zap_cursor_retrieve(zap_cursor_t *zc, zap_attribute_t *za)
+@@ -1582,29 +1608,30 @@ zap_cursor_retrieve(zap_cursor_t *zc, zap_attribute_t *za)
  	if (!zc->zc_zap->zap_ismicro) {
  		err = fzap_cursor_retrieve(zc->zc_zap, zc, za);
  	} else {
@@ -823,3 +823,6 @@ index 1f32e445052..590e2f837ba 100644
  			zc->zc_cd = mze->mze_cd;
  			err = 0;
  		} else {
+-- 
+2.30.2
+

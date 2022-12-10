@@ -1,8 +1,55 @@
-commit 2b810ab2807fbd35a04f101b0e969a787d9e482b
-Author: Jeffrey Clark <h0tw1r3@users.noreply.github.com>
-Date:   Tue Nov 1 14:59:02 2022 -0500
+From 65be99a90f245ee8b57b452fd19aed45b2b47f4d Mon Sep 17 00:00:00 2001
+From: Jeffrey Clark <h0tw1r3@users.noreply.github.com>
+Date: Sat, 10 Dec 2022 09:45:39 -0600
+Subject: [PATCH] overlayfs support
 
-    overlayfs support
+---
+ AUTHORS                                       |   2 +
+ cmd/zdb/zdb_il.c                              |  20 +-
+ cmd/ztest/ztest.c                             |   3 +
+ config/kernel-rename.m4                       |  71 ++++-
+ configure.ac                                  |   1 +
+ include/os/freebsd/zfs/sys/zfs_vnops_os.h     |   2 +-
+ include/os/linux/kernel/linux/vfs_compat.h    |  13 +
+ include/os/linux/spl/sys/debug.h              |  21 +-
+ include/os/linux/spl/sys/sysmacros.h          |  10 +
+ include/os/linux/zfs/sys/zfs_dir.h            |   1 +
+ include/os/linux/zfs/sys/zfs_vnops_os.h       |   2 +-
+ include/os/linux/zfs/sys/zpl.h                |   4 +
+ include/sys/zfs_znode.h                       |   6 +
+ include/sys/zil.h                             |  18 +-
+ module/os/freebsd/zfs/zfs_vnops_os.c          |   5 +-
+ module/os/linux/zfs/zfs_dir.c                 |  96 ++++--
+ module/os/linux/zfs/zfs_vnops_os.c            | 279 ++++++++++++++----
+ module/os/linux/zfs/zfs_znode.c               |   5 +
+ module/os/linux/zfs/zpl_inode.c               |  37 ++-
+ module/zfs/zfs_log.c                          |  86 +++++-
+ module/zfs/zfs_replay.c                       | 107 ++++++-
+ module/zfs/zvol.c                             |   3 +
+ tests/runfiles/linux.run                      |   4 +
+ tests/test-runner/bin/zts-report.py.in        |  10 +-
+ tests/zfs-tests/cmd/Makefile.am               |   1 +
+ tests/zfs-tests/cmd/renameat2/.gitignore      |   1 +
+ tests/zfs-tests/cmd/renameat2/Makefile.am     |   6 +
+ tests/zfs-tests/cmd/renameat2/renameat2.c     | 128 ++++++++
+ tests/zfs-tests/include/commands.cfg          |   1 +
+ .../tests/functional/renameat2/Makefile.am    |   7 +
+ .../tests/functional/renameat2/cleanup.ksh    |  34 +++
+ .../renameat2/renameat2_exchange.ksh          |  61 ++++
+ .../renameat2/renameat2_noreplace.ksh         |  51 ++++
+ .../renameat2/renameat2_whiteout.ksh          |  50 ++++
+ .../tests/functional/renameat2/setup.ksh      |  37 +++
+ .../functional/slog/slog_replay_fs_001.ksh    |  23 ++
+ 36 files changed, 1075 insertions(+), 131 deletions(-)
+ create mode 100644 tests/zfs-tests/cmd/renameat2/.gitignore
+ create mode 100644 tests/zfs-tests/cmd/renameat2/Makefile.am
+ create mode 100644 tests/zfs-tests/cmd/renameat2/renameat2.c
+ create mode 100644 tests/zfs-tests/tests/functional/renameat2/Makefile.am
+ create mode 100755 tests/zfs-tests/tests/functional/renameat2/cleanup.ksh
+ create mode 100755 tests/zfs-tests/tests/functional/renameat2/renameat2_exchange.ksh
+ create mode 100755 tests/zfs-tests/tests/functional/renameat2/renameat2_noreplace.ksh
+ create mode 100755 tests/zfs-tests/tests/functional/renameat2/renameat2_whiteout.ksh
+ create mode 100755 tests/zfs-tests/tests/functional/renameat2/setup.ksh
 
 diff --git a/AUTHORS b/AUTHORS
 index aab8bf29c..a66572607 100644
@@ -70,10 +117,10 @@ index 553765b71..3b04f64cd 100644
  			(void) printf("%s(encrypted)\n", tab_prefix);
  		}
 diff --git a/cmd/ztest/ztest.c b/cmd/ztest/ztest.c
-index a580396eb..a817cd5d2 100644
+index fb4297478..bfc8a3c42 100644
 --- a/cmd/ztest/ztest.c
 +++ b/cmd/ztest/ztest.c
-@@ -2383,6 +2383,9 @@ zil_replay_func_t *ztest_replay_vector[TX_MAX_TYPE] = {
+@@ -2384,6 +2384,9 @@ zil_replay_func_t *ztest_replay_vector[TX_MAX_TYPE] = {
  	NULL,			/* TX_MKDIR_ATTR */
  	NULL,			/* TX_MKDIR_ACL_ATTR */
  	NULL,			/* TX_WRITE2 */
@@ -83,42 +130,6 @@ index a580396eb..a817cd5d2 100644
  };
  
  /*
-diff --git a/config/kernel-dentry-alias.m4 b/config/kernel-dentry-alias.m4
-new file mode 100644
-index 000000000..f0ddb8d01
---- /dev/null
-+++ b/config/kernel-dentry-alias.m4
-@@ -0,0 +1,30 @@
-+dnl #
-+dnl # 3.18 API change
-+dnl # Dentry aliases are in d_u struct dentry member
-+dnl #
-+AC_DEFUN([ZFS_AC_KERNEL_SRC_DENTRY_ALIAS_D_U], [
-+	ZFS_LINUX_TEST_SRC([dentry_alias_d_u], [
-+		#include <linux/fs.h>
-+		#include <linux/dcache.h>
-+		#include <linux/list.h>
-+	], [
-+		struct inode *inode __attribute__ ((unused)) = NULL;
-+		struct dentry *dentry __attribute__ ((unused)) = NULL;
-+		hlist_for_each_entry(dentry, &inode->i_dentry,
-+		    d_u.d_alias) {
-+			d_drop(dentry);
-+		}
-+	])
-+])
-+
-+AC_DEFUN([ZFS_AC_KERNEL_DENTRY_ALIAS_D_U], [
-+	AC_MSG_CHECKING([whether dentry aliases are in d_u member])
-+	ZFS_LINUX_TEST_RESULT([dentry_alias_d_u], [
-+		AC_MSG_RESULT(yes)
-+		AC_DEFINE(HAVE_DENTRY_D_U_ALIASES, 1,
-+		    [dentry aliases are in d_u member])
-+	],[
-+		AC_MSG_RESULT(no)
-+	])
-+])
-+
 diff --git a/config/kernel-rename.m4 b/config/kernel-rename.m4
 index 302db43f5..a2b0800ab 100644
 --- a/config/kernel-rename.m4
@@ -221,26 +232,6 @@ index 302db43f5..a2b0800ab 100644
  		])
  	])
  ])
-diff --git a/config/kernel.m4 b/config/kernel.m4
-index 41492c19d..222f98244 100644
---- a/config/kernel.m4
-+++ b/config/kernel.m4
-@@ -93,6 +93,7 @@ AC_DEFUN([ZFS_AC_KERNEL_TEST_SRC], [
- 	ZFS_AC_KERNEL_SRC_SETATTR_PREPARE
- 	ZFS_AC_KERNEL_SRC_INSERT_INODE_LOCKED
- 	ZFS_AC_KERNEL_SRC_DENTRY
-+	ZFS_AC_KERNEL_SRC_DENTRY_ALIAS_D_U
- 	ZFS_AC_KERNEL_SRC_TRUNCATE_SETSIZE
- 	ZFS_AC_KERNEL_SRC_SECURITY_INODE
- 	ZFS_AC_KERNEL_SRC_FST_MOUNT
-@@ -210,6 +211,7 @@ AC_DEFUN([ZFS_AC_KERNEL_TEST_RESULT], [
- 	ZFS_AC_KERNEL_SETATTR_PREPARE
- 	ZFS_AC_KERNEL_INSERT_INODE_LOCKED
- 	ZFS_AC_KERNEL_DENTRY
-+	ZFS_AC_KERNEL_DENTRY_ALIAS_D_U
- 	ZFS_AC_KERNEL_TRUNCATE_SETSIZE
- 	ZFS_AC_KERNEL_SECURITY_INODE
- 	ZFS_AC_KERNEL_FST_MOUNT
 diff --git a/configure.ac b/configure.ac
 index 2671434af..1edcc0cd7 100644
 --- a/configure.ac
@@ -266,36 +257,6 @@ index bf5e03b24..886fec007 100644
  extern int zfs_symlink(znode_t *dzp, const char *name, vattr_t *vap,
      const char *link, znode_t **zpp, cred_t *cr, int flags);
  extern int zfs_link(znode_t *tdzp, znode_t *sp,
-diff --git a/include/os/linux/kernel/linux/dcache_compat.h b/include/os/linux/kernel/linux/dcache_compat.h
-index d0588a82e..e2aca1629 100644
---- a/include/os/linux/kernel/linux/dcache_compat.h
-+++ b/include/os/linux/kernel/linux/dcache_compat.h
-@@ -61,4 +61,25 @@ d_clear_d_op(struct dentry *dentry)
- 	    DCACHE_OP_REVALIDATE | DCACHE_OP_DELETE);
- }
- 
-+/*
-+ * Walk and invalidate all dentry aliases of an inode
-+ * unless it's a mountpoint
-+ */
-+static inline void
-+zpl_d_drop_aliases(struct inode *inode)
-+{
-+	struct dentry *dentry;
-+	spin_lock(&inode->i_lock);
-+#ifdef HAVE_DENTRY_D_U_ALIASES
-+	hlist_for_each_entry(dentry, &inode->i_dentry, d_u.d_alias) {
-+#else
-+	hlist_for_each_entry(dentry, &inode->i_dentry, d_alias) {
-+#endif
-+		if (!IS_ROOT(dentry) && !d_mountpoint(dentry) &&
-+		    (dentry->d_inode == inode)) {
-+			d_drop(dentry);
-+		}
-+	}
-+	spin_unlock(&inode->i_lock);
-+}
- #endif /* _ZFS_DCACHE_H */
 diff --git a/include/os/linux/kernel/linux/vfs_compat.h b/include/os/linux/kernel/linux/vfs_compat.h
 index 91e908598..614d31596 100644
 --- a/include/os/linux/kernel/linux/vfs_compat.h
@@ -406,10 +367,10 @@ index 47f91e4a6..b2e06312f 100644
      char *link, znode_t **zpp, cred_t *cr, int flags);
  extern int zfs_readlink(struct inode *ip, zfs_uio_t *uio, cred_t *cr);
 diff --git a/include/os/linux/zfs/sys/zpl.h b/include/os/linux/zfs/sys/zpl.h
-index ff86e027b..dfa431ad6 100644
+index 5f929dc32..b95f997d6 100644
 --- a/include/os/linux/zfs/sys/zpl.h
 +++ b/include/os/linux/zfs/sys/zpl.h
-@@ -42,10 +42,13 @@ extern void zpl_vap_init(vattr_t *vap, struct inode *dir,
+@@ -42,7 +42,11 @@ extern void zpl_vap_init(vattr_t *vap, struct inode *dir,
      umode_t mode, cred_t *cr);
  
  extern const struct inode_operations zpl_inode_operations;
@@ -420,15 +381,12 @@ index ff86e027b..dfa431ad6 100644
 +#endif
  extern const struct inode_operations zpl_symlink_inode_operations;
  extern const struct inode_operations zpl_special_inode_operations;
--extern dentry_operations_t zpl_dentry_operations;
- extern const struct address_space_operations zpl_address_space_operations;
- extern const struct file_operations zpl_file_operations;
- extern const struct file_operations zpl_dir_file_operations;
+ 
 diff --git a/include/sys/zfs_znode.h b/include/sys/zfs_znode.h
-index 1bf25a77d..80866e09c 100644
+index ca32cb49c..fb53103ab 100644
 --- a/include/sys/zfs_znode.h
 +++ b/include/sys/zfs_znode.h
-@@ -275,6 +275,12 @@ extern void zfs_log_symlink(zilog_t *zilog, dmu_tx_t *tx, uint64_t txtype,
+@@ -274,6 +274,12 @@ extern void zfs_log_symlink(zilog_t *zilog, dmu_tx_t *tx, uint64_t txtype,
  extern void zfs_log_rename(zilog_t *zilog, dmu_tx_t *tx, uint64_t txtype,
      znode_t *sdzp, const char *sname, znode_t *tdzp, const char *dname,
      znode_t *szp);
@@ -614,26 +572,6 @@ index 82b32d1cc..feb8e2a6d 100644
  		mutex_exit(&zp->z_lock);
  	} else {
  		error = zfs_dropname(dl, zp, dzp, tx, flag);
-diff --git a/module/os/linux/zfs/zfs_vfsops.c b/module/os/linux/zfs/zfs_vfsops.c
-index 469b82efe..736442b2d 100644
---- a/module/os/linux/zfs/zfs_vfsops.c
-+++ b/module/os/linux/zfs/zfs_vfsops.c
-@@ -1501,7 +1501,6 @@ zfs_domount(struct super_block *sb, zfs_mnt_t *zm, int silent)
- 	sb->s_op = &zpl_super_operations;
- 	sb->s_xattr = zpl_xattr_handlers;
- 	sb->s_export_op = &zpl_export_operations;
--	sb->s_d_op = &zpl_dentry_operations;
- 
- 	/* Set features for file system. */
- 	zfs_set_fuid_feature(zfsvfs);
-@@ -1858,6 +1857,7 @@ zfs_resume_fs(zfsvfs_t *zfsvfs, dsl_dataset_t *ds)
- 	    zp = list_next(&zfsvfs->z_all_znodes, zp)) {
- 		err2 = zfs_rezget(zp);
- 		if (err2) {
-+			zpl_d_drop_aliases(ZTOI(zp));
- 			remove_inode_hash(ZTOI(zp));
- 			zp->z_is_stale = B_TRUE;
- 		}
 diff --git a/module/os/linux/zfs/zfs_vnops_os.c b/module/os/linux/zfs/zfs_vnops_os.c
 index 796a86c25..fdfbeb6bc 100644
 --- a/module/os/linux/zfs/zfs_vnops_os.c
@@ -1014,7 +952,7 @@ index 796a86c25..fdfbeb6bc 100644
  
  /*
 diff --git a/module/os/linux/zfs/zfs_znode.c b/module/os/linux/zfs/zfs_znode.c
-index cd80049df..0a697b1ad 100644
+index ba2375387..d915dd122 100644
 --- a/module/os/linux/zfs/zfs_znode.c
 +++ b/module/os/linux/zfs/zfs_znode.c
 @@ -414,7 +414,12 @@ zfs_inode_set_ops(zfsvfs_t *zfsvfs, struct inode *ip)
@@ -1031,7 +969,7 @@ index cd80049df..0a697b1ad 100644
  		ITOZ(ip)->z_zn_prefetch = B_TRUE;
  		break;
 diff --git a/module/os/linux/zfs/zpl_inode.c b/module/os/linux/zfs/zpl_inode.c
-index 4f79265a0..ad4fde96c 100644
+index a0615af8d..ad4fde96c 100644
 --- a/module/os/linux/zfs/zpl_inode.c
 +++ b/module/os/linux/zfs/zpl_inode.c
 @@ -24,6 +24,7 @@
@@ -1090,54 +1028,7 @@ index 4f79265a0..ad4fde96c 100644
  static int
  zpl_rename(struct inode *sdip, struct dentry *sdentry,
      struct inode *tdip, struct dentry *tdentry)
-@@ -698,46 +706,6 @@ out:
- 	return (error);
- }
- 
--static int
--#ifdef HAVE_D_REVALIDATE_NAMEIDATA
--zpl_revalidate(struct dentry *dentry, struct nameidata *nd)
--{
--	unsigned int flags = (nd ? nd->flags : 0);
--#else
--zpl_revalidate(struct dentry *dentry, unsigned int flags)
--{
--#endif /* HAVE_D_REVALIDATE_NAMEIDATA */
--	/* CSTYLED */
--	zfsvfs_t *zfsvfs = dentry->d_sb->s_fs_info;
--	int error;
--
--	if (flags & LOOKUP_RCU)
--		return (-ECHILD);
--
--	/*
--	 * After a rollback negative dentries created before the rollback
--	 * time must be invalidated.  Otherwise they can obscure files which
--	 * are only present in the rolled back dataset.
--	 */
--	if (dentry->d_inode == NULL) {
--		spin_lock(&dentry->d_lock);
--		error = time_before(dentry->d_time, zfsvfs->z_rollback_time);
--		spin_unlock(&dentry->d_lock);
--
--		if (error)
--			return (0);
--	}
--
--	/*
--	 * The dentry may reference a stale inode if a mounted file system
--	 * was rolled back to a point in time where the object didn't exist.
--	 */
--	if (dentry->d_inode && ITOZ(dentry->d_inode)->z_is_stale)
--		return (0);
--
--	return (1);
--}
--
- const struct inode_operations zpl_inode_operations = {
- 	.setattr	= zpl_setattr,
- 	.getattr	= zpl_getattr,
-@@ -755,7 +723,12 @@ const struct inode_operations zpl_inode_operations = {
+@@ -715,7 +723,12 @@ const struct inode_operations zpl_inode_operations = {
  #endif /* CONFIG_FS_POSIX_ACL */
  };
  
@@ -1150,7 +1041,7 @@ index 4f79265a0..ad4fde96c 100644
  	.create		= zpl_create,
  	.lookup		= zpl_lookup,
  	.link		= zpl_link,
-@@ -764,7 +737,9 @@ const struct inode_operations zpl_dir_inode_operations = {
+@@ -724,7 +737,9 @@ const struct inode_operations zpl_dir_inode_operations = {
  	.mkdir		= zpl_mkdir,
  	.rmdir		= zpl_rmdir,
  	.mknod		= zpl_mknod,
@@ -1161,7 +1052,7 @@ index 4f79265a0..ad4fde96c 100644
  	.rename		= zpl_rename2,
  #else
  	.rename		= zpl_rename,
-@@ -786,6 +761,10 @@ const struct inode_operations zpl_dir_inode_operations = {
+@@ -746,6 +761,10 @@ const struct inode_operations zpl_dir_inode_operations = {
  #endif /* HAVE_SET_ACL */
  	.get_acl	= zpl_get_acl,
  #endif /* CONFIG_FS_POSIX_ACL */
@@ -1172,14 +1063,6 @@ index 4f79265a0..ad4fde96c 100644
  };
  
  const struct inode_operations zpl_symlink_inode_operations = {
-@@ -826,7 +805,3 @@ const struct inode_operations zpl_special_inode_operations = {
- 	.get_acl	= zpl_get_acl,
- #endif /* CONFIG_FS_POSIX_ACL */
- };
--
--dentry_operations_t zpl_dentry_operations = {
--	.d_revalidate	= zpl_revalidate,
--};
 diff --git a/module/zfs/zfs_log.c b/module/zfs/zfs_log.c
 index 9e52bed77..edc67e078 100644
 --- a/module/zfs/zfs_log.c
@@ -1967,3 +1850,6 @@ index 0b78a099f..0a6da23db 100755
  #
  # 4. Copy TESTFS to temporary location (TESTDIR/copy)
  #
+-- 
+2.30.2
+
