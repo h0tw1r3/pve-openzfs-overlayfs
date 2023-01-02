@@ -1,3 +1,9 @@
+zfs-linux (2.1.7-pve2) bullseye; urgency=medium
+
+  * backport fix for initramfs script when detecting rootfs legacy mountpoints
+
+ -- Proxmox Support Team <support@proxmox.com>  Mon, 02 Jan 2023 17:07:18 +0100
+
 zfs-linux (2.1.7-pve1) bullseye; urgency=medium
 
   * update ZFS to 2.1.7
