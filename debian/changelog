@@ -1,3 +1,13 @@
+zfs-linux (2.1.7-pve3) bullseye; urgency=medium
+
+  * backport a fix for as potentially hanging pipe when resizing it on recv
+
+  * backport a fix for setting extended attributes (xattr)
+
+  * adapt to 6.1 changes for open syscall with TMPFILE option
+
+ -- Proxmox Support Team <support@proxmox.com>  Sat, 07 Jan 2023 13:21:57 +0100
+
 zfs-linux (2.1.7-pve2) bullseye; urgency=medium
 
   * backport fix for initramfs script when detecting rootfs legacy mountpoints
