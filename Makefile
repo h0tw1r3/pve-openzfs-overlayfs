@@ -53,7 +53,7 @@ ${ZFSSRC}/README.md: submodule
 
 .PHONY: zfs
 zfs: ${DEBS}
-${ZFS_DEB2}: ${ZFS_DEB1}
+${ZFS_DEB2} ${ZFS_DBG_DEBS}: ${ZFS_DEB1}
 ${ZFS_DEB1}: ${ZFSDIR}
 	cd ${ZFSDIR}; dpkg-buildpackage -b -uc -us
 	lintian ${DEBS}
