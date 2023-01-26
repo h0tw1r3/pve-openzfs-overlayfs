@@ -9,7 +9,3 @@
 0009-Patch-move-manpage-arcstat-1-to-arcstat-8.patch
 0010-arcstat-Fix-integer-division-with-python3.patch
 0011-arc-stat-summary-guard-access-to-l2arc-MFU-MRU-stats.patch
-0012-initramfs-Fix-legacy-mountpoint-rootfs.patch
-0013-Add-workaround-for-broken-Linux-pipes.patch
-0014-skip-permission-checks-for-extended-attributes.patch
-0015-Linux-6.1-compat-open-inside-tmpfile.patch
