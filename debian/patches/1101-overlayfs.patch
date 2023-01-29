@@ -51,11 +51,11 @@ Subject: [PATCH] overlayfs support
  create mode 100755 tests/zfs-tests/tests/functional/renameat2/renameat2_whiteout.ksh
  create mode 100755 tests/zfs-tests/tests/functional/renameat2/setup.ksh
 
-diff --git a/AUTHORS b/AUTHORS
-index aab8bf29c..a66572607 100644
---- a/AUTHORS
-+++ b/AUTHORS
-@@ -19,6 +19,7 @@ CONTRIBUTORS:
+Index: zfs-linux_2.1.9/AUTHORS
+===================================================================
+--- zfs-linux_2.1.9.orig/AUTHORS	2023-01-28 19:19:28.783166788 -0600
++++ zfs-linux_2.1.9/AUTHORS	2023-01-28 19:19:28.779166704 -0600
+@@ -19,6 +19,7 @@
      Albert Lee <trisk@nexenta.com>
      Alec Salazar <alec.j.salazar@gmail.com>
      Alejandro R. Sedeño <asedeno@mit.edu>
@@ -63,7 +63,7 @@ index aab8bf29c..a66572607 100644
      Alek Pinchuk <alek@nexenta.com>
      Alex Braunegg <alex.braunegg@gmail.com>
      Alex McWhirter <alexmcwhirter@triadic.us>
-@@ -236,6 +237,7 @@ CONTRIBUTORS:
+@@ -236,6 +237,7 @@
      Paul Dagnelie <pcd@delphix.com>
      Paul Zuchowski <pzuchowski@datto.com>
      Pavel Boldin <boldin.pavel@gmail.com>
@@ -71,11 +71,11 @@ index aab8bf29c..a66572607 100644
      Pavel Zakharov <pavel.zakharov@delphix.com>
      Pawel Jakub Dawidek <pjd@FreeBSD.org>
      Pedro Giffuni <pfg@freebsd.org>
-diff --git a/cmd/zdb/zdb_il.c b/cmd/zdb/zdb_il.c
-index 553765b71..3b04f64cd 100644
---- a/cmd/zdb/zdb_il.c
-+++ b/cmd/zdb/zdb_il.c
-@@ -128,6 +128,14 @@ zil_prt_rec_rename(zilog_t *zilog, int txtype, const void *arg)
+Index: zfs-linux_2.1.9/cmd/zdb/zdb_il.c
+===================================================================
+--- zfs-linux_2.1.9.orig/cmd/zdb/zdb_il.c	2023-01-28 19:19:28.783166788 -0600
++++ zfs-linux_2.1.9/cmd/zdb/zdb_il.c	2023-01-28 19:19:28.779166704 -0600
+@@ -128,6 +128,14 @@
  	(void) printf("%ssdoid %llu, tdoid %llu\n", tab_prefix,
  	    (u_longlong_t)lr->lr_sdoid, (u_longlong_t)lr->lr_tdoid);
  	(void) printf("%ssrc %s tgt %s\n", tab_prefix, snm, tnm);
@@ -90,7 +90,7 @@ index 553765b71..3b04f64cd 100644
  }
  
  /* ARGSUSED */
-@@ -305,6 +313,9 @@ static zil_rec_info_t zil_rec_info[TX_MAX_TYPE] = {
+@@ -305,6 +313,9 @@
  	{.zri_print = zil_prt_rec_create,   .zri_name = "TX_MKDIR_ATTR      "},
  	{.zri_print = zil_prt_rec_create,   .zri_name = "TX_MKDIR_ACL_ATTR  "},
  	{.zri_print = zil_prt_rec_write,    .zri_name = "TX_WRITE2          "},
@@ -100,7 +100,7 @@ index 553765b71..3b04f64cd 100644
  };
  
  /* ARGSUSED */
-@@ -329,7 +340,14 @@ print_log_record(zilog_t *zilog, const lr_t *lr, void *arg, uint64_t claim_txg)
+@@ -329,7 +340,14 @@
  
  	if (txtype && verbose >= 3) {
  		if (!zilog->zl_os->os_encrypted) {
@@ -116,11 +116,11 @@ index 553765b71..3b04f64cd 100644
  		} else {
  			(void) printf("%s(encrypted)\n", tab_prefix);
  		}
-diff --git a/cmd/ztest/ztest.c b/cmd/ztest/ztest.c
-index fb4297478..bfc8a3c42 100644
---- a/cmd/ztest/ztest.c
-+++ b/cmd/ztest/ztest.c
-@@ -2384,6 +2384,9 @@ zil_replay_func_t *ztest_replay_vector[TX_MAX_TYPE] = {
+Index: zfs-linux_2.1.9/cmd/ztest/ztest.c
+===================================================================
+--- zfs-linux_2.1.9.orig/cmd/ztest/ztest.c	2023-01-28 19:19:28.783166788 -0600
++++ zfs-linux_2.1.9/cmd/ztest/ztest.c	2023-01-28 19:19:28.779166704 -0600
+@@ -2384,6 +2384,9 @@
  	NULL,			/* TX_MKDIR_ATTR */
  	NULL,			/* TX_MKDIR_ACL_ATTR */
  	NULL,			/* TX_WRITE2 */
@@ -130,13 +130,13 @@ index fb4297478..bfc8a3c42 100644
  };
  
  /*
-diff --git a/config/kernel-rename.m4 b/config/kernel-rename.m4
-index 302db43f5..a2b0800ab 100644
---- a/config/kernel-rename.m4
-+++ b/config/kernel-rename.m4
+Index: zfs-linux_2.1.9/config/kernel-rename.m4
+===================================================================
+--- zfs-linux_2.1.9.orig/config/kernel-rename.m4	2023-01-28 19:19:28.783166788 -0600
++++ zfs-linux_2.1.9/config/kernel-rename.m4	2023-01-28 19:19:28.779166704 -0600
 @@ -1,8 +1,28 @@
  AC_DEFUN([ZFS_AC_KERNEL_SRC_RENAME], [
-+	dnl #
+ 	dnl #
 +	dnl # 3.9 (to 4.9) API change,
 +	dnl #
 +	dnl # A new version of iops->rename() was added (rename2) that takes a flag
@@ -155,7 +155,7 @@ index 302db43f5..a2b0800ab 100644
 +		};
 +	],[])
 +
- 	dnl #
++	dnl #
  	dnl # 4.9 API change,
 -	dnl # iops->rename2() merged into iops->rename(), and iops->rename() now wants
 -	dnl # flags.
@@ -165,11 +165,10 @@ index 302db43f5..a2b0800ab 100644
  	dnl #
  	ZFS_LINUX_TEST_SRC([inode_operations_rename_flags], [
  		#include <linux/fs.h>
-@@ -16,11 +36,29 @@ AC_DEFUN([ZFS_AC_KERNEL_SRC_RENAME], [
- 		};
+@@ -17,10 +37,28 @@
  	],[])
  
-+	dnl #
+ 	dnl #
 +	dnl # EL7 compatibility
 +	dnl #
 +	dnl # EL7 has backported renameat2 support, but it's done by defining a
@@ -187,7 +186,7 @@ index 302db43f5..a2b0800ab 100644
 +		};
 +	],[])
 +
- 	dnl #
++	dnl #
  	dnl # 5.12 API change,
  	dnl #
 -	dnl # Linux 5.12 introduced passing struct user_namespace* as the first argument
@@ -197,7 +196,7 @@ index 302db43f5..a2b0800ab 100644
  	dnl #
  	ZFS_LINUX_TEST_SRC([inode_operations_rename_userns], [
  		#include <linux/fs.h>
-@@ -44,13 +82,30 @@ AC_DEFUN([ZFS_AC_KERNEL_RENAME], [
+@@ -44,13 +82,30 @@
  	],[
  		AC_MSG_RESULT(no)
  
@@ -232,11 +231,11 @@ index 302db43f5..a2b0800ab 100644
  		])
  	])
  ])
-diff --git a/configure.ac b/configure.ac
-index 2671434af..1edcc0cd7 100644
---- a/configure.ac
-+++ b/configure.ac
-@@ -228,6 +228,7 @@ AC_CONFIG_FILES([
+Index: zfs-linux_2.1.9/configure.ac
+===================================================================
+--- zfs-linux_2.1.9.orig/configure.ac	2023-01-28 19:19:28.783166788 -0600
++++ zfs-linux_2.1.9/configure.ac	2023-01-28 19:19:28.779166704 -0600
+@@ -228,6 +228,7 @@
  	tests/zfs-tests/cmd/randwritecomp/Makefile
  	tests/zfs-tests/cmd/readmmap/Makefile
  	tests/zfs-tests/cmd/rename_dir/Makefile
@@ -244,11 +243,11 @@ index 2671434af..1edcc0cd7 100644
  	tests/zfs-tests/cmd/rm_lnkcnt_zero_file/Makefile
  	tests/zfs-tests/cmd/send_doall/Makefile
  	tests/zfs-tests/cmd/stride_dd/Makefile
-diff --git a/include/os/freebsd/zfs/sys/zfs_vnops_os.h b/include/os/freebsd/zfs/sys/zfs_vnops_os.h
-index bf5e03b24..886fec007 100644
---- a/include/os/freebsd/zfs/sys/zfs_vnops_os.h
-+++ b/include/os/freebsd/zfs/sys/zfs_vnops_os.h
-@@ -40,7 +40,7 @@ extern int zfs_rmdir(znode_t *dzp, const char *name, znode_t *cwd,
+Index: zfs-linux_2.1.9/include/os/freebsd/zfs/sys/zfs_vnops_os.h
+===================================================================
+--- zfs-linux_2.1.9.orig/include/os/freebsd/zfs/sys/zfs_vnops_os.h	2023-01-28 19:19:28.783166788 -0600
++++ zfs-linux_2.1.9/include/os/freebsd/zfs/sys/zfs_vnops_os.h	2023-01-28 19:19:28.779166704 -0600
+@@ -40,7 +40,7 @@
      cred_t *cr, int flags);
  extern int zfs_setattr(znode_t *zp, vattr_t *vap, int flag, cred_t *cr);
  extern int zfs_rename(znode_t *sdzp, const char *snm, znode_t *tdzp,
@@ -257,15 +256,14 @@ index bf5e03b24..886fec007 100644
  extern int zfs_symlink(znode_t *dzp, const char *name, vattr_t *vap,
      const char *link, znode_t **zpp, cred_t *cr, int flags);
  extern int zfs_link(znode_t *tdzp, znode_t *sp,
-diff --git a/include/os/linux/kernel/linux/vfs_compat.h b/include/os/linux/kernel/linux/vfs_compat.h
-index 91e908598..614d31596 100644
---- a/include/os/linux/kernel/linux/vfs_compat.h
-+++ b/include/os/linux/kernel/linux/vfs_compat.h
-@@ -340,6 +340,19 @@ static inline void zfs_gid_write(struct inode *ip, gid_t gid)
- #endif
+Index: zfs-linux_2.1.9/include/os/linux/kernel/linux/vfs_compat.h
+===================================================================
+--- zfs-linux_2.1.9.orig/include/os/linux/kernel/linux/vfs_compat.h	2023-01-28 19:19:28.783166788 -0600
++++ zfs-linux_2.1.9/include/os/linux/kernel/linux/vfs_compat.h	2023-01-28 19:19:28.779166704 -0600
+@@ -341,6 +341,19 @@
  }
  
-+/*
+ /*
 + * 3.15 API change
 + */
 +#ifndef RENAME_NOREPLACE
@@ -278,14 +276,15 @@ index 91e908598..614d31596 100644
 +#define	RENAME_WHITEOUT		(1 << 2) /* Whiteout source */
 +#endif
 +
- /*
++/*
   * 4.9 API change
   */
-diff --git a/include/os/linux/spl/sys/debug.h b/include/os/linux/spl/sys/debug.h
-index dc6b85eeb..5c56ff34e 100644
---- a/include/os/linux/spl/sys/debug.h
-+++ b/include/os/linux/spl/sys/debug.h
-@@ -128,6 +128,16 @@ void spl_dumpstack(void);
+ #if !(defined(HAVE_SETATTR_PREPARE_NO_USERNS) || \
+Index: zfs-linux_2.1.9/include/os/linux/spl/sys/debug.h
+===================================================================
+--- zfs-linux_2.1.9.orig/include/os/linux/spl/sys/debug.h	2023-01-28 19:19:28.783166788 -0600
++++ zfs-linux_2.1.9/include/os/linux/spl/sys/debug.h	2023-01-28 19:19:28.779166704 -0600
+@@ -128,6 +128,16 @@
  	typedef char __attribute__ ((unused))				\
  	__compile_time_assertion__ ## y[(x) ? 1 : -1]
  
@@ -302,7 +301,7 @@ index dc6b85eeb..5c56ff34e 100644
  /*
   * Debugging disabled (--disable-debug)
   */
-@@ -153,15 +163,8 @@ void spl_dumpstack(void);
+@@ -153,15 +163,8 @@
  #define	ASSERT3P	VERIFY3P
  #define	ASSERT0		VERIFY0
  #define	ASSERT		VERIFY
@@ -320,11 +319,11 @@ index dc6b85eeb..5c56ff34e 100644
  
  #endif /* NDEBUG */
  
-diff --git a/include/os/linux/spl/sys/sysmacros.h b/include/os/linux/spl/sys/sysmacros.h
-index 98d1ab1d7..e14afcbe8 100644
---- a/include/os/linux/spl/sys/sysmacros.h
-+++ b/include/os/linux/spl/sys/sysmacros.h
-@@ -121,6 +121,16 @@ extern uint32_t zone_get_hostid(void *zone);
+Index: zfs-linux_2.1.9/include/os/linux/spl/sys/sysmacros.h
+===================================================================
+--- zfs-linux_2.1.9.orig/include/os/linux/spl/sys/sysmacros.h	2023-01-28 19:19:28.783166788 -0600
++++ zfs-linux_2.1.9/include/os/linux/spl/sys/sysmacros.h	2023-01-28 19:19:28.779166704 -0600
+@@ -121,6 +121,16 @@
  extern void spl_setup(void);
  extern void spl_cleanup(void);
  
@@ -341,11 +340,11 @@ index 98d1ab1d7..e14afcbe8 100644
  #define	highbit(x)		__fls(x)
  #define	lowbit(x)		__ffs(x)
  
-diff --git a/include/os/linux/zfs/sys/zfs_dir.h b/include/os/linux/zfs/sys/zfs_dir.h
-index 0f15e4345..1f3cf1323 100644
---- a/include/os/linux/zfs/sys/zfs_dir.h
-+++ b/include/os/linux/zfs/sys/zfs_dir.h
-@@ -52,6 +52,7 @@ extern "C" {
+Index: zfs-linux_2.1.9/include/os/linux/zfs/sys/zfs_dir.h
+===================================================================
+--- zfs-linux_2.1.9.orig/include/os/linux/zfs/sys/zfs_dir.h	2023-01-28 19:19:28.783166788 -0600
++++ zfs-linux_2.1.9/include/os/linux/zfs/sys/zfs_dir.h	2023-01-28 19:19:28.779166704 -0600
+@@ -52,6 +52,7 @@
  extern int zfs_dirent_lock(zfs_dirlock_t **, znode_t *, char *, znode_t **,
      int, int *, pathname_t *);
  extern void zfs_dirent_unlock(zfs_dirlock_t *);
@@ -353,11 +352,11 @@ index 0f15e4345..1f3cf1323 100644
  extern int zfs_link_create(zfs_dirlock_t *, znode_t *, dmu_tx_t *, int);
  extern int zfs_link_destroy(zfs_dirlock_t *, znode_t *, dmu_tx_t *, int,
      boolean_t *);
-diff --git a/include/os/linux/zfs/sys/zfs_vnops_os.h b/include/os/linux/zfs/sys/zfs_vnops_os.h
-index 47f91e4a6..b2e06312f 100644
---- a/include/os/linux/zfs/sys/zfs_vnops_os.h
-+++ b/include/os/linux/zfs/sys/zfs_vnops_os.h
-@@ -58,7 +58,7 @@ extern int zfs_getattr_fast(struct user_namespace *, struct inode *ip,
+Index: zfs-linux_2.1.9/include/os/linux/zfs/sys/zfs_vnops_os.h
+===================================================================
+--- zfs-linux_2.1.9.orig/include/os/linux/zfs/sys/zfs_vnops_os.h	2023-01-28 19:19:28.783166788 -0600
++++ zfs-linux_2.1.9/include/os/linux/zfs/sys/zfs_vnops_os.h	2023-01-28 19:19:28.779166704 -0600
+@@ -58,7 +58,7 @@
  	struct kstat *sp);
  extern int zfs_setattr(znode_t *zp, vattr_t *vap, int flag, cred_t *cr);
  extern int zfs_rename(znode_t *sdzp, char *snm, znode_t *tdzp,
@@ -366,11 +365,11 @@ index 47f91e4a6..b2e06312f 100644
  extern int zfs_symlink(znode_t *dzp, char *name, vattr_t *vap,
      char *link, znode_t **zpp, cred_t *cr, int flags);
  extern int zfs_readlink(struct inode *ip, zfs_uio_t *uio, cred_t *cr);
-diff --git a/include/os/linux/zfs/sys/zpl.h b/include/os/linux/zfs/sys/zpl.h
-index 5f929dc32..b95f997d6 100644
---- a/include/os/linux/zfs/sys/zpl.h
-+++ b/include/os/linux/zfs/sys/zpl.h
-@@ -42,7 +42,11 @@ extern void zpl_vap_init(vattr_t *vap, struct inode *dir,
+Index: zfs-linux_2.1.9/include/os/linux/zfs/sys/zpl.h
+===================================================================
+--- zfs-linux_2.1.9.orig/include/os/linux/zfs/sys/zpl.h	2023-01-28 19:19:28.783166788 -0600
++++ zfs-linux_2.1.9/include/os/linux/zfs/sys/zpl.h	2023-01-28 19:19:28.779166704 -0600
+@@ -42,7 +42,11 @@
      umode_t mode, cred_t *cr);
  
  extern const struct inode_operations zpl_inode_operations;
@@ -382,11 +381,11 @@ index 5f929dc32..b95f997d6 100644
  extern const struct inode_operations zpl_symlink_inode_operations;
  extern const struct inode_operations zpl_special_inode_operations;
  
-diff --git a/include/sys/zfs_znode.h b/include/sys/zfs_znode.h
-index ca32cb49c..fb53103ab 100644
---- a/include/sys/zfs_znode.h
-+++ b/include/sys/zfs_znode.h
-@@ -274,6 +274,12 @@ extern void zfs_log_symlink(zilog_t *zilog, dmu_tx_t *tx, uint64_t txtype,
+Index: zfs-linux_2.1.9/include/sys/zfs_znode.h
+===================================================================
+--- zfs-linux_2.1.9.orig/include/sys/zfs_znode.h	2023-01-28 19:19:28.783166788 -0600
++++ zfs-linux_2.1.9/include/sys/zfs_znode.h	2023-01-28 19:19:28.779166704 -0600
+@@ -274,6 +274,12 @@
  extern void zfs_log_rename(zilog_t *zilog, dmu_tx_t *tx, uint64_t txtype,
      znode_t *sdzp, const char *sname, znode_t *tdzp, const char *dname,
      znode_t *szp);
@@ -399,11 +398,11 @@ index ca32cb49c..fb53103ab 100644
  extern void zfs_log_write(zilog_t *zilog, dmu_tx_t *tx, int txtype,
      znode_t *zp, offset_t off, ssize_t len, int ioflag,
      zil_callback_t callback, void *callback_data);
-diff --git a/include/sys/zil.h b/include/sys/zil.h
-index a43823b60..0ee3eb154 100644
---- a/include/sys/zil.h
-+++ b/include/sys/zil.h
-@@ -162,7 +162,10 @@ typedef enum zil_create {
+Index: zfs-linux_2.1.9/include/sys/zil.h
+===================================================================
+--- zfs-linux_2.1.9.orig/include/sys/zil.h	2023-01-28 19:19:28.783166788 -0600
++++ zfs-linux_2.1.9/include/sys/zil.h	2023-01-28 19:19:28.779166704 -0600
+@@ -162,7 +162,10 @@
  #define	TX_MKDIR_ATTR		18	/* mkdir with attr */
  #define	TX_MKDIR_ACL_ATTR	19	/* mkdir with ACL + attrs */
  #define	TX_WRITE2		20	/* dmu_sync EALREADY write */
@@ -415,11 +414,10 @@ index a43823b60..0ee3eb154 100644
  
  /*
   * The transactions for mkdir, symlink, remove, rmdir, link, and rename
-@@ -314,6 +317,19 @@ typedef struct {
- 	/* 2 strings: names of source and destination follow this */
+@@ -315,6 +318,19 @@
  } lr_rename_t;
  
-+typedef struct {
+ typedef struct {
 +	lr_rename_t	lr_rename;	/* common rename portion */
 +	/* members related to the whiteout file (based on lr_create_t) */
 +	uint64_t	lr_wfoid;	/* obj id of the new whiteout file */
@@ -432,14 +430,15 @@ index a43823b60..0ee3eb154 100644
 +	/* 2 strings: names of source and destination follow this */
 +} lr_rename_whiteout_t;
 +
- typedef struct {
++typedef struct {
  	lr_t		lr_common;	/* common portion of log record */
  	uint64_t	lr_foid;	/* file object to write */
-diff --git a/module/os/freebsd/zfs/zfs_vnops_os.c b/module/os/freebsd/zfs/zfs_vnops_os.c
-index ea6388dd5..ff3340394 100644
---- a/module/os/freebsd/zfs/zfs_vnops_os.c
-+++ b/module/os/freebsd/zfs/zfs_vnops_os.c
-@@ -3473,7 +3473,7 @@ out:
+ 	uint64_t	lr_offset;	/* offset to write to */
+Index: zfs-linux_2.1.9/module/os/freebsd/zfs/zfs_vnops_os.c
+===================================================================
+--- zfs-linux_2.1.9.orig/module/os/freebsd/zfs/zfs_vnops_os.c	2023-01-28 19:19:28.783166788 -0600
++++ zfs-linux_2.1.9/module/os/freebsd/zfs/zfs_vnops_os.c	2023-01-28 19:19:28.779166704 -0600
+@@ -3473,7 +3473,7 @@
  
  int
  zfs_rename(znode_t *sdzp, const char *sname, znode_t *tdzp, const char *tname,
@@ -448,7 +447,7 @@ index ea6388dd5..ff3340394 100644
  {
  	struct componentname scn, tcn;
  	vnode_t *sdvp, *tdvp;
-@@ -3481,6 +3481,9 @@ zfs_rename(znode_t *sdzp, const char *sname, znode_t *tdzp, const char *tname,
+@@ -3481,6 +3481,9 @@
  	int error;
  	svp = tvp = NULL;
  
@@ -458,11 +457,11 @@ index ea6388dd5..ff3340394 100644
  	sdvp = ZTOV(sdzp);
  	tdvp = ZTOV(tdzp);
  	error = zfs_lookup_internal(sdzp, sname, &svp, &scn, DELETE);
-diff --git a/module/os/linux/zfs/zfs_dir.c b/module/os/linux/zfs/zfs_dir.c
-index 82b32d1cc..feb8e2a6d 100644
---- a/module/os/linux/zfs/zfs_dir.c
-+++ b/module/os/linux/zfs/zfs_dir.c
-@@ -926,6 +926,74 @@ zfs_dropname(zfs_dirlock_t *dl, znode_t *zp, znode_t *dzp, dmu_tx_t *tx,
+Index: zfs-linux_2.1.9/module/os/linux/zfs/zfs_dir.c
+===================================================================
+--- zfs-linux_2.1.9.orig/module/os/linux/zfs/zfs_dir.c	2023-01-28 19:19:28.783166788 -0600
++++ zfs-linux_2.1.9/module/os/linux/zfs/zfs_dir.c	2023-01-28 19:19:28.779166704 -0600
+@@ -926,6 +926,74 @@
  	return (error);
  }
  
@@ -537,7 +536,7 @@ index 82b32d1cc..feb8e2a6d 100644
  /*
   * Unlink zp from dl, and mark zp for deletion if this was the last link. Can
   * fail if zp is a mount point (EBUSY) or a non-empty directory (ENOTEMPTY).
-@@ -966,31 +1034,9 @@ zfs_link_destroy(zfs_dirlock_t *dl, znode_t *zp, dmu_tx_t *tx, int flag,
+@@ -966,31 +1034,9 @@
  			return (error);
  		}
  
@@ -572,11 +571,11 @@ index 82b32d1cc..feb8e2a6d 100644
  		mutex_exit(&zp->z_lock);
  	} else {
  		error = zfs_dropname(dl, zp, dzp, tx, flag);
-diff --git a/module/os/linux/zfs/zfs_vnops_os.c b/module/os/linux/zfs/zfs_vnops_os.c
-index 796a86c25..fdfbeb6bc 100644
---- a/module/os/linux/zfs/zfs_vnops_os.c
-+++ b/module/os/linux/zfs/zfs_vnops_os.c
-@@ -2671,6 +2671,8 @@ zfs_rename_lock(znode_t *szp, znode_t *tdzp, znode_t *sdzp, zfs_zlock_t **zlpp)
+Index: zfs-linux_2.1.9/module/os/linux/zfs/zfs_vnops_os.c
+===================================================================
+--- zfs-linux_2.1.9.orig/module/os/linux/zfs/zfs_vnops_os.c	2023-01-28 19:19:28.783166788 -0600
++++ zfs-linux_2.1.9/module/os/linux/zfs/zfs_vnops_os.c	2023-01-28 19:19:28.779166704 -0600
+@@ -2673,6 +2673,8 @@
   *		tnm	- New entry name.
   *		cr	- credentials of caller.
   *		flags	- case flags
@@ -585,7 +584,7 @@ index 796a86c25..fdfbeb6bc 100644
   *
   *	RETURN:	0 on success, error code on failure.
   *
-@@ -2680,7 +2682,7 @@ zfs_rename_lock(znode_t *szp, znode_t *tdzp, znode_t *sdzp, zfs_zlock_t **zlpp)
+@@ -2682,7 +2684,7 @@
  /*ARGSUSED*/
  int
  zfs_rename(znode_t *sdzp, char *snm, znode_t *tdzp, char *tnm,
@@ -594,7 +593,7 @@ index 796a86c25..fdfbeb6bc 100644
  {
  	znode_t		*szp, *tzp;
  	zfsvfs_t	*zfsvfs = ZTOZSB(sdzp);
-@@ -2692,15 +2694,37 @@ zfs_rename(znode_t *sdzp, char *snm, znode_t *tdzp, char *tnm,
+@@ -2694,15 +2696,37 @@
  	int		error = 0;
  	int		zflg = 0;
  	boolean_t	waited = B_FALSE;
@@ -634,7 +633,7 @@ index 796a86c25..fdfbeb6bc 100644
  
  	/*
  	 * We check i_sb because snapshots and the ctldir must have different
-@@ -2869,7 +2893,6 @@ top:
+@@ -2871,7 +2895,6 @@
  	 * Note that if target and source are the same, this can be
  	 * done in a single check.
  	 */
@@ -642,7 +641,7 @@ index 796a86c25..fdfbeb6bc 100644
  	if ((error = zfs_zaccess_rename(sdzp, szp, tdzp, tzp, cr)))
  		goto out;
  
-@@ -2886,17 +2909,19 @@ top:
+@@ -2888,17 +2911,19 @@
  	 * Does target exist?
  	 */
  	if (tzp) {
@@ -671,7 +670,7 @@ index 796a86c25..fdfbeb6bc 100644
  				goto out;
  			}
  		}
-@@ -2909,12 +2934,43 @@ top:
+@@ -2911,12 +2936,43 @@
  			error = 0;
  			goto out;
  		}
@@ -716,14 +715,15 @@ index 796a86c25..fdfbeb6bc 100644
  	dmu_tx_hold_zap(tx, tdzp->z_id, TRUE, tnm);
  	if (sdzp != tdzp) {
  		dmu_tx_hold_sa(tx, tdzp->z_sa_hdl, B_FALSE);
-@@ -2924,7 +2980,21 @@ top:
+@@ -2926,7 +2982,21 @@
  		dmu_tx_hold_sa(tx, tzp->z_sa_hdl, B_FALSE);
  		zfs_sa_upgrade_txholds(tx, tzp);
  	}
+-
 +	if (rflags & RENAME_WHITEOUT) {
 +		dmu_tx_hold_sa_create(tx, acl_ids.z_aclp->z_acl_bytes +
 +		    ZFS_SA_BASE_ATTR_SIZE);
- 
++
 +		dmu_tx_hold_zap(tx, sdzp->z_id, TRUE, snm);
 +		dmu_tx_hold_sa(tx, sdzp->z_sa_hdl, B_FALSE);
 +		if (!zfsvfs->z_use_sa &&
@@ -738,7 +738,7 @@ index 796a86c25..fdfbeb6bc 100644
  	zfs_sa_upgrade_txholds(tx, szp);
  	dmu_tx_hold_zap(tx, zfsvfs->z_unlinkedobj, FALSE, NULL);
  	error = dmu_tx_assign(tx, (waited ? TXG_NOTHROTTLE : 0) | TXG_NOWAIT);
-@@ -2954,58 +3024,110 @@ top:
+@@ -2956,58 +3026,110 @@
  		return (error);
  	}
  
@@ -754,6 +754,10 @@ index 796a86c25..fdfbeb6bc 100644
 +	error = sa_update(szp->z_sa_hdl, SA_ZPL_FLAGS(zfsvfs),
 +	    (void *)&szp->z_pflags, sizeof (uint64_t), tx);
 +	VERIFY0(error);
++
++	error = zfs_link_destroy(sdl, szp, tx, ZRENAMING, NULL);
++	if (error)
++		goto commit;
  
 -	if (error == 0) {
 -		error = zfs_link_create(tdl, szp, tx, ZRENAMING);
@@ -761,13 +765,6 @@ index 796a86c25..fdfbeb6bc 100644
 -			szp->z_pflags |= ZFS_AV_MODIFIED;
 -			if (tdzp->z_pflags & ZFS_PROJINHERIT)
 -				szp->z_pflags |= ZFS_PROJINHERIT;
--
--			error = sa_update(szp->z_sa_hdl, SA_ZPL_FLAGS(zfsvfs),
--			    (void *)&szp->z_pflags, sizeof (uint64_t), tx);
-+	error = zfs_link_destroy(sdl, szp, tx, ZRENAMING, NULL);
-+	if (error)
-+		goto commit;
-+
 +	/*
 +	 * Unlink the target.
 +	 */
@@ -781,7 +778,9 @@ index 796a86c25..fdfbeb6bc 100644
 +			tzp->z_pflags |= ZFS_AV_MODIFIED;
 +			if (sdzp->z_pflags & ZFS_PROJINHERIT)
 +				tzp->z_pflags |= ZFS_PROJINHERIT;
-+
+ 
+-			error = sa_update(szp->z_sa_hdl, SA_ZPL_FLAGS(zfsvfs),
+-			    (void *)&szp->z_pflags, sizeof (uint64_t), tx);
 +			error = sa_update(tzp->z_sa_hdl, SA_ZPL_FLAGS(zfsvfs),
 +			    (void *)&tzp->z_pflags, sizeof (uint64_t), tx);
  			ASSERT0(error);
@@ -857,8 +856,8 @@ index 796a86c25..fdfbeb6bc 100644
 +			goto commit_unlink_td_szp;
  		}
 +		break;
- 	}
- 
++	}
++
 +	if (fuid_dirtied)
 +		zfs_fuid_sync(zfsvfs, tx);
 +
@@ -878,8 +877,8 @@ index 796a86c25..fdfbeb6bc 100644
 +		zfs_log_rename(zilog, tx, (flags & FIGNORECASE ? TX_CI : 0),
 +		    sdzp, sdl->dl_name, tdzp, tdl->dl_name, szp);
 +		break;
-+	}
-+
+ 	}
+ 
 +commit:
  	dmu_tx_commit(tx);
  out:
@@ -893,7 +892,7 @@ index 796a86c25..fdfbeb6bc 100644
  
  	zfs_znode_update_vfs(sdzp);
  	if (sdzp == tdzp)
-@@ -3016,16 +3138,57 @@ out:
+@@ -3018,16 +3140,57 @@
  
  	zfs_znode_update_vfs(szp);
  	zrele(szp);
@@ -951,11 +950,11 @@ index 796a86c25..fdfbeb6bc 100644
  }
  
  /*
-diff --git a/module/os/linux/zfs/zfs_znode.c b/module/os/linux/zfs/zfs_znode.c
-index ba2375387..d915dd122 100644
---- a/module/os/linux/zfs/zfs_znode.c
-+++ b/module/os/linux/zfs/zfs_znode.c
-@@ -414,7 +414,12 @@ zfs_inode_set_ops(zfsvfs_t *zfsvfs, struct inode *ip)
+Index: zfs-linux_2.1.9/module/os/linux/zfs/zfs_znode.c
+===================================================================
+--- zfs-linux_2.1.9.orig/module/os/linux/zfs/zfs_znode.c	2023-01-28 19:19:28.783166788 -0600
++++ zfs-linux_2.1.9/module/os/linux/zfs/zfs_znode.c	2023-01-28 19:19:28.783166788 -0600
+@@ -414,7 +414,12 @@
  		break;
  
  	case S_IFDIR:
@@ -968,10 +967,10 @@ index ba2375387..d915dd122 100644
  		ip->i_fop = &zpl_dir_file_operations;
  		ITOZ(ip)->z_zn_prefetch = B_TRUE;
  		break;
-diff --git a/module/os/linux/zfs/zpl_inode.c b/module/os/linux/zfs/zpl_inode.c
-index a0615af8d..ad4fde96c 100644
---- a/module/os/linux/zfs/zpl_inode.c
-+++ b/module/os/linux/zfs/zpl_inode.c
+Index: zfs-linux_2.1.9/module/os/linux/zfs/zpl_inode.c
+===================================================================
+--- zfs-linux_2.1.9.orig/module/os/linux/zfs/zpl_inode.c	2023-01-28 19:19:28.783166788 -0600
++++ zfs-linux_2.1.9/module/os/linux/zfs/zpl_inode.c	2023-01-28 19:19:28.783166788 -0600
 @@ -24,6 +24,7 @@
   */
  
@@ -980,7 +979,7 @@ index a0615af8d..ad4fde96c 100644
  #include <sys/zfs_ctldir.h>
  #include <sys/zfs_vfsops.h>
  #include <sys/zfs_vnops.h>
-@@ -474,32 +475,39 @@ static int
+@@ -489,32 +490,39 @@
  #ifdef HAVE_IOPS_RENAME_USERNS
  zpl_rename2(struct user_namespace *user_ns, struct inode *sdip,
      struct dentry *sdentry, struct inode *tdip, struct dentry *tdentry,
@@ -1028,7 +1027,7 @@ index a0615af8d..ad4fde96c 100644
  static int
  zpl_rename(struct inode *sdip, struct dentry *sdentry,
      struct inode *tdip, struct dentry *tdentry)
-@@ -715,7 +723,12 @@ const struct inode_operations zpl_inode_operations = {
+@@ -734,7 +742,12 @@
  #endif /* CONFIG_FS_POSIX_ACL */
  };
  
@@ -1041,7 +1040,7 @@ index a0615af8d..ad4fde96c 100644
  	.create		= zpl_create,
  	.lookup		= zpl_lookup,
  	.link		= zpl_link,
-@@ -724,7 +737,9 @@ const struct inode_operations zpl_dir_inode_operations = {
+@@ -743,7 +756,9 @@
  	.mkdir		= zpl_mkdir,
  	.rmdir		= zpl_rmdir,
  	.mknod		= zpl_mknod,
@@ -1052,9 +1051,9 @@ index a0615af8d..ad4fde96c 100644
  	.rename		= zpl_rename2,
  #else
  	.rename		= zpl_rename,
-@@ -746,6 +761,10 @@ const struct inode_operations zpl_dir_inode_operations = {
- #endif /* HAVE_SET_ACL */
+@@ -769,6 +784,10 @@
  	.get_acl	= zpl_get_acl,
+ #endif /* HAVE_GET_INODE_ACL */
  #endif /* CONFIG_FS_POSIX_ACL */
 +#ifdef HAVE_RENAME2_OPERATIONS_WRAPPER
 +	},
@@ -1063,11 +1062,11 @@ index a0615af8d..ad4fde96c 100644
  };
  
  const struct inode_operations zpl_symlink_inode_operations = {
-diff --git a/module/zfs/zfs_log.c b/module/zfs/zfs_log.c
-index 9e52bed77..edc67e078 100644
---- a/module/zfs/zfs_log.c
-+++ b/module/zfs/zfs_log.c
-@@ -495,11 +495,8 @@ zfs_log_symlink(zilog_t *zilog, dmu_tx_t *tx, uint64_t txtype,
+Index: zfs-linux_2.1.9/module/zfs/zfs_log.c
+===================================================================
+--- zfs-linux_2.1.9.orig/module/zfs/zfs_log.c	2023-01-28 19:19:28.783166788 -0600
++++ zfs-linux_2.1.9/module/zfs/zfs_log.c	2023-01-28 19:19:28.783166788 -0600
+@@ -495,11 +495,8 @@
  	zil_itx_assign(zilog, itx, tx);
  }
  
@@ -1081,10 +1080,12 @@ index 9e52bed77..edc67e078 100644
      const char *sname, znode_t *tdzp, const char *dname, znode_t *szp)
  {
  	itx_t *itx;
-@@ -521,6 +518,85 @@ zfs_log_rename(zilog_t *zilog, dmu_tx_t *tx, uint64_t txtype, znode_t *sdzp,
- 	zil_itx_assign(zilog, itx, tx);
- }
+@@ -519,6 +516,85 @@
+ 	itx->itx_oid = szp->z_id;
  
+ 	zil_itx_assign(zilog, itx, tx);
++}
++
 +/*
 + * Handles TX_RENAME transactions.
 + */
@@ -1162,16 +1163,14 @@ index 9e52bed77..edc67e078 100644
 +	itx->itx_oid = szp->z_id;
 +
 +	zil_itx_assign(zilog, itx, tx);
-+}
-+
+ }
+ 
  /*
-  * zfs_log_write() handles TX_WRITE transactions. The specified callback is
-  * called as soon as the write is on stable storage (be it via a DMU sync or a
-diff --git a/module/zfs/zfs_replay.c b/module/zfs/zfs_replay.c
-index f3d209f1f..6ff67d672 100644
---- a/module/zfs/zfs_replay.c
-+++ b/module/zfs/zfs_replay.c
-@@ -639,18 +639,21 @@ zfs_replay_link(void *arg1, void *arg2, boolean_t byteswap)
+Index: zfs-linux_2.1.9/module/zfs/zfs_replay.c
+===================================================================
+--- zfs-linux_2.1.9.orig/module/zfs/zfs_replay.c	2023-01-28 19:19:28.783166788 -0600
++++ zfs-linux_2.1.9/module/zfs/zfs_replay.c	2023-01-28 19:19:28.783166788 -0600
+@@ -639,18 +639,21 @@
  }
  
  static int
@@ -1202,7 +1201,7 @@ index f3d209f1f..6ff67d672 100644
  
  	if ((error = zfs_zget(zfsvfs, lr->lr_sdoid, &sdzp)) != 0)
  		return (error);
-@@ -663,13 +666,94 @@ zfs_replay_rename(void *arg1, void *arg2, boolean_t byteswap)
+@@ -663,7 +666,8 @@
  	if (lr->lr_common.lrc_txtype & TX_CI)
  		vflg |= FIGNORECASE;
  
@@ -1212,10 +1211,10 @@ index f3d209f1f..6ff67d672 100644
  
  	zrele(tdzp);
  	zrele(sdzp);
- 	return (error);
+@@ -671,6 +675,86 @@
  }
  
-+static int
+ static int
 +zfs_replay_rename(void *arg1, void *arg2, boolean_t byteswap)
 +{
 +	zfsvfs_t *zfsvfs = arg1;
@@ -1295,10 +1294,11 @@ index f3d209f1f..6ff67d672 100644
 +#endif
 +}
 +
- static int
++static int
  zfs_replay_write(void *arg1, void *arg2, boolean_t byteswap)
  {
-@@ -987,4 +1071,7 @@ zil_replay_func_t *zfs_replay_vector[TX_MAX_TYPE] = {
+ 	zfsvfs_t *zfsvfs = arg1;
+@@ -987,4 +1071,7 @@
  	zfs_replay_create,	/* TX_MKDIR_ATTR */
  	zfs_replay_create_acl,	/* TX_MKDIR_ACL_ATTR */
  	zfs_replay_write2,	/* TX_WRITE2 */
@@ -1306,11 +1306,11 @@ index f3d209f1f..6ff67d672 100644
 +	zfs_replay_rename_exchange,	/* TX_RENAME_EXCHANGE */
 +	zfs_replay_rename_whiteout,	/* TX_RENAME_WHITEOUT */
  };
-diff --git a/module/zfs/zvol.c b/module/zfs/zvol.c
-index 7d141a122..c678d7a9a 100644
---- a/module/zfs/zvol.c
-+++ b/module/zfs/zvol.c
-@@ -558,6 +558,9 @@ zil_replay_func_t *zvol_replay_vector[TX_MAX_TYPE] = {
+Index: zfs-linux_2.1.9/module/zfs/zvol.c
+===================================================================
+--- zfs-linux_2.1.9.orig/module/zfs/zvol.c	2023-01-28 19:19:28.783166788 -0600
++++ zfs-linux_2.1.9/module/zfs/zvol.c	2023-01-28 19:19:28.783166788 -0600
+@@ -558,6 +558,9 @@
  	zvol_replay_err,	/* TX_MKDIR_ATTR */
  	zvol_replay_err,	/* TX_MKDIR_ACL_ATTR */
  	zvol_replay_err,	/* TX_WRITE2 */
@@ -1320,11 +1320,11 @@ index 7d141a122..c678d7a9a 100644
  };
  
  /*
-diff --git a/tests/runfiles/linux.run b/tests/runfiles/linux.run
-index 94c1cbbc3..7aff83857 100644
---- a/tests/runfiles/linux.run
-+++ b/tests/runfiles/linux.run
-@@ -153,6 +153,10 @@ tests = ['projectid_001_pos', 'projectid_002_pos', 'projectid_003_pos',
+Index: zfs-linux_2.1.9/tests/runfiles/linux.run
+===================================================================
+--- zfs-linux_2.1.9.orig/tests/runfiles/linux.run	2023-01-28 19:19:28.783166788 -0600
++++ zfs-linux_2.1.9/tests/runfiles/linux.run	2023-01-28 19:19:28.783166788 -0600
+@@ -153,6 +153,10 @@
      'projecttree_001_pos', 'projecttree_002_pos', 'projecttree_003_neg']
  tags = ['functional', 'projectquota']
  
@@ -1335,23 +1335,23 @@ index 94c1cbbc3..7aff83857 100644
  [tests/functional/rsend:Linux]
  tests = ['send_realloc_dnode_size', 'send_encrypted_files']
  tags = ['functional', 'rsend']
-diff --git a/tests/test-runner/bin/zts-report.py.in b/tests/test-runner/bin/zts-report.py.in
-index 71b0cc8d6..3e3a66669 100755
---- a/tests/test-runner/bin/zts-report.py.in
-+++ b/tests/test-runner/bin/zts-report.py.in
-@@ -70,6 +70,11 @@ exec_reason = 'Test user execute permissions required for utilities'
- python_reason = 'Python v3.5 or newer required'
+Index: zfs-linux_2.1.9/tests/test-runner/bin/zts-report.py.in
+===================================================================
+--- zfs-linux_2.1.9.orig/tests/test-runner/bin/zts-report.py.in	2023-01-28 19:19:28.783166788 -0600
++++ zfs-linux_2.1.9/tests/test-runner/bin/zts-report.py.in	2023-01-28 19:19:28.783166788 -0600
+@@ -71,6 +71,11 @@
  python_deps_reason = 'Python modules missing: python-cffi'
  
-+#
+ #
 +# Some tests require that the kernel supports renameat2 syscall.
 +#
 +renameat2_reason = 'Kernel renameat2 support required'
 +
- #
++#
  # Some tests require the O_TMPFILE flag which was first introduced in the
  # 3.11 kernel.
-@@ -245,8 +250,9 @@ maybe = {
+ #
+@@ -245,8 +250,9 @@
      'pool_checkpoint/checkpoint_discard_busy': ['FAIL', '11946'],
      'projectquota/setup': ['SKIP', exec_reason],
      'removal/removal_condense_export': ['FAIL', known_reason],
@@ -1363,11 +1363,11 @@ index 71b0cc8d6..3e3a66669 100755
      'snapshot/clone_001_pos': ['FAIL', known_reason],
      'snapshot/snapshot_009_pos': ['FAIL', '7961'],
      'snapshot/snapshot_010_pos': ['FAIL', '7961'],
-diff --git a/tests/zfs-tests/cmd/Makefile.am b/tests/zfs-tests/cmd/Makefile.am
-index d1c29fcd1..e67c0a372 100644
---- a/tests/zfs-tests/cmd/Makefile.am
-+++ b/tests/zfs-tests/cmd/Makefile.am
-@@ -25,6 +25,7 @@ SUBDIRS = \
+Index: zfs-linux_2.1.9/tests/zfs-tests/cmd/Makefile.am
+===================================================================
+--- zfs-linux_2.1.9.orig/tests/zfs-tests/cmd/Makefile.am	2023-01-28 19:19:28.783166788 -0600
++++ zfs-linux_2.1.9/tests/zfs-tests/cmd/Makefile.am	2023-01-28 19:19:28.783166788 -0600
+@@ -25,6 +25,7 @@
  	randwritecomp \
  	readmmap \
  	rename_dir \
@@ -1375,18 +1375,16 @@ index d1c29fcd1..e67c0a372 100644
  	rm_lnkcnt_zero_file \
  	send_doall \
  	stride_dd \
-diff --git a/tests/zfs-tests/cmd/renameat2/.gitignore b/tests/zfs-tests/cmd/renameat2/.gitignore
-new file mode 100644
-index 000000000..1d540598d
---- /dev/null
-+++ b/tests/zfs-tests/cmd/renameat2/.gitignore
+Index: zfs-linux_2.1.9/tests/zfs-tests/cmd/renameat2/.gitignore
+===================================================================
+--- /dev/null	1970-01-01 00:00:00.000000000 +0000
++++ zfs-linux_2.1.9/tests/zfs-tests/cmd/renameat2/.gitignore	2023-01-28 19:19:28.783166788 -0600
 @@ -0,0 +1 @@
 +/renameat2
-diff --git a/tests/zfs-tests/cmd/renameat2/Makefile.am b/tests/zfs-tests/cmd/renameat2/Makefile.am
-new file mode 100644
-index 000000000..0d68b02b0
---- /dev/null
-+++ b/tests/zfs-tests/cmd/renameat2/Makefile.am
+Index: zfs-linux_2.1.9/tests/zfs-tests/cmd/renameat2/Makefile.am
+===================================================================
+--- /dev/null	1970-01-01 00:00:00.000000000 +0000
++++ zfs-linux_2.1.9/tests/zfs-tests/cmd/renameat2/Makefile.am	2023-01-28 19:19:28.783166788 -0600
 @@ -0,0 +1,6 @@
 +include $(top_srcdir)/config/Rules.am
 +
@@ -1394,11 +1392,10 @@ index 000000000..0d68b02b0
 +
 +pkgexec_PROGRAMS = renameat2
 +renameat2_SOURCES = renameat2.c
-diff --git a/tests/zfs-tests/cmd/renameat2/renameat2.c b/tests/zfs-tests/cmd/renameat2/renameat2.c
-new file mode 100644
-index 000000000..a9d0a8b20
---- /dev/null
-+++ b/tests/zfs-tests/cmd/renameat2/renameat2.c
+Index: zfs-linux_2.1.9/tests/zfs-tests/cmd/renameat2/renameat2.c
+===================================================================
+--- /dev/null	1970-01-01 00:00:00.000000000 +0000
++++ zfs-linux_2.1.9/tests/zfs-tests/cmd/renameat2/renameat2.c	2023-01-28 19:19:28.783166788 -0600
 @@ -0,0 +1,128 @@
 +/* SPDX-License-Identifier: CDDL-1.0 OR MPL-2.0 */
 +/*
@@ -1528,11 +1525,11 @@ index 000000000..a9d0a8b20
 +		fprintf(stderr, "renameat2: %s", strerror(-err));
 +	return (err != 0);
 +}
-diff --git a/tests/zfs-tests/include/commands.cfg b/tests/zfs-tests/include/commands.cfg
-index 4497a6248..2f213f1fb 100644
---- a/tests/zfs-tests/include/commands.cfg
-+++ b/tests/zfs-tests/include/commands.cfg
-@@ -215,6 +215,7 @@ export ZFSTEST_FILES='badsend
+Index: zfs-linux_2.1.9/tests/zfs-tests/include/commands.cfg
+===================================================================
+--- zfs-linux_2.1.9.orig/tests/zfs-tests/include/commands.cfg	2023-01-28 19:19:28.783166788 -0600
++++ zfs-linux_2.1.9/tests/zfs-tests/include/commands.cfg	2023-01-28 19:19:28.783166788 -0600
+@@ -214,6 +214,7 @@
      randfree_file
      randwritecomp
      readmmap
@@ -1540,11 +1537,10 @@ index 4497a6248..2f213f1fb 100644
      rename_dir
      rm_lnkcnt_zero_file
      send_doall
-diff --git a/tests/zfs-tests/tests/functional/renameat2/Makefile.am b/tests/zfs-tests/tests/functional/renameat2/Makefile.am
-new file mode 100644
-index 000000000..bd8d6c9d6
---- /dev/null
-+++ b/tests/zfs-tests/tests/functional/renameat2/Makefile.am
+Index: zfs-linux_2.1.9/tests/zfs-tests/tests/functional/renameat2/Makefile.am
+===================================================================
+--- /dev/null	1970-01-01 00:00:00.000000000 +0000
++++ zfs-linux_2.1.9/tests/zfs-tests/tests/functional/renameat2/Makefile.am	2023-01-28 19:19:28.783166788 -0600
 @@ -0,0 +1,7 @@
 +pkgdatadir = $(datadir)/@PACKAGE@/zfs-tests/tests/functional/renameat2
 +dist_pkgdata_SCRIPTS = \
@@ -1553,11 +1549,10 @@ index 000000000..bd8d6c9d6
 +	renameat2_noreplace.ksh \
 +	renameat2_exchange.ksh \
 +	renameat2_whiteout.ksh
-diff --git a/tests/zfs-tests/tests/functional/renameat2/cleanup.ksh b/tests/zfs-tests/tests/functional/renameat2/cleanup.ksh
-new file mode 100755
-index 000000000..3166bd6ec
---- /dev/null
-+++ b/tests/zfs-tests/tests/functional/renameat2/cleanup.ksh
+Index: zfs-linux_2.1.9/tests/zfs-tests/tests/functional/renameat2/cleanup.ksh
+===================================================================
+--- /dev/null	1970-01-01 00:00:00.000000000 +0000
++++ zfs-linux_2.1.9/tests/zfs-tests/tests/functional/renameat2/cleanup.ksh	2023-01-28 19:19:28.783166788 -0600
 @@ -0,0 +1,34 @@
 +#!/bin/ksh -p
 +#
@@ -1593,11 +1588,10 @@ index 000000000..3166bd6ec
 +. $STF_SUITE/include/libtest.shlib
 +
 +default_cleanup
-diff --git a/tests/zfs-tests/tests/functional/renameat2/renameat2_exchange.ksh b/tests/zfs-tests/tests/functional/renameat2/renameat2_exchange.ksh
-new file mode 100755
-index 000000000..94e56231f
---- /dev/null
-+++ b/tests/zfs-tests/tests/functional/renameat2/renameat2_exchange.ksh
+Index: zfs-linux_2.1.9/tests/zfs-tests/tests/functional/renameat2/renameat2_exchange.ksh
+===================================================================
+--- /dev/null	1970-01-01 00:00:00.000000000 +0000
++++ zfs-linux_2.1.9/tests/zfs-tests/tests/functional/renameat2/renameat2_exchange.ksh	2023-01-28 19:19:28.783166788 -0600
 @@ -0,0 +1,61 @@
 +#!/bin/ksh -p
 +#
@@ -1660,11 +1654,10 @@ index 000000000..94e56231f
 +log_mustnot renameat2 -x bar baz
 +
 +log_pass "ZFS supports RENAME_EXCHANGE as expected."
-diff --git a/tests/zfs-tests/tests/functional/renameat2/renameat2_noreplace.ksh b/tests/zfs-tests/tests/functional/renameat2/renameat2_noreplace.ksh
-new file mode 100755
-index 000000000..d75b94fab
---- /dev/null
-+++ b/tests/zfs-tests/tests/functional/renameat2/renameat2_noreplace.ksh
+Index: zfs-linux_2.1.9/tests/zfs-tests/tests/functional/renameat2/renameat2_noreplace.ksh
+===================================================================
+--- /dev/null	1970-01-01 00:00:00.000000000 +0000
++++ zfs-linux_2.1.9/tests/zfs-tests/tests/functional/renameat2/renameat2_noreplace.ksh	2023-01-28 19:19:28.783166788 -0600
 @@ -0,0 +1,51 @@
 +#!/bin/ksh -p
 +#
@@ -1717,11 +1710,10 @@ index 000000000..d75b94fab
 +log_must renameat2 -n bar baz
 +
 +log_pass "ZFS supports RENAME_NOREPLACE as expected."
-diff --git a/tests/zfs-tests/tests/functional/renameat2/renameat2_whiteout.ksh b/tests/zfs-tests/tests/functional/renameat2/renameat2_whiteout.ksh
-new file mode 100755
-index 000000000..8ecb074db
---- /dev/null
-+++ b/tests/zfs-tests/tests/functional/renameat2/renameat2_whiteout.ksh
+Index: zfs-linux_2.1.9/tests/zfs-tests/tests/functional/renameat2/renameat2_whiteout.ksh
+===================================================================
+--- /dev/null	1970-01-01 00:00:00.000000000 +0000
++++ zfs-linux_2.1.9/tests/zfs-tests/tests/functional/renameat2/renameat2_whiteout.ksh	2023-01-28 19:19:28.783166788 -0600
 @@ -0,0 +1,50 @@
 +#!/bin/ksh -p
 +#
@@ -1773,11 +1765,10 @@ index 000000000..8ecb074db
 +log_must grep '^character special file:0:0$' <<<"$(stat -c '%F:%t:%T' whiteout)"
 +
 +log_pass "ZFS supports RENAME_WHITEOUT as expected."
-diff --git a/tests/zfs-tests/tests/functional/renameat2/setup.ksh b/tests/zfs-tests/tests/functional/renameat2/setup.ksh
-new file mode 100755
-index 000000000..b8c26d5ba
---- /dev/null
-+++ b/tests/zfs-tests/tests/functional/renameat2/setup.ksh
+Index: zfs-linux_2.1.9/tests/zfs-tests/tests/functional/renameat2/setup.ksh
+===================================================================
+--- /dev/null	1970-01-01 00:00:00.000000000 +0000
++++ zfs-linux_2.1.9/tests/zfs-tests/tests/functional/renameat2/setup.ksh	2023-01-28 19:19:28.783166788 -0600
 @@ -0,0 +1,37 @@
 +#!/bin/ksh -p
 +#
@@ -1816,11 +1807,11 @@ index 000000000..b8c26d5ba
 +
 +DISK=${DISKS%% *}
 +default_setup $DISK
-diff --git a/tests/zfs-tests/tests/functional/slog/slog_replay_fs_001.ksh b/tests/zfs-tests/tests/functional/slog/slog_replay_fs_001.ksh
-index 0b78a099f..0a6da23db 100755
---- a/tests/zfs-tests/tests/functional/slog/slog_replay_fs_001.ksh
-+++ b/tests/zfs-tests/tests/functional/slog/slog_replay_fs_001.ksh
-@@ -175,6 +175,29 @@ log_must ln /$TESTPOOL/$TESTFS/link_and_unlink \
+Index: zfs-linux_2.1.9/tests/zfs-tests/tests/functional/slog/slog_replay_fs_001.ksh
+===================================================================
+--- zfs-linux_2.1.9.orig/tests/zfs-tests/tests/functional/slog/slog_replay_fs_001.ksh	2023-01-28 19:19:28.783166788 -0600
++++ zfs-linux_2.1.9/tests/zfs-tests/tests/functional/slog/slog_replay_fs_001.ksh	2023-01-28 19:19:28.783166788 -0600
+@@ -175,6 +175,29 @@
     /$TESTPOOL/$TESTFS/link_and_unlink.link
  log_must rm /$TESTPOOL/$TESTFS/link_and_unlink.link
  
@@ -1850,6 +1841,3 @@ index 0b78a099f..0a6da23db 100755
  #
  # 4. Copy TESTFS to temporary location (TESTDIR/copy)
  #
--- 
-2.30.2
-

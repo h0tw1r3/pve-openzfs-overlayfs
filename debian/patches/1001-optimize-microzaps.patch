@@ -50,11 +50,11 @@ Closes #14039
  module/zfs/zap_micro.c | 241 +++++++++++++++++++++++------------------
  5 files changed, 189 insertions(+), 134 deletions(-)
 
-diff --git a/include/sys/btree.h b/include/sys/btree.h
-index a901d654e..883abb518 100644
---- a/include/sys/btree.h
-+++ b/include/sys/btree.h
-@@ -65,7 +65,7 @@ extern "C" {
+Index: zfs-linux_2.1.9/include/sys/btree.h
+===================================================================
+--- zfs-linux_2.1.9.orig/include/sys/btree.h	2023-01-28 19:18:40.658132102 -0600
++++ zfs-linux_2.1.9/include/sys/btree.h	2023-01-28 19:18:40.654132014 -0600
+@@ -65,7 +65,7 @@
   * them, and increased memory overhead. Increasing these values results in
   * higher variance in operation time, and reduces memory overhead.
   */
@@ -63,7 +63,7 @@ index a901d654e..883abb518 100644
  #define	BTREE_LEAF_SIZE		4096
  
  extern kmem_cache_t *zfs_btree_leaf_cache;
-@@ -95,9 +95,6 @@ typedef struct zfs_btree_leaf {
+@@ -95,9 +95,6 @@
  	uint8_t		btl_elems[];
  } zfs_btree_leaf_t;
  
@@ -73,7 +73,7 @@ index a901d654e..883abb518 100644
  typedef struct zfs_btree_index {
  	zfs_btree_hdr_t	*bti_node;
  	uint32_t	bti_offset;
-@@ -109,14 +106,15 @@ typedef struct zfs_btree_index {
+@@ -109,14 +106,15 @@
  } zfs_btree_index_t;
  
  typedef struct btree {
@@ -92,7 +92,7 @@ index a901d654e..883abb518 100644
  } zfs_btree_t;
  
  /*
-@@ -132,9 +130,12 @@ void zfs_btree_fini(void);
+@@ -132,9 +130,12 @@
   * compar - function to compare two nodes, it must return exactly: -1, 0, or +1
   *          -1 for <, 0 for ==, and +1 for >
   * size   - the value of sizeof(struct my_type)
@@ -105,11 +105,11 @@ index a901d654e..883abb518 100644
  
  /*
   * Find a node with a matching value in the tree. Returns the matching node
-diff --git a/include/sys/zap_impl.h b/include/sys/zap_impl.h
-index 250dde3ce..3c83448ca 100644
---- a/include/sys/zap_impl.h
-+++ b/include/sys/zap_impl.h
-@@ -66,10 +66,9 @@ typedef struct mzap_phys {
+Index: zfs-linux_2.1.9/include/sys/zap_impl.h
+===================================================================
+--- zfs-linux_2.1.9.orig/include/sys/zap_impl.h	2023-01-28 19:18:40.658132102 -0600
++++ zfs-linux_2.1.9/include/sys/zap_impl.h	2023-01-28 19:18:40.654132014 -0600
+@@ -66,10 +66,9 @@
  } mzap_phys_t;
  
  typedef struct mzap_ent {
@@ -123,7 +123,7 @@ index 250dde3ce..3c83448ca 100644
  } mzap_ent_t;
  
  #define	MZE_PHYS(zap, mze) \
-@@ -164,7 +163,7 @@ typedef struct zap {
+@@ -164,7 +163,7 @@
  			int16_t zap_num_entries;
  			int16_t zap_num_chunks;
  			int16_t zap_alloc_next;
@@ -132,7 +132,7 @@ index 250dde3ce..3c83448ca 100644
  		} zap_micro;
  	} zap_u;
  } zap_t;
-@@ -202,7 +201,7 @@ int zap_lockdir(objset_t *os, uint64_t obj, dmu_tx_t *tx,
+@@ -202,7 +201,7 @@
      krw_t lti, boolean_t fatreader, boolean_t adding, void *tag, zap_t **zapp);
  void zap_unlockdir(zap_t *zap, void *tag);
  void zap_evict_sync(void *dbu);
@@ -141,11 +141,11 @@ index 250dde3ce..3c83448ca 100644
  void zap_name_free(zap_name_t *zn);
  int zap_hashbits(zap_t *zap);
  uint32_t zap_maxcd(zap_t *zap);
-diff --git a/module/zfs/btree.c b/module/zfs/btree.c
-index e16c4ebef..28ab3fcdc 100644
---- a/module/zfs/btree.c
-+++ b/module/zfs/btree.c
-@@ -102,7 +102,7 @@ zfs_btree_poison_node(zfs_btree_t *tree, zfs_btree_hdr_t *hdr)
+Index: zfs-linux_2.1.9/module/zfs/btree.c
+===================================================================
+--- zfs-linux_2.1.9.orig/module/zfs/btree.c	2023-01-28 19:18:40.658132102 -0600
++++ zfs-linux_2.1.9/module/zfs/btree.c	2023-01-28 19:18:40.654132014 -0600
+@@ -102,7 +102,7 @@
  		(void) memset(leaf->btl_elems, 0x0f, hdr->bth_first * size);
  		(void) memset(leaf->btl_elems +
  		    (hdr->bth_first + hdr->bth_count) * size, 0x0f,
@@ -154,7 +154,7 @@ index e16c4ebef..28ab3fcdc 100644
  		    (hdr->bth_first + hdr->bth_count) * size);
  	}
  #endif
-@@ -173,16 +173,44 @@ zfs_btree_fini(void)
+@@ -173,16 +173,44 @@
  	kmem_cache_destroy(zfs_btree_leaf_cache);
  }
  
@@ -202,7 +202,7 @@ index e16c4ebef..28ab3fcdc 100644
  	tree->bt_height = -1;
  	tree->bt_bulk = NULL;
  }
-@@ -290,7 +318,7 @@ zfs_btree_find(zfs_btree_t *tree, const void *value, zfs_btree_index_t *where)
+@@ -290,7 +318,7 @@
  
  	zfs_btree_core_t *node = NULL;
  	uint32_t child = 0;
@@ -211,7 +211,7 @@ index e16c4ebef..28ab3fcdc 100644
  
  	/*
  	 * Iterate down the tree, finding which child the value should be in
-@@ -811,8 +839,7 @@ zfs_btree_insert_into_leaf(zfs_btree_t *tree, zfs_btree_leaf_t *leaf,
+@@ -811,8 +839,7 @@
  		move_count++;
  	}
  	tree->bt_num_nodes++;
@@ -221,7 +221,7 @@ index e16c4ebef..28ab3fcdc 100644
  	zfs_btree_hdr_t *new_hdr = &new_leaf->btl_hdr;
  	new_hdr->bth_parent = leaf->btl_hdr.bth_parent;
  	new_hdr->bth_first = (tree->bt_bulk ? 0 : capacity / 4) +
-@@ -1078,8 +1105,7 @@ zfs_btree_add_idx(zfs_btree_t *tree, const void *value,
+@@ -1078,8 +1105,7 @@
  		ASSERT0(where->bti_offset);
  
  		tree->bt_num_nodes++;
@@ -231,7 +231,7 @@ index e16c4ebef..28ab3fcdc 100644
  		tree->bt_root = &leaf->btl_hdr;
  		tree->bt_height++;
  
-@@ -1378,7 +1404,7 @@ zfs_btree_node_destroy(zfs_btree_t *tree, zfs_btree_hdr_t *node)
+@@ -1378,7 +1404,7 @@
  {
  	tree->bt_num_nodes--;
  	if (!zfs_btree_is_core(node)) {
@@ -240,7 +240,7 @@ index e16c4ebef..28ab3fcdc 100644
  	} else {
  		kmem_free(node, sizeof (zfs_btree_core_t) +
  		    BTREE_CORE_ELEMS * tree->bt_elem_size);
-@@ -1991,7 +2017,7 @@ zfs_btree_verify_counts(zfs_btree_t *tree)
+@@ -1991,7 +2017,7 @@
   */
  static uint64_t
  zfs_btree_verify_height_helper(zfs_btree_t *tree, zfs_btree_hdr_t *hdr,
@@ -249,7 +249,7 @@ index e16c4ebef..28ab3fcdc 100644
  {
  	if (!zfs_btree_is_core(hdr)) {
  		VERIFY0(height);
-@@ -2117,8 +2143,10 @@ zfs_btree_verify_poison_helper(zfs_btree_t *tree, zfs_btree_hdr_t *hdr)
+@@ -2117,8 +2143,10 @@
  		zfs_btree_leaf_t *leaf = (zfs_btree_leaf_t *)hdr;
  		for (size_t i = 0; i < hdr->bth_first * size; i++)
  			VERIFY3U(leaf->btl_elems[i], ==, 0x0f);
@@ -261,11 +261,11 @@ index e16c4ebef..28ab3fcdc 100644
  			VERIFY3U(leaf->btl_elems[i], ==, 0x0f);
  	} else {
  		zfs_btree_core_t *node = (zfs_btree_core_t *)hdr;
-diff --git a/module/zfs/zap_leaf.c b/module/zfs/zap_leaf.c
-index aad923d51..fc25344ea 100644
---- a/module/zfs/zap_leaf.c
-+++ b/module/zfs/zap_leaf.c
-@@ -645,7 +645,7 @@ zap_entry_create(zap_leaf_t *l, zap_name_t *zn, uint32_t cd,
+Index: zfs-linux_2.1.9/module/zfs/zap_leaf.c
+===================================================================
+--- zfs-linux_2.1.9.orig/module/zfs/zap_leaf.c	2023-01-28 19:18:40.658132102 -0600
++++ zfs-linux_2.1.9/module/zfs/zap_leaf.c	2023-01-28 19:18:40.654132014 -0600
+@@ -645,7 +645,7 @@
   * form of the name.  But all callers have one of these on hand anyway,
   * so might as well take advantage.  A cleaner but slower interface
   * would accept neither argument, and compute the normalized name as
@@ -274,7 +274,7 @@ index aad923d51..fc25344ea 100644
   */
  boolean_t
  zap_entry_normalization_conflict(zap_entry_handle_t *zeh, zap_name_t *zn,
-@@ -666,7 +666,7 @@ zap_entry_normalization_conflict(zap_entry_handle_t *zeh, zap_name_t *zn,
+@@ -666,7 +666,7 @@
  			continue;
  
  		if (zn == NULL) {
@@ -283,10 +283,10 @@ index aad923d51..fc25344ea 100644
  			allocdzn = B_TRUE;
  		}
  		if (zap_leaf_array_match(zeh->zeh_leaf, zn,
-diff --git a/module/zfs/zap_micro.c b/module/zfs/zap_micro.c
-index 516d46ac7..e3dadf130 100644
---- a/module/zfs/zap_micro.c
-+++ b/module/zfs/zap_micro.c
+Index: zfs-linux_2.1.9/module/zfs/zap_micro.c
+===================================================================
+--- zfs-linux_2.1.9.orig/module/zfs/zap_micro.c	2023-01-28 19:18:40.658132102 -0600
++++ zfs-linux_2.1.9/module/zfs/zap_micro.c	2023-01-28 19:18:40.658132102 -0600
 @@ -33,7 +33,7 @@
  #include <sys/zap.h>
  #include <sys/zap_impl.h>
@@ -296,7 +296,7 @@ index 516d46ac7..e3dadf130 100644
  #include <sys/arc.h>
  #include <sys/dmu_objset.h>
  
-@@ -92,7 +92,7 @@ zap_hash(zap_name_t *zn)
+@@ -92,7 +92,7 @@
  			    wp++, i++) {
  				uint64_t word = *wp;
  
@@ -305,7 +305,7 @@ index 516d46ac7..e3dadf130 100644
  					h = (h >> 8) ^
  					    zfs_crc64_table[(h ^ word) & 0xFF];
  					word >>= NBBY;
-@@ -162,18 +162,25 @@ zap_match(zap_name_t *zn, const char *matchname)
+@@ -162,18 +162,25 @@
  	}
  }
  
@@ -335,7 +335,7 @@ index 516d46ac7..e3dadf130 100644
  	zn->zn_key_intlen = sizeof (*key);
  	zn->zn_key_orig = key;
  	zn->zn_key_orig_numints = strlen(zn->zn_key_orig) + 1;
-@@ -194,17 +201,13 @@ zap_name_alloc(zap_t *zap, const char *key, matchtype_t mt)
+@@ -194,17 +201,13 @@
  		 * what the hash is computed from.
  		 */
  		if (zap_normalize(zap, key, zn->zn_normbuf,
@@ -357,7 +357,7 @@ index 516d46ac7..e3dadf130 100644
  		zn->zn_key_norm = zn->zn_key_orig;
  		zn->zn_key_norm_numints = zn->zn_key_orig_numints;
  	}
-@@ -217,13 +220,22 @@ zap_name_alloc(zap_t *zap, const char *key, matchtype_t mt)
+@@ -217,13 +220,22 @@
  		 * what the matching is based on.  (Not the hash!)
  		 */
  		if (zap_normalize(zap, key, zn->zn_normbuf,
@@ -384,7 +384,7 @@ index 516d46ac7..e3dadf130 100644
  	return (zn);
  }
  
-@@ -277,45 +289,46 @@ mze_compare(const void *arg1, const void *arg2)
+@@ -277,45 +289,46 @@
  	const mzap_ent_t *mze1 = arg1;
  	const mzap_ent_t *mze2 = arg2;
  
@@ -450,7 +450,7 @@ index 516d46ac7..e3dadf130 100644
  		ASSERT3U(mze->mze_cd, ==, MZE_PHYS(zn->zn_zap, mze)->mze_cd);
  		if (zap_match(zn, MZE_PHYS(zn->zn_zap, mze)->mze_name))
  			return (mze);
-@@ -328,18 +341,21 @@ static uint32_t
+@@ -328,18 +341,21 @@
  mze_find_unused_cd(zap_t *zap, uint64_t hash)
  {
  	mzap_ent_t mze_tofind;
@@ -476,7 +476,7 @@ index 516d46ac7..e3dadf130 100644
  		if (mze->mze_cd != cd)
  			break;
  		cd++;
-@@ -364,16 +380,18 @@ mze_canfit_fzap_leaf(zap_name_t *zn, uint64_t hash)
+@@ -364,16 +380,18 @@
  {
  	zap_t *zap = zn->zn_zap;
  	mzap_ent_t mze_tofind;
@@ -500,11 +500,10 @@ index 516d46ac7..e3dadf130 100644
  		mzap_ents++;
  	}
  
-@@ -383,25 +401,11 @@ mze_canfit_fzap_leaf(zap_name_t *zn, uint64_t hash)
- 	return (ZAP_LEAF_NUMCHUNKS_DEF > (mzap_ents * MZAP_ENT_CHUNKS));
+@@ -384,24 +402,10 @@
  }
  
--static void
+ static void
 -mze_remove(zap_t *zap, mzap_ent_t *mze)
 -{
 -	ASSERT(zap->zap_ismicro);
@@ -514,7 +513,7 @@ index 516d46ac7..e3dadf130 100644
 -	kmem_free(mze, sizeof (mzap_ent_t));
 -}
 -
- static void
+-static void
  mze_destroy(zap_t *zap)
  {
 -	mzap_ent_t *mze;
@@ -528,7 +527,7 @@ index 516d46ac7..e3dadf130 100644
  }
  
  static zap_t *
-@@ -448,21 +452,26 @@ mzap_open(objset_t *os, uint64_t obj, dmu_buf_t *db)
+@@ -448,21 +452,26 @@
  		zap->zap_salt = zap_m_phys(zap)->mz_salt;
  		zap->zap_normflags = zap_m_phys(zap)->mz_normflags;
  		zap->zap_m.zap_num_chunks = db->db_size / MZAP_ENT_LEN - 1;
@@ -562,7 +561,7 @@ index 516d46ac7..e3dadf130 100644
  	} else {
  		zap->zap_salt = zap_f_phys(zap)->zap_salt;
  		zap->zap_normflags = zap_f_phys(zap)->zap_normflags;
-@@ -655,24 +664,25 @@ mzap_upgrade(zap_t **zapp, void *tag, dmu_tx_t *tx, zap_flags_t flags)
+@@ -655,24 +664,25 @@
  
  	dprintf("upgrading obj=%llu with %u chunks\n",
  	    (u_longlong_t)zap->zap_object, nchunks);
@@ -591,7 +590,7 @@ index 516d46ac7..e3dadf130 100644
  	vmem_free(mzp, sz);
  	*zapp = zap;
  	return (0);
-@@ -914,22 +924,23 @@ zap_count(objset_t *os, uint64_t zapobj, uint64_t *count)
+@@ -914,22 +924,23 @@
   * See also the comment above zap_entry_normalization_conflict().
   */
  static boolean_t
@@ -622,7 +621,7 @@ index 516d46ac7..e3dadf130 100644
  			allocdzn = B_TRUE;
  		}
  		if (zap_match(zn, MZE_PHYS(zap, other)->mze_name)) {
-@@ -939,9 +950,20 @@ again:
+@@ -939,9 +950,20 @@
  		}
  	}
  
@@ -646,7 +645,7 @@ index 516d46ac7..e3dadf130 100644
  	}
  
  	if (allocdzn)
-@@ -969,7 +991,7 @@ zap_lookup_impl(zap_t *zap, const char *name,
+@@ -969,7 +991,7 @@
  {
  	int err = 0;
  
@@ -655,7 +654,7 @@ index 516d46ac7..e3dadf130 100644
  	if (zn == NULL)
  		return (SET_ERROR(ENOTSUP));
  
-@@ -977,7 +999,8 @@ zap_lookup_impl(zap_t *zap, const char *name,
+@@ -977,7 +999,8 @@
  		err = fzap_lookup(zn, integer_size, num_integers, buf,
  		    realname, rn_len, ncp);
  	} else {
@@ -665,7 +664,7 @@ index 516d46ac7..e3dadf130 100644
  		if (mze == NULL) {
  			err = SET_ERROR(ENOENT);
  		} else {
-@@ -994,7 +1017,7 @@ zap_lookup_impl(zap_t *zap, const char *name,
+@@ -994,7 +1017,7 @@
  					    rn_len);
  				if (ncp) {
  					*ncp = mzap_normalization_conflict(zap,
@@ -674,7 +673,7 @@ index 516d46ac7..e3dadf130 100644
  				}
  			}
  		}
-@@ -1031,7 +1054,7 @@ zap_prefetch(objset_t *os, uint64_t zapobj, const char *name)
+@@ -1031,7 +1054,7 @@
  	err = zap_lockdir(os, zapobj, NULL, RW_READER, TRUE, FALSE, FTAG, &zap);
  	if (err)
  		return (err);
@@ -683,7 +682,7 @@ index 516d46ac7..e3dadf130 100644
  	if (zn == NULL) {
  		zap_unlockdir(zap, FTAG);
  		return (SET_ERROR(ENOTSUP));
-@@ -1134,7 +1157,7 @@ zap_length(objset_t *os, uint64_t zapobj, const char *name,
+@@ -1134,7 +1157,7 @@
  	    zap_lockdir(os, zapobj, NULL, RW_READER, TRUE, FALSE, FTAG, &zap);
  	if (err != 0)
  		return (err);
@@ -692,7 +691,7 @@ index 516d46ac7..e3dadf130 100644
  	if (zn == NULL) {
  		zap_unlockdir(zap, FTAG);
  		return (SET_ERROR(ENOTSUP));
-@@ -1142,7 +1165,8 @@ zap_length(objset_t *os, uint64_t zapobj, const char *name,
+@@ -1142,7 +1165,8 @@
  	if (!zap->zap_ismicro) {
  		err = fzap_length(zn, integer_size, num_integers);
  	} else {
@@ -702,7 +701,7 @@ index 516d46ac7..e3dadf130 100644
  		if (mze == NULL) {
  			err = SET_ERROR(ENOENT);
  		} else {
-@@ -1182,7 +1206,7 @@ static void
+@@ -1182,7 +1206,7 @@
  mzap_addent(zap_name_t *zn, uint64_t value)
  {
  	zap_t *zap = zn->zn_zap;
@@ -711,7 +710,7 @@ index 516d46ac7..e3dadf130 100644
  
  	ASSERT(RW_WRITE_HELD(&zap->zap_rwlock));
  
-@@ -1198,7 +1222,7 @@ mzap_addent(zap_name_t *zn, uint64_t value)
+@@ -1198,7 +1222,7 @@
  	ASSERT(cd < zap_maxcd(zap));
  
  again:
@@ -720,7 +719,7 @@ index 516d46ac7..e3dadf130 100644
  		mzap_ent_phys_t *mze = &zap_m_phys(zap)->mz_chunk[i];
  		if (mze->mze_name[0] == 0) {
  			mze->mze_value = value;
-@@ -1229,7 +1253,7 @@ zap_add_impl(zap_t *zap, const char *key,
+@@ -1229,7 +1253,7 @@
  	const uint64_t *intval = val;
  	int err = 0;
  
@@ -729,7 +728,7 @@ index 516d46ac7..e3dadf130 100644
  	if (zn == NULL) {
  		zap_unlockdir(zap, tag);
  		return (SET_ERROR(ENOTSUP));
-@@ -1247,7 +1271,8 @@ zap_add_impl(zap_t *zap, const char *key,
+@@ -1247,7 +1271,8 @@
  		}
  		zap = zn->zn_zap;	/* fzap_add() may change zap */
  	} else {
@@ -739,7 +738,7 @@ index 516d46ac7..e3dadf130 100644
  			err = SET_ERROR(EEXIST);
  		} else {
  			mzap_addent(zn, *intval);
-@@ -1327,7 +1352,7 @@ zap_update(objset_t *os, uint64_t zapobj, const char *name,
+@@ -1327,7 +1352,7 @@
  	    zap_lockdir(os, zapobj, tx, RW_WRITER, TRUE, TRUE, FTAG, &zap);
  	if (err != 0)
  		return (err);
@@ -748,7 +747,7 @@ index 516d46ac7..e3dadf130 100644
  	if (zn == NULL) {
  		zap_unlockdir(zap, FTAG);
  		return (SET_ERROR(ENOTSUP));
-@@ -1348,7 +1373,8 @@ zap_update(objset_t *os, uint64_t zapobj, const char *name,
+@@ -1348,7 +1373,8 @@
  		}
  		zap = zn->zn_zap;	/* fzap_update() may change zap */
  	} else {
@@ -758,7 +757,7 @@ index 516d46ac7..e3dadf130 100644
  		if (mze != NULL) {
  			MZE_PHYS(zap, mze)->mze_value = *intval;
  		} else {
-@@ -1398,20 +1424,20 @@ zap_remove_impl(zap_t *zap, const char *name,
+@@ -1398,20 +1424,20 @@
  {
  	int err = 0;
  
@@ -784,7 +783,7 @@ index 516d46ac7..e3dadf130 100644
  		}
  	}
  	zap_name_free(zn);
-@@ -1582,29 +1608,30 @@ zap_cursor_retrieve(zap_cursor_t *zc, zap_attribute_t *za)
+@@ -1582,29 +1608,30 @@
  	if (!zc->zc_zap->zap_ismicro) {
  		err = fzap_cursor_retrieve(zc->zc_zap, zc, za);
  	} else {
@@ -823,6 +822,3 @@ index 516d46ac7..e3dadf130 100644
  			zc->zc_cd = mze->mze_cd;
  			err = 0;
  		} else {
--- 
-2.30.2
-
